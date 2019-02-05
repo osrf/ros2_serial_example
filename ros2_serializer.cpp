@@ -6,6 +6,7 @@
 #include <unistd.h>
 
 #include "ros2_serial_transport.hpp"
+#include "RtpsTopics.hpp"
 
 constexpr int BUFFER_SIZE = 1024;
 
