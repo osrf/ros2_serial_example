@@ -141,9 +141,9 @@ ssize_t Transport_node::read(uint8_t *topic_ID, char out_buffer[], size_t buffer
 
 	// Start not found
 	if (msg_start_pos > rx_buff_pos - header_size) {
-		printf("                                 (↓↓ %u)\n", msg_start_pos);
+		::printf("                                 (↓↓ %u)\n", msg_start_pos);
 		// All we've checked so far is garbage, drop it - but save unchecked bytes
-		memmove(rx_buffer, rx_buffer + msg_start_pos, rx_buff_pos - msg_start_pos);
+		::memmove(rx_buffer, rx_buffer + msg_start_pos, rx_buff_pos - msg_start_pos);
 		rx_buff_pos = rx_buff_pos - msg_start_pos;
 		return -1;
 	}
@@ -164,8 +164,8 @@ ssize_t Transport_node::read(uint8_t *topic_ID, char out_buffer[], size_t buffer
 	if (msg_start_pos + header_size + payload_len > rx_buff_pos) {
 		// If there's garbage at the beginning, drop it
 		if (msg_start_pos > 0) {
-			printf("                                 (↓ %u)\n", msg_start_pos);
-			memmove(rx_buffer, rx_buffer + msg_start_pos, rx_buff_pos - msg_start_pos);
+			::printf("                                 (↓ %u)\n", msg_start_pos);
+			::memmove(rx_buffer, rx_buffer + msg_start_pos, rx_buff_pos - msg_start_pos);
 			rx_buff_pos -= msg_start_pos;
 		}
 
@@ -176,20 +176,20 @@ ssize_t Transport_node::read(uint8_t *topic_ID, char out_buffer[], size_t buffer
 	uint16_t calc_crc = crc16((uint8_t *)rx_buffer + msg_start_pos + header_size, payload_len);
 
 	if (read_crc != calc_crc) {
-		printf("BAD CRC %u != %u\n", read_crc, calc_crc);
-		printf("                                 (↓ %lu)\n", (unsigned long)(header_size + payload_len));
+		::printf("BAD CRC %u != %u\n", read_crc, calc_crc);
+		::printf("                                 (↓ %lu)\n", (unsigned long)(header_size + payload_len));
 		len = -1;
 
 	} else {
 		// copy message to outbuffer and set other return values
-		memmove(out_buffer, rx_buffer + msg_start_pos + header_size, payload_len);
+		::memmove(out_buffer, rx_buffer + msg_start_pos + header_size, payload_len);
 		*topic_ID = header->topic_ID;
 		len = payload_len + header_size;
 	}
 
 	// discard message from rx_buffer
 	rx_buff_pos -= header_size + payload_len;
-	memmove(rx_buffer, rx_buffer + msg_start_pos + header_size + payload_len, rx_buff_pos);
+	::memmove(rx_buffer, rx_buffer + msg_start_pos + header_size + payload_len, rx_buff_pos);
 
 	return len;
 }
@@ -231,7 +231,7 @@ ssize_t Transport_node::write(const uint8_t topic_ID, char buffer[], size_t leng
 
 	/* Headroom for header is created in client */
 	/*Fill in the header in the same payload buffer to call a single node_write */
-	memcpy(buffer, &header, sizeof(header));
+	::memcpy(buffer, &header, sizeof(header));
 	ssize_t len = node_write(buffer, length + sizeof(header));
 	if (len != ssize_t(length + sizeof(header))) {
 		goto err;
@@ -253,7 +253,7 @@ UART_node::UART_node(const char *_uart_name, uint32_t _baudrate, uint32_t _poll_
 
 {
 	if (nullptr != _uart_name) {
-		strcpy(uart_name, _uart_name);
+		::strcpy(uart_name, _uart_name);
 	}
 }
 
@@ -265,10 +265,10 @@ UART_node::~UART_node()
 int UART_node::init()
 {
 	// Open a serial port
-	uart_fd = open(uart_name, O_RDWR | O_NOCTTY | O_NONBLOCK);
+	uart_fd = ::open(uart_name, O_RDWR | O_NOCTTY | O_NONBLOCK);
 
 	if (uart_fd < 0) {
-		printf("failed to open device: %s (%d)\n", uart_name, errno);
+		::printf("failed to open device: %s (%d)\n", uart_name, errno);
 		return -errno;
 	}
 
@@ -284,7 +284,7 @@ int UART_node::init()
 	// Back up the original uart configuration to restore it after exit
 	if ((termios_state = tcgetattr(uart_fd, &uart_config)) < 0) {
 		int errno_bkp = errno;
-		printf("ERR GET CONF %s: %d (%d)\n", uart_name, termios_state, errno);
+		::printf("ERR GET CONF %s: %d (%d)\n", uart_name, termios_state, errno);
 		close();
 		return -errno_bkp;
 	}
@@ -303,19 +303,19 @@ int UART_node::init()
         uart_config.c_lflag &= !(ISIG | ICANON | ECHO | TOSTOP | IEXTEN);
 
 	// USB serial is indicated by /dev/ttyACM0
-	if (strcmp(uart_name, "/dev/ttyACM0") != 0 && strcmp(uart_name, "/dev/ttyACM1") != 0) {
+	if (::strcmp(uart_name, "/dev/ttyACM0") != 0 && ::strcmp(uart_name, "/dev/ttyACM1") != 0) {
 		// Set baud rate
-		if (cfsetispeed(&uart_config, baudrate) < 0 || cfsetospeed(&uart_config, baudrate) < 0) {
+		if (::cfsetispeed(&uart_config, baudrate) < 0 || ::cfsetospeed(&uart_config, baudrate) < 0) {
 			int errno_bkp = errno;
-			printf("ERR SET BAUD %s: %d (%d)\n", uart_name, termios_state, errno);
+			::printf("ERR SET BAUD %s: %d (%d)\n", uart_name, termios_state, errno);
 			close();
 			return -errno_bkp;
 		}
 	}
 
-	if ((termios_state = tcsetattr(uart_fd, TCSANOW, &uart_config)) < 0) {
+	if ((termios_state = ::tcsetattr(uart_fd, TCSANOW, &uart_config)) < 0) {
 		int errno_bkp = errno;
-		printf("ERR SET CONF %s (%d)\n", uart_name, errno);
+		::printf("ERR SET CONF %s (%d)\n", uart_name, errno);
 		close();
 		return -errno_bkp;
 	}
@@ -330,10 +330,10 @@ int UART_node::init()
 	}
 
 	if (flush) {
-		printf("flush\n");
+		::printf("flush\n");
 
 	} else {
-		printf("no flush\n");
+		::printf("no flush\n");
 	}
 
 	poll_fd[0].fd = uart_fd;
@@ -350,10 +350,10 @@ bool UART_node::fds_OK()
 uint8_t UART_node::close()
 {
 	if (-1 != uart_fd) {
-		printf("Close UART\n");
+		::printf("Close UART\n");
 		::close(uart_fd);
 		uart_fd = -1;
-		memset(&poll_fd, 0, sizeof(poll_fd));
+		::memset(&poll_fd, 0, sizeof(poll_fd));
 	}
 
 	return 0;
