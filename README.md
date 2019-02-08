@@ -10,3 +10,6 @@ $ cmake -DTHIRDPARTY=ON -DBUILD_JAVA=ON -DCMAKE_INSTALL_PREFIX=../../install ..
 $ make -j10 install
 $ popd
 $ make -j10
+
+To run:
+$ LD_LIBRARY_PATH=install/lib ./ros2_serializer

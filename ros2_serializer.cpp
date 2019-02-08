@@ -22,9 +22,6 @@ int main(int argc, char *argv[])
 {
   (void)argc;
   (void)argv;
-  uint8_t topic_ID = 255;
-  int length = 0;
-  char data_buffer[BUFFER_SIZE] = {};
 
   std::unique_ptr<Transport_node> transport_node = std::make_unique<UART_node>("/dev/ttyACM0", B115200, 0);
 
@@ -34,8 +31,21 @@ int main(int argc, char *argv[])
     return 1;
   }
 
+  ::sleep(1);
+
+  char data_buffer[BUFFER_SIZE] = {};
+  int length = 0;
+  uint8_t topic_ID = 255;
+
+  RtpsTopics topics;
+
+  topics.init();
+
+  running = 1;
+
   while (running) {
     while ((length = transport_node->read(&topic_ID, data_buffer, BUFFER_SIZE)) > 0) {
+      topics.publish(topic_ID, data_buffer, sizeof(data_buffer));
     }
     ::usleep(1);
   }
