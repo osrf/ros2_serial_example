@@ -1,10 +1,15 @@
 CXX=g++
-CXXFLAGS=-g -Wall -Wextra -std=c++14
+CXXFLAGS=-g -Wall -Wextra -std=c++14 -I install/include
+LIBS=-Linstall/lib -lfastcdr -lfastrtps
+SERIALIZER_OBJS=ros2_serializer.o ros2_serial_transport.o RtpsTopics.o battery_status_PubSubTypes.o battery_status_Publisher.o battery_status_.o
 
 all: ros2_serializer
 
-ros2_serializer: ros2_serializer.o ros2_serial_transport.o RtpsTopics.o
-	$(CXX) $(CXXFLAGS) -o $@ ros2_serializer.o ros2_serial_transport.o RtpsTopics.o
+ros2_serializer: $(SERIALIZER_OBJS)
+	$(CXX) $(CXXFLAGS) -o $@ $(SERIALIZER_OBJS) $(LIBS)
 
 clean:
 	rm -f ros2_serializer *.o *~
+
+allclean: clean
+	rm -rf install

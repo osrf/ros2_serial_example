@@ -38,6 +38,12 @@
 bool RtpsTopics::init()
 {
     // Initialise publishers
+    if (_battery_status_pub.init()) {
+        std::cout << "battery_status publisher start" << std::endl;
+    } else {
+        std::cout << "ERROR starting battery_status publisher" << std::endl;
+        return false;
+    }
 // @[for topic in send_topics]@
 //     if (_@(topic)_pub.init()) {
 //         std::cout << "@(topic) publisher started" << std::endl;
@@ -54,6 +60,16 @@ void RtpsTopics::publish(uint8_t topic_ID, char data_buffer[], size_t len)
 {
     switch (topic_ID)
     {
+        case 6: // battery_status
+        {
+            battery_status_ st;
+            eprosima::fastcdr::FastBuffer cdrbuffer(data_buffer, len);
+            eprosima::fastcdr::Cdr cdr_des(cdrbuffer);
+            st.deserialize(cdr_des);
+            _battery_status_pub.publish(&st);
+        }
+        break;
+
 // @[for topic in send_topics]@
 //         case @(rtps_message_id(ids, topic)): // @(topic)
 //         {
