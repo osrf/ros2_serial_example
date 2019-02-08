@@ -84,6 +84,7 @@ bool battery_status_Publisher::init()
 
 void battery_status_Publisher::PubListener::onPublicationMatched(Publisher* pub, MatchingInfo& info)
 {
+    (void)pub;
     if (info.status == MATCHED_MATCHING)
     {
         n_matched++;

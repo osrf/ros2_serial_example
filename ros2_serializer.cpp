@@ -20,6 +20,8 @@ void signal_handler(int signum)
 
 int main(int argc, char *argv[])
 {
+  (void)argc;
+  (void)argv;
   uint8_t topic_ID = 255;
   int length = 0;
   char data_buffer[BUFFER_SIZE] = {};
