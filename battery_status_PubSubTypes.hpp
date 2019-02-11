@@ -32,6 +32,12 @@
 #error Generated battery_status_ is not compatible with current installed Fast-RTPS. Please, regenerate it with fastrtpsgen.
 #endif
 
+namespace px4_ros_com
+{
+    namespace msg
+    {
+        namespace dds_
+        {
 /*!
  * @brief This class represents the TopicDataType of the type battery_status_ defined by the user in the IDL file.
  * @ingroup BATTERY_STATUS_
@@ -52,6 +58,9 @@ public:
     MD5 m_md5;
     unsigned char* m_keyBuffer;
 };
+        }
+    }
+}
 
 #endif // _BATTERY_STATUS__PUBSUBTYPES_H_
 

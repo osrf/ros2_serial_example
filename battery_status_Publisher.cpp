@@ -76,7 +76,8 @@ bool battery_status_Publisher::init()
     PublisherAttributes Wparam;
     Wparam.topic.topicKind = NO_KEY;
     Wparam.topic.topicDataType = myType.getName();  //This type MUST be registered
-    Wparam.topic.topicName = "battery_status_PubSubTopic";
+    //Wparam.topic.topicName = "battery_status_PubSubTopic";
+    Wparam.topic.topicName = "rt/battery_status_topic";
     mp_publisher = Domain::createPublisher(mp_participant, Wparam, (PublisherListener*) &m_listener);
     if (mp_publisher == nullptr)
     {
@@ -110,7 +111,7 @@ void battery_status_Publisher::run()
 
     // Publication code
 
-    battery_status_ st;
+    px4_ros_com::msg::dds_::battery_status_ st;
 
     /* Initialize your structure here */
 
@@ -135,7 +136,7 @@ void battery_status_Publisher::run()
     } while (std::cin >> ch);
 }
 
-void battery_status_Publisher::publish(battery_status_* st)
+void battery_status_Publisher::publish(px4_ros_com::msg::dds_::battery_status_* st)
 {
     mp_publisher->write(st);
 }

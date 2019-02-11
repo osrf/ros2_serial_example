@@ -56,7 +56,7 @@ public:
     virtual ~battery_status_Publisher();
     bool init();
     void run();
-    void publish(battery_status_* st);
+    void publish(px4_ros_com::msg::dds_::battery_status_* st);
 private:
     Participant *mp_participant;
     Publisher *mp_publisher;
@@ -69,7 +69,7 @@ private:
         void onPublicationMatched(Publisher* pub, MatchingInfo& info);
         int n_matched;
     } m_listener;
-    battery_status_PubSubType myType;
+    px4_ros_com::msg::dds_::battery_status_PubSubType myType;
 };
 
 #endif // _battery_status__PUBLISHER_H_

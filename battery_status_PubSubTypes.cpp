@@ -28,9 +28,15 @@
 using namespace eprosima::fastrtps;
 using namespace eprosima::fastrtps::rtps;
 
+namespace px4_ros_com
+{
+    namespace msg
+    {
+          namespace dds_
+          {
 battery_status_PubSubType::battery_status_PubSubType()
 {
-    setName("battery_status_");
+    setName("px4_ros_com::msg::dds_::battery_status_");
     m_typeSize = static_cast<uint32_t>(battery_status_::getMaxCdrSerializedSize()) + 4 /*encapsulation*/;
     m_isGetKeyDefined = battery_status_::isKeyDefined();
     size_t keyLength = battery_status_::getKeyMaxCdrSerializedSize()>16 ? battery_status_::getKeyMaxCdrSerializedSize() : 16;
@@ -137,4 +143,8 @@ bool battery_status_PubSubType::getKey(void *data, InstanceHandle_t* handle, boo
         }
     }
     return true;
+}
+
+          }
+    }
 }

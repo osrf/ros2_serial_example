@@ -76,7 +76,7 @@ bool string_Publisher::init()
     PublisherAttributes Wparam;
     Wparam.topic.topicKind = NO_KEY;
     Wparam.topic.topicDataType = myType.getName();  //This type MUST be registered
-    Wparam.topic.topicName = "string_PubSubTopic";
+    Wparam.topic.topicName = "rt/string_topic";
     mp_publisher = Domain::createPublisher(mp_participant, Wparam, (PublisherListener*) &m_listener);
     if (mp_publisher == nullptr)
     {

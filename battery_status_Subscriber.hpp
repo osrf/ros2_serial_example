@@ -57,7 +57,7 @@ public:
     bool init();
     void run();
     bool hasMsg();
-    battery_status_ getMsg();
+    px4_ros_com::msg::dds_::battery_status_ getMsg();
 private:
     Participant *mp_participant;
     Subscriber *mp_subscriber;
@@ -72,11 +72,11 @@ private:
         SampleInfo_t m_info;
         int n_matched;
         int n_msg;
-        battery_status_ msg;
+        px4_ros_com::msg::dds_::battery_status_ msg;
         bool has_msg = false;
 
     } m_listener;
-    battery_status_PubSubType myType;
+    px4_ros_com::msg::dds_::battery_status_PubSubType myType;
 };
 
 #endif // _battery_status__SUBSCRIBER_H_

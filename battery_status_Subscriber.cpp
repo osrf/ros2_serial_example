@@ -74,7 +74,7 @@ bool battery_status_Subscriber::init()
     SubscriberAttributes Rparam;
     Rparam.topic.topicKind = NO_KEY;
     Rparam.topic.topicDataType = myType.getName(); //Must be registered before the creation of the subscriber
-    Rparam.topic.topicName = "battery_status_PubSubTopic";
+    Rparam.topic.topicName = "rt/battery_status_topic";
     mp_subscriber = Domain::createSubscriber(mp_participant, Rparam, (SubscriberListener*) &m_listener);
     if (mp_subscriber == nullptr)
     {
@@ -125,7 +125,7 @@ bool battery_status_Subscriber::hasMsg()
     return m_listener.has_msg;
 }
 
-battery_status_ battery_status_Subscriber::getMsg()
+px4_ros_com::msg::dds_::battery_status_ battery_status_Subscriber::getMsg()
 {
     m_listener.has_msg = false;
     return m_listener.msg;

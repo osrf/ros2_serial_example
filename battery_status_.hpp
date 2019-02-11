@@ -63,139 +63,145 @@ namespace eprosima
     }
 }
 
-const uint8_t BATTERY_WARNING_NONE = 0;
-const uint8_t BATTERY_WARNING_LOW = 1;
-const uint8_t BATTERY_WARNING_CRITICAL = 2;
-const uint8_t BATTERY_WARNING_EMERGENCY = 3;
-const uint8_t BATTERY_WARNING_FAILED = 4;
-/*!
- * @brief This class represents the structure battery_status_ defined by the user in the IDL file.
- * @ingroup BATTERY_STATUS_
- */
-class battery_status_
+namespace px4_ros_com
 {
-public:
-
-    /*!
-     * @brief Default constructor.
-     */
-    eProsima_user_DllExport battery_status_();
-
-    /*!
-     * @brief Default destructor.
-     */
-    eProsima_user_DllExport ~battery_status_();
-
-    /*!
-     * @brief Copy constructor.
-     * @param x Reference to the object battery_status_ that will be copied.
-     */
-    eProsima_user_DllExport battery_status_(const battery_status_ &x);
-
-    /*!
-     * @brief Move constructor.
-     * @param x Reference to the object battery_status_ that will be copied.
-     */
-    eProsima_user_DllExport battery_status_(battery_status_ &&x);
-
-    /*!
-     * @brief Copy assignment.
-     * @param x Reference to the object battery_status_ that will be copied.
-     */
-    eProsima_user_DllExport battery_status_& operator=(const battery_status_ &x);
-
-    /*!
-     * @brief Move assignment.
-     * @param x Reference to the object battery_status_ that will be copied.
-     */
-    eProsima_user_DllExport battery_status_& operator=(battery_status_ &&x);
-
-    /*!
-     * @brief This function sets a value in member timestamp
-     * @param _timestamp New value for member timestamp
-     */
-    inline eProsima_user_DllExport void timestamp(uint64_t _timestamp)
+    namespace msg
     {
-        m_timestamp = _timestamp;
-    }
+        namespace dds_
+        {
+            const uint8_t BATTERY_WARNING_NONE = 0;
+          const uint8_t BATTERY_WARNING_LOW = 1;
+          const uint8_t BATTERY_WARNING_CRITICAL = 2;
+          const uint8_t BATTERY_WARNING_EMERGENCY = 3;
+          const uint8_t BATTERY_WARNING_FAILED = 4;
+          /*!
+           * @brief This class represents the structure battery_status_ defined by the user in the IDL file.
+           * @ingroup BATTERY_STATUS_
+           */
+          class battery_status_
+          {
+          public:
 
-    /*!
-     * @brief This function returns the value of member timestamp
-     * @return Value of member timestamp
-     */
-    inline eProsima_user_DllExport uint64_t timestamp() const
-    {
-        return m_timestamp;
-    }
+              /*!
+               * @brief Default constructor.
+               */
+              eProsima_user_DllExport battery_status_();
 
-    /*!
-     * @brief This function returns a reference to member timestamp
-     * @return Reference to member timestamp
-     */
-    inline eProsima_user_DllExport uint64_t& timestamp()
-    {
-        return m_timestamp;
-    }
-    /*!
-     * @brief This function sets a value in member voltage_v
-     * @param _voltage_v New value for member voltage_v
-     */
-    inline eProsima_user_DllExport void voltage_v(float _voltage_v)
-    {
-        m_voltage_v = _voltage_v;
-    }
+              /*!
+               * @brief Default destructor.
+               */
+              eProsima_user_DllExport ~battery_status_();
 
-    /*!
-     * @brief This function returns the value of member voltage_v
-     * @return Value of member voltage_v
-     */
-    inline eProsima_user_DllExport float voltage_v() const
-    {
-        return m_voltage_v;
-    }
+              /*!
+               * @brief Copy constructor.
+               * @param x Reference to the object battery_status_ that will be copied.
+               */
+              eProsima_user_DllExport battery_status_(const battery_status_ &x);
 
-    /*!
-     * @brief This function returns a reference to member voltage_v
-     * @return Reference to member voltage_v
-     */
-    inline eProsima_user_DllExport float& voltage_v()
-    {
-        return m_voltage_v;
-    }
-    /*!
-     * @brief This function sets a value in member voltage_filtered_v
-     * @param _voltage_filtered_v New value for member voltage_filtered_v
-     */
-    inline eProsima_user_DllExport void voltage_filtered_v(float _voltage_filtered_v)
-    {
-        m_voltage_filtered_v = _voltage_filtered_v;
-    }
+              /*!
+               * @brief Move constructor.
+               * @param x Reference to the object battery_status_ that will be copied.
+               */
+              eProsima_user_DllExport battery_status_(battery_status_ &&x);
 
-    /*!
-     * @brief This function returns the value of member voltage_filtered_v
-     * @return Value of member voltage_filtered_v
-     */
-    inline eProsima_user_DllExport float voltage_filtered_v() const
-    {
-        return m_voltage_filtered_v;
-    }
+              /*!
+               * @brief Copy assignment.
+               * @param x Reference to the object battery_status_ that will be copied.
+               */
+              eProsima_user_DllExport battery_status_& operator=(const battery_status_ &x);
 
-    /*!
-     * @brief This function returns a reference to member voltage_filtered_v
-     * @return Reference to member voltage_filtered_v
-     */
-    inline eProsima_user_DllExport float& voltage_filtered_v()
-    {
-        return m_voltage_filtered_v;
-    }
-    /*!
-     * @brief This function sets a value in member current_a
-     * @param _current_a New value for member current_a
-     */
-    inline eProsima_user_DllExport void current_a(float _current_a)
-    {
-        m_current_a = _current_a;
-    }
+              /*!
+               * @brief Move assignment.
+               * @param x Reference to the object battery_status_ that will be copied.
+               */
+              eProsima_user_DllExport battery_status_& operator=(battery_status_ &&x);
+
+              /*!
+               * @brief This function sets a value in member timestamp
+               * @param _timestamp New value for member timestamp
+               */
+              inline eProsima_user_DllExport void timestamp(uint64_t _timestamp)
+              {
+                  m_timestamp = _timestamp;
+              }
+
+              /*!
+               * @brief This function returns the value of member timestamp
+               * @return Value of member timestamp
+               */
+              inline eProsima_user_DllExport uint64_t timestamp() const
+              {
+                  return m_timestamp;
+              }
+
+              /*!
+               * @brief This function returns a reference to member timestamp
+               * @return Reference to member timestamp
+               */
+              inline eProsima_user_DllExport uint64_t& timestamp()
+              {
+                  return m_timestamp;
+              }
+              /*!
+               * @brief This function sets a value in member voltage_v
+               * @param _voltage_v New value for member voltage_v
+               */
+              inline eProsima_user_DllExport void voltage_v(float _voltage_v)
+              {
+                  m_voltage_v = _voltage_v;
+              }
+
+              /*!
+               * @brief This function returns the value of member voltage_v
+               * @return Value of member voltage_v
+               */
+              inline eProsima_user_DllExport float voltage_v() const
+              {
+                return m_voltage_v;
+              }
+
+              /*!
+               * @brief This function returns a reference to member voltage_v
+               * @return Reference to member voltage_v
+               */
+              inline eProsima_user_DllExport float& voltage_v()
+              {
+                return m_voltage_v;
+              }
+              /*!
+               * @brief This function sets a value in member voltage_filtered_v
+               * @param _voltage_filtered_v New value for member voltage_filtered_v
+               */
+              inline eProsima_user_DllExport void voltage_filtered_v(float _voltage_filtered_v)
+              {
+                m_voltage_filtered_v = _voltage_filtered_v;
+              }
+
+              /*!
+               * @brief This function returns the value of member voltage_filtered_v
+               * @return Value of member voltage_filtered_v
+               */
+              inline eProsima_user_DllExport float voltage_filtered_v() const
+              {
+                  return m_voltage_filtered_v;
+              }
+
+              /*!
+               * @brief This function returns a reference to member voltage_filtered_v
+               * @return Reference to member voltage_filtered_v
+               */
+              inline eProsima_user_DllExport float& voltage_filtered_v()
+              {
+                  return m_voltage_filtered_v;
+              }
+              /*!
+               * @brief This function sets a value in member current_a
+               * @param _current_a New value for member current_a
+               */
+              inline eProsima_user_DllExport void current_a(float _current_a)
+              {
+                  m_current_a = _current_a;
+              }
 
     /*!
      * @brief This function returns the value of member current_a
@@ -792,6 +798,9 @@ private:
     uint8_t m_priority;
     bool m_is_powering_off;
     uint8_t m_warning;
-};
+            };
 
+        }
+    }
+}
 #endif // _BATTERY_STATUS__H_

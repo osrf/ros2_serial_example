@@ -32,7 +32,7 @@ using namespace eprosima::fastcdr::exception;
 
 #include <utility>
 
-battery_status_::battery_status_()
+px4_ros_com::msg::dds_::battery_status_::battery_status_()
 {
     m_timestamp = 0;
 
@@ -82,11 +82,11 @@ battery_status_::battery_status_()
 
 }
 
-battery_status_::~battery_status_()
+px4_ros_com::msg::dds_::battery_status_::~battery_status_()
 {
 }
 
-battery_status_::battery_status_(const battery_status_ &x)
+px4_ros_com::msg::dds_::battery_status_::battery_status_(const battery_status_ &x)
 {
     m_timestamp = x.m_timestamp;
     m_voltage_v = x.m_voltage_v;
@@ -113,7 +113,7 @@ battery_status_::battery_status_(const battery_status_ &x)
     m_warning = x.m_warning;
 }
 
-battery_status_::battery_status_(battery_status_ &&x)
+px4_ros_com::msg::dds_::battery_status_::battery_status_(battery_status_ &&x)
 {
     m_timestamp = x.m_timestamp;
     m_voltage_v = x.m_voltage_v;
@@ -140,7 +140,7 @@ battery_status_::battery_status_(battery_status_ &&x)
     m_warning = x.m_warning;
 }
 
-battery_status_& battery_status_::operator=(const battery_status_ &x)
+px4_ros_com::msg::dds_::battery_status_& px4_ros_com::msg::dds_::battery_status_::operator=(const battery_status_ &x)
 {
     m_timestamp = x.m_timestamp;
     m_voltage_v = x.m_voltage_v;
@@ -169,7 +169,7 @@ battery_status_& battery_status_::operator=(const battery_status_ &x)
     return *this;
 }
 
-battery_status_& battery_status_::operator=(battery_status_ &&x)
+px4_ros_com::msg::dds_::battery_status_& px4_ros_com::msg::dds_::battery_status_::operator=(battery_status_ &&x)
 {
     m_timestamp = x.m_timestamp;
     m_voltage_v = x.m_voltage_v;
@@ -198,7 +198,7 @@ battery_status_& battery_status_::operator=(battery_status_ &&x)
     return *this;
 }
 
-size_t battery_status_::getMaxCdrSerializedSize(size_t current_alignment)
+size_t px4_ros_com::msg::dds_::battery_status_::getMaxCdrSerializedSize(size_t current_alignment)
 {
     size_t initial_alignment = current_alignment;
 
@@ -275,7 +275,7 @@ size_t battery_status_::getMaxCdrSerializedSize(size_t current_alignment)
     return current_alignment - initial_alignment;
 }
 
-size_t battery_status_::getCdrSerializedSize(const battery_status_& data, size_t current_alignment)
+size_t px4_ros_com::msg::dds_::battery_status_::getCdrSerializedSize(const battery_status_& data, size_t current_alignment)
 {
     (void)data;
     size_t initial_alignment = current_alignment;
@@ -352,7 +352,7 @@ size_t battery_status_::getCdrSerializedSize(const battery_status_& data, size_t
     return current_alignment - initial_alignment;
 }
 
-void battery_status_::serialize(eprosima::fastcdr::Cdr &scdr) const
+void px4_ros_com::msg::dds_::battery_status_::serialize(eprosima::fastcdr::Cdr &scdr) const
 {
     scdr << m_timestamp;
     scdr << m_voltage_v;
@@ -379,7 +379,7 @@ void battery_status_::serialize(eprosima::fastcdr::Cdr &scdr) const
     scdr << m_warning;
 }
 
-void battery_status_::deserialize(eprosima::fastcdr::Cdr &dcdr)
+void px4_ros_com::msg::dds_::battery_status_::deserialize(eprosima::fastcdr::Cdr &dcdr)
 {
     dcdr >> m_timestamp;
     dcdr >> m_voltage_v;
@@ -406,18 +406,18 @@ void battery_status_::deserialize(eprosima::fastcdr::Cdr &dcdr)
     dcdr >> m_warning;
 }
 
-size_t battery_status_::getKeyMaxCdrSerializedSize(size_t current_alignment)
+size_t px4_ros_com::msg::dds_::battery_status_::getKeyMaxCdrSerializedSize(size_t current_alignment)
 {
     size_t current_align = current_alignment;
     return current_align;
 }
 
-bool battery_status_::isKeyDefined()
+bool px4_ros_com::msg::dds_::battery_status_::isKeyDefined()
 {
     return false;
 }
 
-void battery_status_::serializeKey(eprosima::fastcdr::Cdr &scdr) const
+void px4_ros_com::msg::dds_::battery_status_::serializeKey(eprosima::fastcdr::Cdr &scdr) const
 {
     (void) scdr;
 }

@@ -96,7 +96,7 @@ void RtpsTopics::publish(uint8_t topic_ID, char data_buffer[], size_t len)
     {
         case 6: // battery_status
         {
-            battery_status_ st;
+            px4_ros_com::msg::dds_::battery_status_ st;
             eprosima::fastcdr::FastBuffer cdrbuffer(data_buffer, len);
             eprosima::fastcdr::Cdr cdr_des(cdrbuffer);
             st.deserialize(cdr_des);
@@ -167,7 +167,7 @@ bool RtpsTopics::getMsg(const uint8_t topic_ID, eprosima::fastcdr::Cdr &scdr)
     case 6: // battery_status
         if (_battery_status_sub.hasMsg())
         {
-            battery_status_ msg = _battery_status_sub.getMsg();
+            px4_ros_com::msg::dds_::battery_status_ msg = _battery_status_sub.getMsg();
             msg.serialize(scdr);
             ret = true;
         }
