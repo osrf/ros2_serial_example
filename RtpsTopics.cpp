@@ -37,10 +37,23 @@
 
 bool RtpsTopics::init()
 {
+    // Initialize subscribers
+    if (_battery_status_sub.init())
+    {
+        std::cout << "battery_status subscriber started" << std::endl;
+    }
+    else
+    {
+        std::cout << "ERROR starting battery_status subscriber" << std::endl;
+        return false;
+    }
+
     // Initialise publishers
     if (_battery_status_pub.init()) {
-        std::cout << "battery_status publisher start" << std::endl;
-    } else {
+        std::cout << "battery_status publisher started" << std::endl;
+    }
+    else
+    {
         std::cout << "ERROR starting battery_status publisher" << std::endl;
         return false;
     }
@@ -68,16 +81,21 @@ void RtpsTopics::publish(uint8_t topic_ID, char data_buffer[], size_t len)
 
 bool RtpsTopics::hasMsg(uint8_t *topic_ID)
 {
-    if (nullptr == topic_ID) return false;
+    if (nullptr == topic_ID)
+    {
+        return false;
+    }
 
     *topic_ID = 0;
     while (_next_sub_idx < (sizeof(_sub_topics) / sizeof(_sub_topics[0])) && 0 == *topic_ID)
     {
         switch (_sub_topics[_next_sub_idx])
         {
-            case 6: if (_battery_status_sub.hasMsg()) *topic_ID = 6; break;
+            case 6:
+                if (_battery_status_sub.hasMsg()) *topic_ID = 6;
+                break;
             default:
-              printf("Unexpected topic ID to check hasMsg\n");
+                printf("Unexpected topic ID to check hasMsg\n");
             break;
         }
         _next_sub_idx++;
@@ -90,4 +108,25 @@ bool RtpsTopics::hasMsg(uint8_t *topic_ID)
     }
 
     return true;
+}
+
+bool RtpsTopics::getMsg(const uint8_t topic_ID, eprosima::fastcdr::Cdr &scdr)
+{
+    bool ret = false;
+    switch (topic_ID)
+    {
+    case 6: // battery_status
+        if (_battery_status_sub.hasMsg())
+        {
+            battery_status_ msg = _battery_status_sub.getMsg();
+            msg.serialize(scdr);
+            ret = true;
+        }
+        break;
+    default:
+        printf("Unexpected topic ID '%hhu' to getMsg\n", topic_ID);
+        break;
+    }
+
+    return ret;
 }

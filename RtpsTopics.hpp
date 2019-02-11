@@ -47,6 +47,7 @@ public:
     bool init();
     void publish(uint8_t topic_ID, char data_buffer[], size_t len);
     bool hasMsg(uint8_t *topic_ID);
+    bool getMsg(const uint8_t topic_ID, eprosima::fastcdr::Cdr &scdr);
 
 private:
     // Publishers
