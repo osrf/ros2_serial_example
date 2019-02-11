@@ -44,15 +44,6 @@ bool RtpsTopics::init()
         std::cout << "ERROR starting battery_status publisher" << std::endl;
         return false;
     }
-// @[for topic in send_topics]@
-//     if (_@(topic)_pub.init()) {
-//         std::cout << "@(topic) publisher started" << std::endl;
-//     } else {
-//         std::cout << "ERROR starting @(topic) publisher" << std::endl;
-//         return false;
-//     }
-
-// @[end for]@
     return true;
 }
 
@@ -70,18 +61,33 @@ void RtpsTopics::publish(uint8_t topic_ID, char data_buffer[], size_t len)
         }
         break;
 
-// @[for topic in send_topics]@
-//         case @(rtps_message_id(ids, topic)): // @(topic)
-//         {
-//             @(package[0])::msg::dds_::@(topic)_ st;
-//             eprosima::fastcdr::FastBuffer cdrbuffer(data_buffer, len);
-//             eprosima::fastcdr::Cdr cdr_des(cdrbuffer);
-//             st.deserialize(cdr_des);
-//             _@(topic)_pub.publish(&st);
-//         }
-//         break;
-// @[end for]@
       default:
         break;
     }
+}
+
+bool RtpsTopics::hasMsg(uint8_t *topic_ID)
+{
+    if (nullptr == topic_ID) return false;
+
+    *topic_ID = 0;
+    while (_next_sub_idx < (sizeof(_sub_topics) / sizeof(_sub_topics[0])) && 0 == *topic_ID)
+    {
+        switch (_sub_topics[_next_sub_idx])
+        {
+            case 6: if (_battery_status_sub.hasMsg()) *topic_ID = 6; break;
+            default:
+              printf("Unexpected topic ID to check hasMsg\n");
+            break;
+        }
+        _next_sub_idx++;
+    }
+
+    if (0 == *topic_ID)
+    {
+        _next_sub_idx = 0;
+        return false;
+    }
+
+    return true;
 }
