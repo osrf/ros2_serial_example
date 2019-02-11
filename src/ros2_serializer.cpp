@@ -10,7 +10,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/string.hpp>
 
-#include "ros2_serial_transport.hpp"
+#include "diux/ros2_serial_transport.hpp"
 
 constexpr int BUFFER_SIZE = 1024;
 
