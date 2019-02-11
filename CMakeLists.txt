@@ -25,8 +25,14 @@ ament_target_dependencies(ros2_serializer
   std_msgs
 )
 
+add_executable(ros2_serial_write
+  src/ros2_serial_write.cpp
+  src/ros2_serial_transport.cpp
+)
+
 install(TARGETS
   ros2_serializer
+  ros2_serial_write
   DESTINATION lib/${PROJECT_NAME}
 )
 

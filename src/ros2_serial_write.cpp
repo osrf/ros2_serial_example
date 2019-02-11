@@ -5,7 +5,7 @@
 #include <termios.h>
 #include <unistd.h>
 
-#include "ros2_serial_transport.hpp"
+#include "diux/ros2_serial_transport.hpp"
 
 static void usage(const char *name)
 {
