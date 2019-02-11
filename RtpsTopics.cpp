@@ -35,7 +35,7 @@
 
 #include "RtpsTopics.hpp"
 
-bool RtpsTopics::init()
+bool RtpsTopics::init_subs()
 {
     // Initialize subscribers
     if (_battery_status_sub.init())
@@ -48,6 +48,11 @@ bool RtpsTopics::init()
         return false;
     }
 
+    return true;
+}
+
+bool RtpsTopics::init_pubs()
+{
     // Initialise publishers
     if (_battery_status_pub.init()) {
         std::cout << "battery_status publisher started" << std::endl;
@@ -57,7 +62,13 @@ bool RtpsTopics::init()
         std::cout << "ERROR starting battery_status publisher" << std::endl;
         return false;
     }
+
     return true;
+}
+
+bool RtpsTopics::init()
+{
+  return init_subs() && init_pubs();
 }
 
 void RtpsTopics::publish(uint8_t topic_ID, char data_buffer[], size_t len)

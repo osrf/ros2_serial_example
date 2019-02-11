@@ -44,6 +44,8 @@
 
 class RtpsTopics {
 public:
+    bool init_subs();
+    bool init_pubs();
     bool init();
     void publish(uint8_t topic_ID, char data_buffer[], size_t len);
     bool hasMsg(uint8_t *topic_ID);

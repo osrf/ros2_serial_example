@@ -3,11 +3,11 @@
 #include <cstring>
 #include <memory>
 
-#include <termios.h>
 #include <unistd.h>
 
 #include "RtpsTopics.hpp"
-#include "ros2_serial_transport.hpp"
+
+constexpr int BUFFER_SIZE = 1024;
 
 volatile sig_atomic_t running = 1;
 
@@ -27,18 +27,11 @@ static void usage(const char *name)
 
 int main(int argc, char *argv[])
 {
-    char device[64] = "/dev/ttyACM0";
-
     int ch;
-    while ((ch = ::getopt(argc, argv, "d:h")) != EOF)
+    while ((ch = ::getopt(argc, argv, "h")) != EOF)
     {
       switch (ch)
       {
-      case 'd':
-          if (optarg != nullptr) {
-              ::strcpy(device, optarg);
-          }
-          break;
       case 'h':
           usage(argv[0]);
           return 0;
@@ -54,30 +47,32 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    std::unique_ptr<Transport_node> transport_node = std::make_unique<UART_node>(device, B115200, 0);
-
     ::signal(SIGINT, signal_handler);
-
-    if (transport_node->init() < 0)
-    {
-        return 1;
-    }
 
     RtpsTopics topics;
 
-    topics.init();
+    topics.init_subs();
 
     while (running)
     {
         uint8_t topic_ID = 255;
         while (topics.hasMsg(&topic_ID))
         {
+            // uint16_t header_length = transport_node->get_header_length();
+            uint16_t header_length = 9;
+            char data_buffer[BUFFER_SIZE] = {};
+            /* make room for the header to fill in later */
+            eprosima::fastcdr::FastBuffer cdrbuffer(&data_buffer[header_length], sizeof(data_buffer)-header_length);
+            eprosima::fastcdr::Cdr scdr(cdrbuffer);
+            if (topics.getMsg(topic_ID, scdr))
+            {
+                int length = scdr.getSerializedDataLength();
+                fprintf(stderr, "Got a message of length %d\n", length);
+            }
         }
 
         ::usleep(1);
     }
-
-    transport_node->close();
 
     return 0;
 }

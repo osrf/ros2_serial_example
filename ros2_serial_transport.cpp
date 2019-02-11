@@ -172,6 +172,7 @@ ssize_t Transport_node::read(uint8_t *topic_ID, char out_buffer[], size_t buffer
 		return 0;
 	}
 
+        fprintf(stderr, "Complete message, calculating CRC\n");
 	uint16_t read_crc = ((uint16_t)header->crc_h << 8) | header->crc_l;
 	uint16_t calc_crc = crc16((uint8_t *)rx_buffer + msg_start_pos + header_size, payload_len);
 
@@ -181,10 +182,12 @@ ssize_t Transport_node::read(uint8_t *topic_ID, char out_buffer[], size_t buffer
 		len = -1;
 
 	} else {
+          fprintf(stderr, "Complete message with valid CRC\n");
 		// copy message to outbuffer and set other return values
 		::memmove(out_buffer, rx_buffer + msg_start_pos + header_size, payload_len);
 		*topic_ID = header->topic_ID;
 		len = payload_len + header_size;
+                fprintf(stderr, "topic id: %d, first byte: 0x%x\n", *topic_ID, out_buffer[0]);
 	}
 
 	// discard message from rx_buffer

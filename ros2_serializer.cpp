@@ -9,6 +9,7 @@
 
 #include "ros2_serial_transport.hpp"
 #include "RtpsTopics.hpp"
+#include "battery_status_.hpp"
 
 constexpr int BUFFER_SIZE = 1024;
 
@@ -75,10 +76,11 @@ int main(int argc, char *argv[])
 
     RtpsTopics topics;
 
-    topics.init();
+    topics.init_pubs();
 
     running = 1;
 
+    fprintf(stderr, "size: %lu\n", battery_status_::getMaxCdrSerializedSize());
     while (running)
     {
         while ((length = transport_node->read(&topic_ID, data_buffer, BUFFER_SIZE)) > 0)
