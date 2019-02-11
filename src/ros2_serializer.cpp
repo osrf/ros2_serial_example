@@ -2,7 +2,11 @@
 #include <cstdio>
 #include <cstring>
 #include <iostream>
+#include <map>
 #include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 
 #include <termios.h>
 #include <unistd.h>
@@ -101,20 +105,9 @@ static int parse_options(const std::vector<std::string> & args, std::string & de
     return -1;
 }
 
-int main(int argc, char *argv[])
+static int parse_node_parameters_for_topics(const std::shared_ptr<rclcpp::Node> & node,
+                                            std::map<uint8_t, std::shared_ptr<rclcpp::Publisher<std_msgs::msg::String>>> & string_serial_to_pub)
 {
-    std::string device{"/dev/ttyACM0"};
-
-    std::vector<std::string> args = rclcpp::init_and_remove_ros_arguments(argc, argv);
-
-    int ret = parse_options(args, device);
-    if (ret >= 0)
-    {
-        return ret;
-    }
-
-    auto node = rclcpp::Node::make_shared("ros2_serializer");
-
     // Now we go through the YAML file containing our parameters, looking for
     // parameters of the form:
     //     topic_name:
@@ -175,8 +168,6 @@ int main(int argc, char *argv[])
         }
     }
 
-    std::map<uint8_t, std::shared_ptr<rclcpp::Publisher<std_msgs::msg::String>>> string_serial_to_pub;
-
     // Now go through every topic and ensure that it has both a valid type
     // (not "") and a valid serial mapping (not 0).
     for (const auto & t : topic_names_and_serialization)
@@ -193,8 +184,8 @@ int main(int argc, char *argv[])
         {
             if (string_serial_to_pub.count(t.second.second) != 0)
             {
-              fprintf(stderr, "Duplicate serial mapping is not allowed\n");
-              return 5;
+                fprintf(stderr, "Duplicate serial mapping is not allowed\n");
+                return 5;
             }
             string_serial_to_pub[t.second.second] = node->create_publisher<std_msgs::msg::String>(t.first);
         }
@@ -203,6 +194,30 @@ int main(int argc, char *argv[])
             fprintf(stderr, "Unsupported type\n");
             return 4;
         }
+    }
+
+    return -1;
+}
+
+int main(int argc, char *argv[])
+{
+    std::string device{"/dev/ttyACM0"};
+
+    std::vector<std::string> args = rclcpp::init_and_remove_ros_arguments(argc, argv);
+
+    int ret = parse_options(args, device);
+    if (ret >= 0)
+    {
+        return ret;
+    }
+
+    auto node = rclcpp::Node::make_shared("ros2_serializer");
+
+    std::map<uint8_t, std::shared_ptr<rclcpp::Publisher<std_msgs::msg::String>>> string_serial_to_pub;
+    ret = parse_node_parameters_for_topics(node, string_serial_to_pub);
+    if (ret >= 0)
+    {
+        return ret;
     }
 
     std::unique_ptr<Transport_node> transport_node = std::make_unique<UART_node>(device.c_str(), B115200, 0);
