@@ -16,7 +16,7 @@ constexpr int BUFFER_SIZE = 1024;
 
 volatile sig_atomic_t running = 1;
 
-void signal_handler(int signum)
+static void signal_handler(int signum)
 {
     (void)signum;
     running = 0;
@@ -39,12 +39,8 @@ static void params_usage()
              );
 }
 
-int main(int argc, char *argv[])
+static int parse_options(const std::vector<std::string> & args, std::string & device)
 {
-    char device[64] = "/dev/ttyACM0";
-
-    std::vector<std::string> args = rclcpp::init_and_remove_ros_arguments(argc, argv);
-
     char need_next_arg = ' ';
 
     // We skip the first element since it contains the program name
@@ -56,13 +52,13 @@ int main(int argc, char *argv[])
             // Make sure we aren't waiting for data from a previous option
             if (need_next_arg != ' ')
             {
-                usage(argv[0]);
+                usage(args[0].c_str());
                 return 1;
             }
             // Make sure it has exactly one more character
             if (it->length() != 2)
             {
-                usage(argv[0]);
+                usage(args[0].c_str());
                 return 1;
             }
 
@@ -73,10 +69,10 @@ int main(int argc, char *argv[])
                 need_next_arg = 'd';
                 break;
             case 'h':
-                usage(argv[0]);
+                usage(args[0].c_str());
                 return 0;
             default:
-                usage(argv[0]);
+                usage(args[0].c_str());
                 return 1;
             };
         }
@@ -85,12 +81,12 @@ int main(int argc, char *argv[])
             if (need_next_arg == ' ')
             {
                 // A command-line argument we don't understand
-                usage(argv[0]);
+                usage(args[0].c_str());
                 return 1;
             }
             else if (need_next_arg == 'd')
             {
-                ::strcpy(device, (*it).c_str());
+                device = *it;
             }
             else
             {
@@ -100,6 +96,21 @@ int main(int argc, char *argv[])
 
             need_next_arg = ' ';
         }
+    }
+
+    return -1;
+}
+
+int main(int argc, char *argv[])
+{
+    std::string device{"/dev/ttyACM0"};
+
+    std::vector<std::string> args = rclcpp::init_and_remove_ros_arguments(argc, argv);
+
+    int ret = parse_options(args, device);
+    if (ret >= 0)
+    {
+        return ret;
     }
 
     auto node = rclcpp::Node::make_shared("ros2_serializer");
@@ -194,7 +205,7 @@ int main(int argc, char *argv[])
         }
     }
 
-    std::unique_ptr<Transport_node> transport_node = std::make_unique<UART_node>(device, B115200, 0);
+    std::unique_ptr<Transport_node> transport_node = std::make_unique<UART_node>(device.c_str(), B115200, 0);
 
     if (transport_node->init() < 0)
     {
