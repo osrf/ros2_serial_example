@@ -49,7 +49,11 @@ int main(int argc, char *argv[])
     return 1;
   }
 
-  ::sleep(1);
+  char buffer[16*4 + 5*2 + 5*1] = {};
+
+  buffer[0] = 0xaa;
+
+  transport_node->write(6, buffer, sizeof(buffer));
 
   return 0;
 }
