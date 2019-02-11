@@ -1,22 +1,21 @@
 # ROS 2 serial example
 
-To build:
+## Build
 
-$ git clone https://github.com/eProsima/Fast-RTPS
-$ sudo apt-get install default-jre gradle
-$ mkdir -p Fast-RTPS/build
-$ pushd Fast-RTPS/build
-$ cmake -DTHIRDPARTY=ON -DBUILD_JAVA=ON -DCMAKE_INSTALL_PREFIX=../../install ..
-$ make -j10 install
-$ popd
-$ make -j10
+1.  Install ROS 2 (https://index.ros.org/doc/ros2/Installation/).
+1.  Source the ROS 2 installation (either /opt/ros/<rosdistro>/setup.bash if installing from binaries, or ros2_ws/install/setup.bash if building from source).
+1.  Make a new workspace and clone this repository into it: mkdir -p diux_ws/src ; cd diux/src ; git clone https://github.com/osrf/diux.git ; cd ..
+1.  Build the local workspace: colcon build
+1.  Source the local workspace: . install/local_setup.bash
 
-To run:
+## Run
+
+In terminal one:
 $ socat -d -d pty,raw,echo=0 pty,raw,echo=0
 (socat will print two ptys out like /dev/pts/25 and /dev/pts/26)
 
-Run the serial -> RTPS bridge:
-$ LD_LIBRARY_PATH=install/lib ./ros2_serializer -d /dev/pts/25
+In terminal two, run the serial -> RTPS bridge:
+$ ./install/diux/lib/diux/ros2_serializer -d /dev/pts/25
 
-To send some example data into the serial port:
-$ LD_LIBRARY_PATH=install/lib ./ros2_serial_write -d /dev/pts/26
+In terminal three, send some example data into the serial port:
+$ ./install/diux/lib/diux/ros2_serial_write -d /dev/pts/26
