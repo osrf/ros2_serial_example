@@ -1,0 +1,5 @@
+ros2_serializer:
+    ros__parameters:
+        chatter:
+            serial_mapping: 9
+            type: std_msgs/String
