@@ -52,12 +52,20 @@ int main(int argc, char *argv[])
       return 1;
     }
 
-    // 9 bytes for header, plus 79 bytes for battery_status message
-    char buffer[9 + 16*4 + 5*2 + 5*1 + 4] = {};
+    // 9 bytes for header, plus 83 bytes for battery_status message
+    char buffer[9 + 8 + 15*4 + 5*2 + 5*1] = {};
 
     buffer[9] = 0xaa;
 
     transport_node->write(6, buffer, sizeof(buffer));
+
+    ::sleep(1);
+
+    char buffer2[9 + 10*1] = {};
+
+    buffer2[9] = 'a';
+
+    transport_node->write(9, buffer2, sizeof(buffer2));
 
     return 0;
 }

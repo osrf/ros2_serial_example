@@ -1,8 +1,8 @@
 CXX=g++
 CXXFLAGS=-g -Wall -Wextra -std=c++14 -I install/include
 LIBS=-Linstall/lib -lfastcdr -lfastrtps
-SERIALIZER_OBJS=ros2_serializer.o ros2_serial_transport.o RtpsTopics.o battery_status_PubSubTypes.o battery_status_Publisher.o battery_status_.o battery_status_Subscriber.o
-RTPSRECV_OBJS=ros2_rtps_recv.o ros2_serial_transport.o battery_status_Subscriber.o battery_status_PubSubTypes.o battery_status_.o RtpsTopics.o battery_status_Publisher.o
+SERIALIZER_OBJS=ros2_serializer.o ros2_serial_transport.o RtpsTopics.o battery_status_PubSubTypes.o battery_status_Publisher.o battery_status_.o battery_status_Subscriber.o string_.o string_PubSubTypes.o string_Subscriber.o string_Publisher.o
+RTPSRECV_OBJS=ros2_rtps_recv.o ros2_serial_transport.o battery_status_Subscriber.o battery_status_PubSubTypes.o battery_status_.o RtpsTopics.o battery_status_Publisher.o string_.o string_PubSubTypes.o string_Subscriber.o string_Publisher.o
 
 all: ros2_serializer ros2_serial_write ros2_rtps_recv
 

@@ -60,8 +60,10 @@ bool battery_status_Subscriber::init()
     PParam.rtps.builtin.leaseDuration = c_TimeInfinite;
     PParam.rtps.setName("battery_status_subscriber"); //You can put the name you want
     mp_participant = Domain::createParticipant(PParam);
-    if(mp_participant == nullptr)
+    if (mp_participant == nullptr)
+    {
         return false;
+    }
 
     //Register the type
 
@@ -74,8 +76,10 @@ bool battery_status_Subscriber::init()
     Rparam.topic.topicDataType = myType.getName(); //Must be registered before the creation of the subscriber
     Rparam.topic.topicName = "battery_status_PubSubTopic";
     mp_subscriber = Domain::createSubscriber(mp_participant, Rparam, (SubscriberListener*) &m_listener);
-    if(mp_subscriber == nullptr)
+    if (mp_subscriber == nullptr)
+    {
         return false;
+    }
     return true;
 }
 
@@ -97,9 +101,9 @@ void battery_status_Subscriber::SubListener::onSubscriptionMatched(Subscriber* s
 void battery_status_Subscriber::SubListener::onNewDataMessage(Subscriber* sub)
 {
     // Take data
-    if(sub->takeNextData(&msg, &m_info))
+    if (sub->takeNextData(&msg, &m_info))
     {
-        if(m_info.sampleKind == ALIVE)
+        if (m_info.sampleKind == ALIVE)
         {
             // Print your structure data here.
             ++n_msg;

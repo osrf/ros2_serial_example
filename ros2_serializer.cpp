@@ -80,7 +80,6 @@ int main(int argc, char *argv[])
 
     running = 1;
 
-    fprintf(stderr, "size: %lu\n", battery_status_::getMaxCdrSerializedSize());
     while (running)
     {
         while ((length = transport_node->read(&topic_ID, data_buffer, BUFFER_SIZE)) > 0)

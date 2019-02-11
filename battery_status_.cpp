@@ -32,11 +32,6 @@ using namespace eprosima::fastcdr::exception;
 
 #include <utility>
 
-
-
-
-
-
 battery_status_::battery_status_()
 {
     m_timestamp = 0;
@@ -413,32 +408,7 @@ void battery_status_::deserialize(eprosima::fastcdr::Cdr &dcdr)
 
 size_t battery_status_::getKeyMaxCdrSerializedSize(size_t current_alignment)
 {
-	size_t current_align = current_alignment;
-            
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    size_t current_align = current_alignment;
     return current_align;
 }
 
@@ -449,28 +419,5 @@ bool battery_status_::isKeyDefined()
 
 void battery_status_::serializeKey(eprosima::fastcdr::Cdr &scdr) const
 {
-	(void) scdr;
-	 
-	 
-	 
-	 
-	 
-	 
-	 
-	 
-	 
-	 
-	 
-	 
-	 
-	 
-	 
-	 
-	 
-	 
-	 
-	 
-	 
-	 
-	 
+    (void) scdr;
 }

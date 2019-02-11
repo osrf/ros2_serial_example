@@ -48,6 +48,16 @@ bool RtpsTopics::init_subs()
         return false;
     }
 
+    if (_string_sub.init())
+    {
+        std::cout << "string subscriber started" << std::endl;
+    }
+    else
+    {
+        std::cout << "ERROR starting string subscriber" << std::endl;
+        return false;
+    }
+
     return true;
 }
 
@@ -60,6 +70,15 @@ bool RtpsTopics::init_pubs()
     else
     {
         std::cout << "ERROR starting battery_status publisher" << std::endl;
+        return false;
+    }
+
+    if (_string_pub.init()) {
+        std::cout << "string publisher started" << std::endl;
+    }
+    else
+    {
+        std::cout << "ERROR starting string publisher" << std::endl;
         return false;
     }
 
@@ -85,6 +104,16 @@ void RtpsTopics::publish(uint8_t topic_ID, char data_buffer[], size_t len)
         }
         break;
 
+        case 9: // string
+        {
+            string_ st;
+            eprosima::fastcdr::FastBuffer cdrbuffer(data_buffer, len);
+            eprosima::fastcdr::Cdr cdr_des(cdrbuffer);
+            st.deserialize(cdr_des);
+            _string_pub.publish(&st);
+        }
+        break;
+
       default:
         break;
     }
@@ -103,7 +132,16 @@ bool RtpsTopics::hasMsg(uint8_t *topic_ID)
         switch (_sub_topics[_next_sub_idx])
         {
             case 6:
-                if (_battery_status_sub.hasMsg()) *topic_ID = 6;
+                if (_battery_status_sub.hasMsg())
+                {
+                    *topic_ID = 6;
+                }
+                break;
+            case 9:
+                if (_string_sub.hasMsg())
+                {
+                    *topic_ID = 9;
+                }
                 break;
             default:
                 printf("Unexpected topic ID to check hasMsg\n");
@@ -130,6 +168,14 @@ bool RtpsTopics::getMsg(const uint8_t topic_ID, eprosima::fastcdr::Cdr &scdr)
         if (_battery_status_sub.hasMsg())
         {
             battery_status_ msg = _battery_status_sub.getMsg();
+            msg.serialize(scdr);
+            ret = true;
+        }
+        break;
+    case 9: // string
+        if (_string_sub.hasMsg())
+        {
+            string_ msg = _string_sub.getMsg();
             msg.serialize(scdr);
             ret = true;
         }
