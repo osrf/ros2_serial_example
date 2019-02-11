@@ -53,7 +53,7 @@ int main(int argc, char *argv[])
     }
 
     // 9 bytes for header, plus 83 bytes for battery_status message
-    char buffer[9 + 8 + 15*4 + 5*2 + 5*1] = {};
+    uint8_t buffer[9 + 8 + 15*4 + 5*2 + 5*1] = {};
 
     buffer[9] = 0xaa;
 
@@ -61,7 +61,7 @@ int main(int argc, char *argv[])
 
     ::sleep(1);
 
-    char buffer2[9 + 10*1] = {};
+    uint8_t buffer2[9 + 10*1] = {};
 
     buffer2[9] = 'a';
 

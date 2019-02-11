@@ -74,7 +74,7 @@ int main(int argc, char *argv[])
     auto node = rclcpp::Node::make_shared("ros2_serializer");
     auto str_pub = node->create_publisher<std_msgs::msg::String>("chatter");
 
-    char data_buffer[BUFFER_SIZE] = {};
+    uint8_t data_buffer[BUFFER_SIZE] = {};
     int length = 0;
     uint8_t topic_ID = 255;
 

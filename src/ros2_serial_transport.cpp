@@ -102,7 +102,7 @@ uint16_t Transport_node::crc16(uint8_t const *buffer, size_t len)
     return crc;
 }
 
-ssize_t Transport_node::read(uint8_t *topic_ID, char out_buffer[], size_t buffer_len)
+ssize_t Transport_node::read(uint8_t *topic_ID, uint8_t out_buffer[], size_t buffer_len)
 {
     if (nullptr == out_buffer || nullptr == topic_ID || !fds_OK())
     {
@@ -215,7 +215,7 @@ ssize_t Transport_node::get_header_length()
     return sizeof(struct Header);
 }
 
-ssize_t Transport_node::write(const uint8_t topic_ID, char buffer[], size_t length)
+ssize_t Transport_node::write(const uint8_t topic_ID, uint8_t buffer[], size_t length)
 {
     if (!fds_OK())
     {
@@ -341,7 +341,7 @@ int UART_node::init()
         return -errno_bkp;
     }
 
-    char aux[64];
+    uint8_t aux[64];
     bool flush = false;
 
     while (0 < ::read(uart_fd, (void *)&aux, 64))

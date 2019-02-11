@@ -44,7 +44,7 @@ public:
 
     virtual int init() {return 0;}
     virtual uint8_t close() {return 0;}
-    ssize_t read(uint8_t *topic_ID, char out_buffer[], size_t buffer_len);
+    ssize_t read(uint8_t *topic_ID, uint8_t out_buffer[], size_t buffer_len);
 
     /**
      * write a buffer
@@ -58,7 +58,7 @@ public:
      * @param length buffer length excluding header length
      * @return length on success, <0 on error
      */
-    ssize_t write(const uint8_t topic_ID, char buffer[], size_t length);
+    ssize_t write(const uint8_t topic_ID, uint8_t buffer[], size_t length);
 
     /** Get the Length of struct Header to make headroom for the size of struct Header along with payload */
     ssize_t get_header_length();
@@ -71,11 +71,11 @@ protected:
     uint16_t crc16(uint8_t const *buffer, size_t len);
 
     uint32_t rx_buff_pos;
-    char rx_buffer[1024] = {};
+    uint8_t rx_buffer[1024] = {};
 
 private:
     struct __attribute__((packed)) Header {
-        char marker[3];
+        uint8_t marker[3];
         uint8_t topic_ID;
         uint8_t seq;
         uint8_t payload_len_h;
