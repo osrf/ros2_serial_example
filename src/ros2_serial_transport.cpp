@@ -104,6 +104,16 @@ uint16_t Transport_node::crc16(uint8_t const *buffer, size_t len)
 
 ssize_t Transport_node::read(uint8_t *topic_ID, uint8_t out_buffer[], size_t buffer_len)
 {
+    // TODO(clalancette): this method is actually flawed in a few different ways:
+    // 1.  It is not careful not to run off the end when checking for the start
+    //     marker, so it could read garbage.
+    // 2.  It doesn't take into account deliveries of multiple messages at once,
+    //     which can happen with fast producers.
+    // 3.  It does a lot of memmove, which can be slow.
+    //
+    // This is probably good candidate for switching to a ring buffer which can
+    // handle these problems
+
     if (nullptr == out_buffer || nullptr == topic_ID || !fds_OK())
     {
         return -1;
