@@ -64,8 +64,9 @@ int main(int argc, char *argv[])
     uint8_t buffer2[9 + 10*1] = {};
 
     buffer2[9] = 'a';
+    buffer2[10] = 'a';
 
-    transport_node->write(9, buffer2, sizeof(buffer2));
+    transport_node->write(9, buffer2, 10);
 
     return 0;
 }
