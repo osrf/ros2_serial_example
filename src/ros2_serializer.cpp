@@ -15,6 +15,7 @@
 #include <std_msgs/msg/string.hpp>
 
 #include "ros2_serial_example/ros2_serial_transport.hpp"
+#include "ros2_serial_example/ros2_topics.hpp"
 
 constexpr int BUFFER_SIZE = 1024;
 
@@ -105,8 +106,7 @@ static int parse_options(const std::vector<std::string> & args, std::string & de
     return -1;
 }
 
-static int parse_node_parameters_for_topics(const std::shared_ptr<rclcpp::Node> & node,
-                                            std::map<uint8_t, std::shared_ptr<rclcpp::Publisher<std_msgs::msg::String>>> & string_serial_to_pub)
+static std::unique_ptr<ROS2Topics> parse_node_parameters_for_topics(const std::shared_ptr<rclcpp::Node> & node)
 {
     // Now we go through the YAML file containing our parameters, looking for
     // parameters of the form:
@@ -121,13 +121,13 @@ static int parse_node_parameters_for_topics(const std::shared_ptr<rclcpp::Node> 
         if (std::count(name.begin(), name.end(), '.') != 1)
         {
             params_usage();
-            return 3;
+            return nullptr;
         }
         std::size_t last_dot_pos = name.find_last_of(".");
         if (last_dot_pos == std::string::npos)
         {
             params_usage();
-            return 3;
+            return nullptr;
         }
 
         std::string topic_name = name.substr(0, last_dot_pos);
@@ -138,7 +138,7 @@ static int parse_node_parameters_for_topics(const std::shared_ptr<rclcpp::Node> 
             if (serial_mapping < 1 || serial_mapping > 255)
             {
                 params_usage();
-                return 3;
+                return nullptr;
             }
             if (topic_names_and_serialization.count(topic_name) == 0)
             {
@@ -164,39 +164,16 @@ static int parse_node_parameters_for_topics(const std::shared_ptr<rclcpp::Node> 
         else
         {
             params_usage();
-            return 3;
+            return nullptr;
         }
     }
 
-    // Now go through every topic and ensure that it has both a valid type
-    // (not "") and a valid serial mapping (not 0).
-    for (const auto & t : topic_names_and_serialization)
-    {
-        if (t.second.first == "" || t.second.second == 0)
-        {
-            params_usage();
-            return 3;
-        }
-
-        // OK, we've verified that this is a valid topic.  Let's create the
-        // publisher for it.
-        if (t.second.first == "std_msgs/String")
-        {
-            if (string_serial_to_pub.count(t.second.second) != 0)
-            {
-                fprintf(stderr, "Duplicate serial mapping is not allowed\n");
-                return 5;
-            }
-            string_serial_to_pub[t.second.second] = node->create_publisher<std_msgs::msg::String>(t.first);
-        }
-        else
-        {
-            fprintf(stderr, "Unsupported type\n");
-            return 4;
-        }
+    std::unique_ptr<ROS2Topics> ros2_topics = std::make_unique<ROS2Topics>();
+    if (!ros2_topics->configure(node, topic_names_and_serialization)) {
+      return nullptr;
     }
 
-    return -1;
+    return ros2_topics;
 }
 
 int main(int argc, char *argv[])
@@ -213,11 +190,10 @@ int main(int argc, char *argv[])
 
     auto node = rclcpp::Node::make_shared("ros2_serializer");
 
-    std::map<uint8_t, std::shared_ptr<rclcpp::Publisher<std_msgs::msg::String>>> string_serial_to_pub;
-    ret = parse_node_parameters_for_topics(node, string_serial_to_pub);
-    if (ret >= 0)
+    std::unique_ptr<ROS2Topics> ros2_topics = parse_node_parameters_for_topics(node);
+    if (ros2_topics == nullptr)
     {
-        return ret;
+        return 2;
     }
 
     std::unique_ptr<Transport_node> transport_node = std::make_unique<UART_node>(device.c_str(), B115200, 0);
@@ -230,7 +206,7 @@ int main(int argc, char *argv[])
     ::sleep(1);
 
     uint8_t data_buffer[BUFFER_SIZE] = {};
-    int length = 0;
+    ssize_t length = 0;
     uint8_t topic_ID = 255;
 
     ::signal(SIGINT, signal_handler);
@@ -241,16 +217,7 @@ int main(int argc, char *argv[])
     {
         while ((length = transport_node->read(&topic_ID, data_buffer, BUFFER_SIZE)) > 0)
         {
-            if (string_serial_to_pub.count(topic_ID) > 0)
-            {
-                  // string topic
-                  auto msg = std::make_shared<std_msgs::msg::String>();
-                  char buf[2];
-                  buf[0] = data_buffer[0];
-                  buf[1] = '\0';
-                  msg->data = std::string(buf);
-                  string_serial_to_pub[topic_ID]->publish(msg);
-            }
+            ros2_topics->dispatch(topic_ID, data_buffer, length);
         }
         ::usleep(1);
     }

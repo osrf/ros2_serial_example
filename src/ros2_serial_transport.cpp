@@ -199,8 +199,7 @@ ssize_t Transport_node::read(uint8_t *topic_ID, uint8_t out_buffer[], size_t buf
         // copy message to outbuffer and set other return values
         ::memmove(out_buffer, rx_buffer + msg_start_pos + header_size, payload_len);
         *topic_ID = header->topic_ID;
-        len = payload_len + header_size;
-        fprintf(stderr, "topic id: %d, first byte: 0x%x\n", *topic_ID, out_buffer[0]);
+        len = payload_len;
     }
 
     // discard message from rx_buffer
