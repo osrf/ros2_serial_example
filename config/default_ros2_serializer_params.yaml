@@ -3,6 +3,8 @@ ros2_serializer:
         chatter:
             serial_mapping: 9
             type: std_msgs/String
+            direction: SerialToROS2
         different:
             serial_mapping: 12
             type: std_msgs/String
+            direction: SerialToROS2

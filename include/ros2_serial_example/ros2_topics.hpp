@@ -15,6 +15,19 @@
 #include <fastcdr/Cdr.h>
 #include <fastcdr/FastCdr.h>
 
+struct TopicMapping
+{
+  std::string type{""};
+  uint8_t serial_mapping{0};
+  enum class Direction
+  {
+      UNKNOWN,
+      SERIAL_TO_ROS2,
+      ROS2_TO_SERIAL,
+  };
+  Direction direction{Direction::UNKNOWN};
+};
+
 class ROS2Topics
 {
 
@@ -24,27 +37,40 @@ public:
     }
 
     bool configure(const std::shared_ptr<rclcpp::Node> & node,
-                   const std::map<std::string, std::pair<std::string, uint8_t>> & topic_names_and_serialization)
+                   const std::map<std::string, TopicMapping> & topic_names_and_serialization)
     {
       // Now go through every topic and ensure that it has both a valid type
       // (not "") and a valid serial mapping (not 0).
         for (const auto & t : topic_names_and_serialization)
         {
-            if (t.second.first == "" || t.second.second == 0)
+          if (t.second.type == "" || t.second.serial_mapping == 0 || t.second.direction == TopicMapping::Direction::UNKNOWN)
             {
                 return false;
             }
 
             // OK, we've verified that this is a valid topic.  Let's create the
             // publisher for it.
-            if (t.second.first == "std_msgs/String")
+            if (t.second.type == "std_msgs/String")
             {
-                if (std_msgs_String_serial_to_pub.count(t.second.second) != 0)
+                if (t.second.direction == TopicMapping::Direction::SERIAL_TO_ROS2)
                 {
-                    fprintf(stderr, "Duplicate serial mapping is not allowed\n");
+                    if (std_msgs_String_serial_to_pub.count(t.second.serial_mapping) != 0)
+                    {
+                        fprintf(stderr, "Duplicate serial mapping is not allowed\n");
+                        return false;
+                    }
+                    std_msgs_String_serial_to_pub[t.second.serial_mapping] = node->create_publisher<std_msgs::msg::String>(t.first);
+                }
+                else if (t.second.direction == TopicMapping::Direction::ROS2_TO_SERIAL)
+                {
+                    fprintf(stderr, "ROS2 to serial direction not yet supported\n");
                     return false;
                 }
-                std_msgs_String_serial_to_pub[t.second.second] = node->create_publisher<std_msgs::msg::String>(t.first);
+                else
+                {
+                    fprintf(stderr, "Unsupported direction\n");
+                    return false;
+                }
             }
             else
             {
@@ -71,4 +97,5 @@ public:
 
 private:
     std::map<uint8_t, std::shared_ptr<rclcpp::Publisher<std_msgs::msg::String>>> std_msgs_String_serial_to_pub;
+    std::vector<std::shared_ptr<rclcpp::Subscription<std_msgs::msg::String>>> std_msgs_String_serial_subs;
 };

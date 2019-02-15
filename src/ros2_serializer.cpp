@@ -38,9 +38,10 @@ static void usage(const char *name)
 static void params_usage()
 {
     ::printf("Invalid topic parameter.  Topic parameters must be in the form:\n"
-             "  topic_name:\n"
-             "    serial_mapping: <uint8_t>\n"
-             "    type: <string>\n"
+             "    topic_name:\n"
+             "        serial_mapping: <uint8_t>\n"
+             "        type: <string>\n"
+             "        direction: [SerialToROS2|ROS2ToSerial]\n"
              );
 }
 
@@ -113,7 +114,8 @@ static std::unique_ptr<ROS2Topics> parse_node_parameters_for_topics(const std::s
     //     topic_name:
     //         serial_mapping: <uint8_t>
     //         type: <string>
-    std::map<std::string, std::pair<std::string, uint8_t>> topic_names_and_serialization;
+    //         direction: [SerialToROS2|ROS2ToSerial]
+    std::map<std::string, TopicMapping> topic_names_and_serialization;
 
     rcl_interfaces::msg::ListParametersResult list_params_result = node->list_parameters({}, 0);
     for (const auto & name : list_params_result.names)
@@ -132,6 +134,12 @@ static std::unique_ptr<ROS2Topics> parse_node_parameters_for_topics(const std::s
 
         std::string topic_name = name.substr(0, last_dot_pos);
         std::string param_name = name.substr(last_dot_pos + 1);
+
+        if (topic_names_and_serialization.count(topic_name) == 0)
+        {
+          topic_names_and_serialization[topic_name] = TopicMapping();
+        }
+
         if (param_name == "serial_mapping")
         {
             int64_t serial_mapping = node->get_parameter(name).get_value<int64_t>();
@@ -140,26 +148,32 @@ static std::unique_ptr<ROS2Topics> parse_node_parameters_for_topics(const std::s
                 params_usage();
                 return nullptr;
             }
-            if (topic_names_and_serialization.count(topic_name) == 0)
-            {
-                topic_names_and_serialization[topic_name] = std::make_pair("", static_cast<uint8_t>(serial_mapping));
-            }
-            else
-            {
-                topic_names_and_serialization[topic_name].second = static_cast<uint8_t>(serial_mapping);
-            }
+            topic_names_and_serialization[topic_name].serial_mapping = static_cast<uint8_t>(serial_mapping);
         }
         else if (param_name == "type")
         {
             std::string type = node->get_parameter(name).get_value<std::string>();
-            if (topic_names_and_serialization.count(topic_name) == 0)
+            topic_names_and_serialization[topic_name].type = type;
+        }
+        else if (param_name == "direction")
+        {
+            std::string dirstring = node->get_parameter(name).get_value<std::string>();
+            TopicMapping::Direction direction = TopicMapping::Direction::UNKNOWN;
+            if (dirstring == "SerialToROS2")
             {
-                topic_names_and_serialization[topic_name] = std::make_pair(type, 0);
+                direction = TopicMapping::Direction::SERIAL_TO_ROS2;
+            }
+            else if (dirstring == "ROS2ToSerial")
+            {
+                direction = TopicMapping::Direction::ROS2_TO_SERIAL;
             }
             else
             {
-                topic_names_and_serialization[topic_name].first = type;
+                params_usage();
+                return nullptr;
             }
+
+            topic_names_and_serialization[topic_name].direction = direction;
         }
         else
         {
@@ -169,8 +183,9 @@ static std::unique_ptr<ROS2Topics> parse_node_parameters_for_topics(const std::s
     }
 
     std::unique_ptr<ROS2Topics> ros2_topics = std::make_unique<ROS2Topics>();
-    if (!ros2_topics->configure(node, topic_names_and_serialization)) {
-      return nullptr;
+    if (!ros2_topics->configure(node, topic_names_and_serialization))
+    {
+        return nullptr;
     }
 
     return ros2_topics;
