@@ -36,6 +36,41 @@
 
 #include <poll.h>
 
+class RingBuffer final
+{
+public:
+  explicit RingBuffer(size_t capacity);
+
+  virtual ~RingBuffer();
+
+  ssize_t read(int fd);
+
+  void *peek(void *dst, size_t count);
+
+  void *memcpy_from(void *dst, size_t count);
+
+  size_t findseq(uint8_t *seq, size_t seqlen);
+
+  size_t bytes_used() const;
+
+  bool is_full() const;
+
+  void *head_pointer() const;
+
+private:
+  size_t buffer_size() const;
+  size_t capacity() const;
+  uint8_t *end() const;
+  size_t bytes_free() const;
+  bool is_empty() const;
+  uint8_t *nextp(uint8_t *p);
+
+  uint8_t *buf;
+  uint8_t *head;
+  uint8_t *tail;
+  size_t size;
+};
+
 class Transport_node
 {
 public:
@@ -61,19 +96,20 @@ public:
     ssize_t write(const uint8_t topic_ID, char buffer[], size_t length);
 
     /** Get the Length of struct Header to make headroom for the size of struct Header along with payload */
-    ssize_t get_header_length();
+    size_t get_header_length();
 
 protected:
-    virtual ssize_t node_read(void *buffer, size_t len) = 0;
+    virtual ssize_t node_read() = 0;
     virtual ssize_t node_write(void *buffer, size_t len) = 0;
     virtual bool fds_OK() = 0;
     uint16_t crc16_byte(uint16_t crc, const uint8_t data);
     uint16_t crc16(uint8_t const *buffer, size_t len);
 
-    uint32_t rx_buff_pos;
-    uint8_t rx_buffer[1024] = {};
+    RingBuffer ringbuf;
 
 private:
+    ssize_t find_and_copy_message(uint8_t *topic_ID, char out_buffer[], size_t buffer_len);
+
     uint8_t seq{0};
     struct __attribute__((packed)) Header {
         uint8_t marker[3];
@@ -96,7 +132,7 @@ public:
     uint8_t close() override;
 
 protected:
-    ssize_t node_read(void *buffer, size_t len);
+    ssize_t node_read();
     ssize_t node_write(void *buffer, size_t len);
     bool fds_OK();
 

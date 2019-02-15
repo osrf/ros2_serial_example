@@ -29,9 +29,15 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+#include <algorithm>
+#include <array>
 #include <cerrno>
+#include <cmath>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
+#include <stdexcept>
+#include <vector>
 
 #include <fcntl.h>
 #include <poll.h>
@@ -40,6 +46,206 @@
 #include <sys/socket.h>
 
 #include "ros2_serial_example/ros2_serial_transport.hpp"
+
+RingBuffer::RingBuffer(size_t capacity)
+{
+    size = capacity + 1;
+    buf = new uint8_t[size];
+    // TODO(clalancette): check for nullptr
+    head = tail = buf;
+}
+
+RingBuffer::~RingBuffer()
+{
+    delete [] buf;
+}
+
+size_t RingBuffer::buffer_size() const
+{
+    return size;
+}
+
+size_t RingBuffer::capacity() const
+{
+    return size - 1;
+}
+
+uint8_t *RingBuffer::end() const
+{
+    return buf + size;
+}
+
+size_t RingBuffer::bytes_free() const
+{
+    if (head >= tail)
+    {
+        return capacity() - (head - tail);
+    }
+    else
+    {
+        return tail - head - 1;
+    }
+}
+
+size_t RingBuffer::bytes_used() const
+{
+    return capacity() - bytes_free();
+}
+
+bool RingBuffer::is_full() const
+{
+    return bytes_free() == 0;
+}
+
+bool RingBuffer::is_empty() const
+{
+    return bytes_free() == capacity();
+}
+
+void *RingBuffer::head_pointer() const
+{
+    return head;
+}
+
+uint8_t *RingBuffer::nextp(uint8_t *p)
+{
+    // Given a ring buffer rb and a pointer to a location within its
+    // contiguous buffer, return the a pointer to the next logical
+    // location in the ring buffer.
+    return buf + ((++p - buf) % buffer_size());
+}
+
+ssize_t RingBuffer::read(int fd)
+{
+    uint8_t *bufend = end();
+    size_t nfree = bytes_free();
+
+    size_t count = bufend - head;
+    ssize_t n = ::read(fd, head, count);
+    if (n > 0)
+    {
+        head += n;
+
+        // wrap?
+        if (head == bufend)
+        {
+            head = buf;
+        }
+
+        // fix up the tail pointer if an overflow occurred
+        if (static_cast<size_t>(n) > nfree)
+        {
+            tail = nextp(head);
+        }
+    }
+
+    return n;
+}
+
+void *RingBuffer::peek(void *dst, size_t count)
+{
+    if (count > bytes_used())
+    {
+        return nullptr;
+    }
+
+    uint8_t *u8dst = static_cast<uint8_t *>(dst);
+    uint8_t *bufend = end();
+    size_t nwritten = 0;
+    uint8_t *tmptail = tail;
+    while (nwritten != count)
+    {
+        size_t n = std::min(static_cast<size_t>(bufend - tmptail), count - nwritten);
+        ::memcpy(u8dst + nwritten, tmptail, n);
+        tmptail += n;
+        nwritten += n;
+
+        // wrap?
+        if (tmptail == bufend)
+        {
+            tmptail = buf;
+        }
+    }
+
+    return tmptail;
+}
+
+void *RingBuffer::memcpy_from(void *dst, size_t count)
+{
+    if (count > bytes_used())
+    {
+        return nullptr;
+    }
+
+    uint8_t *u8dst = static_cast<uint8_t *>(dst);
+    uint8_t *bufend = end();
+    size_t nwritten = 0;
+    while (nwritten != count)
+    {
+        size_t n = std::min(static_cast<size_t>(bufend - tail), count - nwritten);
+        ::memcpy(u8dst + nwritten, tail, n);
+        tail += n;
+        nwritten += n;
+
+        // wrap?
+        if (tail == bufend)
+        {
+          tail = buf;
+        }
+    }
+
+    return tail;
+}
+
+size_t RingBuffer::findseq(uint8_t *seq, size_t seqlen)
+{
+    size_t used = bytes_used();
+    if (used < seqlen)
+    {
+        // There aren't enough bytes in the ring for this sequence, so it
+      // can't possibly contain the entire sequence.
+      return used;
+    }
+
+    if (seqlen > capacity())
+    {
+        // The sequence to look for is larger than we can possibly hold;
+      // this can't work.
+      return used;
+    }
+
+    uint8_t *ringp = tail;
+    uint8_t *seqp = seq;
+    uint8_t *found = nullptr;
+    uint8_t *start = buf + ((tail - buf) % buffer_size());
+
+    while (ringp != head)
+    {
+        if (*ringp == *seqp)
+        {
+            if (found != nullptr && seqp == (seq + seqlen - 1))
+            {
+                // Found it!  Return the start of the sequence
+                return found - start;
+            }
+            else
+            {
+                if (found == nullptr)
+                {
+                    found = ringp;
+                }
+                seqp++;
+            }
+        }
+        else
+        {
+            found = nullptr;
+        }
+        ringp = nextp(ringp);
+    }
+
+    return used;
+}
 
 /** CRC table for the CRC-16. The poly is 0x8005 (x^16 + x^15 + x^2 + 1) */
 uint16_t const crc16_table[256] = {
@@ -77,7 +283,7 @@ uint16_t const crc16_table[256] = {
     0x8201, 0x42C0, 0x4380, 0x8341, 0x4100, 0x81C1, 0x8081, 0x4040
 };
 
-Transport_node::Transport_node(): rx_buff_pos(0)
+Transport_node::Transport_node() : ringbuf(1024)
 {
 }
 
@@ -102,18 +308,106 @@ uint16_t Transport_node::crc16(uint8_t const *buffer, size_t len)
     return crc;
 }
 
+ssize_t Transport_node::find_and_copy_message(uint8_t *topic_ID, char out_buffer[], size_t buffer_len)
+{
+    if (ringbuf.bytes_used() < get_header_length())
+    {
+        throw std::runtime_error("Bad size");
+    }
+
+    std::array<uint8_t, 3> headerseq{'>', '>', '>'};
+    size_t offset = ringbuf.findseq(&headerseq[0], headerseq.size());
+
+    if (offset == ringbuf.bytes_used())
+    {
+        // We didn't find the sequence; if the ring buffer is full, throw away one
+        // bytes to make room for new bytes.
+        if (ringbuf.is_full())
+        {
+            uint8_t dummy;
+            ringbuf.memcpy_from(&dummy, 1);
+            return 0;
+        }
+    }
+
+    if (offset > 0)
+    {
+        // There is some garbage at the front, so just throw it away.
+        std::vector<uint8_t> garbage(offset);
+        if (ringbuf.memcpy_from(&garbage[0], offset) == nullptr)
+        {
+            throw std::runtime_error("Failed getting garbage data from ring buffer");
+        }
+        if (ringbuf.bytes_used() < get_header_length())
+        {
+            // Not enough bytes now.
+            return 0;
+        }
+    }
+
+    // Looking for a header of the form:
+    // [>,>,>,topic_ID,seq,payload_length_H,payload_length_L,CRCHigh,CRCLow,payloadStart, ... ,payloadEnd]
+
+    uint8_t headerbuf[9];
+
+    // Peek at the header out of the buffer.  Note that we need to do
+    // a peek/copy (rather than just mapping to the array) because the
+    // header might be non-contiguous in memory in the ring.
+
+    ringbuf.peek(headerbuf, 9);
+    Header *header = reinterpret_cast<Header *>(headerbuf);
+
+    uint32_t payload_len = (static_cast<uint32_t>(header->payload_len_h) << 8) | header->payload_len_l;
+
+    if (buffer_len < payload_len)
+    {
+        // The message won't fit the buffer.
+        return -EMSGSIZE;
+    }
+
+    if (ringbuf.bytes_used() < (get_header_length() + payload_len))
+    {
+        // We do not have a complete message yet
+        return 0;
+    }
+
+    // At this point, we know that we have a complete header and the payload.
+    // Consume both; whether we keep the data or not, we want it out of the
+    // ring.
+
+    // Header
+    if (ringbuf.memcpy_from(headerbuf, get_header_length()) == nullptr)
+    {
+        // We already checked above, so this should never happen.
+        throw std::runtime_error("Unexpected ring buffer failure");
+    }
+
+    if (ringbuf.memcpy_from(out_buffer, payload_len) == nullptr)
+    {
+        // We already checked above, so this should never happen.
+      throw std::runtime_error("Unexpected ring buffer failure");
+    }
+
+    uint16_t read_crc = (static_cast<uint16_t>(header->crc_h) << 8) | header->crc_l;
+    uint16_t calc_crc = crc16(reinterpret_cast<uint8_t *>(out_buffer), payload_len);
+
+    ssize_t len;
+    if (read_crc != calc_crc)
+    {
+        ::printf("BAD CRC %u != %u\n", read_crc, calc_crc);
+        len = -1;
+    }
+    else
+    {
+        *topic_ID = header->topic_ID;
+        len = payload_len;
+    }
+
+    return len;
+}
+
 ssize_t Transport_node::read(uint8_t *topic_ID, char out_buffer[], size_t buffer_len)
 {
-    // TODO(clalancette): this method is actually flawed in a few different ways:
-    // 1.  It is not careful not to run off the end when checking for the start
-    //     marker, so it could read garbage.
-    // 2.  It doesn't take into account deliveries of multiple messages at once,
-    //     which can happen with fast producers.
-    // 3.  It does a lot of memmove, which can be slow.
-    //
-    // This is probably good candidate for switching to a ring buffer which can
-    // handle these problems
-
     if (nullptr == out_buffer || nullptr == topic_ID || !fds_OK())
     {
         return -1;
@@ -121,107 +415,49 @@ ssize_t Transport_node::read(uint8_t *topic_ID, char out_buffer[], size_t buffer
 
     *topic_ID = 255;
 
-    ssize_t len = node_read((void *)(rx_buffer + rx_buff_pos), sizeof(rx_buffer) - rx_buff_pos);
+    if (ringbuf.bytes_used() >= get_header_length())
+    {
+        ssize_t len = find_and_copy_message(topic_ID, out_buffer, buffer_len);
+        if (len > 0)
+        {
+            return len;
+        }
+    }
 
+    if (ringbuf.is_full())
+    {
+        uint8_t dummy;
+        ringbuf.memcpy_from(&dummy, 1);
+    }
+
+    ssize_t len = node_read();
     if (len <= 0)
     {
         int errsv = errno;
 
         if (errsv && EAGAIN != errsv && ETIMEDOUT != errsv)
         {
-            printf("Read fail %d\n", errsv);
+            ::printf("Read fail %d\n", errsv);
         }
 
         return len;
     }
 
-    rx_buff_pos += len;
-
-    // We read some
-    size_t header_size = sizeof(struct Header);
-
-    // but not enough
-    if (rx_buff_pos < header_size)
+    if (ringbuf.bytes_used() >= get_header_length())
     {
-        return 0;
-    }
-
-    uint32_t msg_start_pos = 0;
-
-    for (msg_start_pos = 0; msg_start_pos <= rx_buff_pos - header_size; ++msg_start_pos)
-    {
-        if ('>' == rx_buffer[msg_start_pos] && memcmp(rx_buffer + msg_start_pos, ">>>", 3) == 0)
+        ssize_t len = find_and_copy_message(topic_ID, out_buffer, buffer_len);
+        if (len > 0)
         {
-            break;
+            return len;
         }
     }
 
-    // Start not found
-    if (msg_start_pos > rx_buff_pos - header_size)
-    {
-        ::printf("                                 (↓↓ %u)\n", msg_start_pos);
-        // All we've checked so far is garbage, drop it - but save unchecked bytes
-        ::memmove(rx_buffer, rx_buffer + msg_start_pos, rx_buff_pos - msg_start_pos);
-        rx_buff_pos = rx_buff_pos - msg_start_pos;
-        return -1;
-    }
-
-    /*
-     * [>,>,>,topic_ID,seq,payload_length_H,payload_length_L,CRCHigh,CRCLow,payloadStart, ... ,payloadEnd]
-     */
-
-    struct Header *header = (struct Header *)&rx_buffer[msg_start_pos];
-    uint32_t payload_len = ((uint32_t)header->payload_len_h << 8) | header->payload_len_l;
-
-    // The message won't fit the buffer.
-    if (buffer_len < header_size + payload_len)
-    {
-        return -EMSGSIZE;
-    }
-
-    // We do not have a complete message yet
-    if (msg_start_pos + header_size + payload_len > rx_buff_pos)
-    {
-        // If there's garbage at the beginning, drop it
-        if (msg_start_pos > 0)
-        {
-            ::printf("                                 (↓ %u)\n", msg_start_pos);
-            ::memmove(rx_buffer, rx_buffer + msg_start_pos, rx_buff_pos - msg_start_pos);
-            rx_buff_pos -= msg_start_pos;
-        }
-
-        return 0;
-    }
-
-    fprintf(stderr, "Complete message, calculating CRC\n");
-    uint16_t read_crc = ((uint16_t)header->crc_h << 8) | header->crc_l;
-    uint16_t calc_crc = crc16((uint8_t *)rx_buffer + msg_start_pos + header_size, payload_len);
-
-    if (read_crc != calc_crc)
-    {
-        ::printf("BAD CRC %u != %u\n", read_crc, calc_crc);
-        ::printf("                                 (↓ %lu)\n", (unsigned long)(header_size + payload_len));
-        len = -1;
-    }
-    else
-    {
-        fprintf(stderr, "Complete message with valid CRC\n");
-        // copy message to outbuffer and set other return values
-        ::memmove(out_buffer, rx_buffer + msg_start_pos + header_size, payload_len);
-        *topic_ID = header->topic_ID;
-        len = payload_len;
-    }
-
-    // discard message from rx_buffer
-    rx_buff_pos -= header_size + payload_len;
-    ::memmove(rx_buffer, rx_buffer + msg_start_pos + header_size + payload_len, rx_buff_pos);
-
-    return len;
+    return 0;
 }
 
-ssize_t Transport_node::get_header_length()
+size_t Transport_node::get_header_length()
 {
-    return sizeof(struct Header);
+    return sizeof(Header);
 }
 
 ssize_t Transport_node::write(const uint8_t topic_ID, char buffer[], size_t length)
@@ -231,7 +467,7 @@ ssize_t Transport_node::write(const uint8_t topic_ID, char buffer[], size_t leng
         return -1;
     }
 
-    struct Header header{};
+    Header header{};
     header.marker[0] = '>';
     header.marker[1] = '>';
     header.marker[2] = '>';
@@ -390,9 +626,9 @@ uint8_t UART_node::close()
     return 0;
 }
 
-ssize_t UART_node::node_read(void *buffer, size_t len)
+ssize_t UART_node::node_read()
 {
-    if (nullptr == buffer || !fds_OK())
+    if (!fds_OK())
     {
         return -1;
     }
@@ -402,7 +638,7 @@ ssize_t UART_node::node_read(void *buffer, size_t len)
 
     if (r == 1 && (poll_fd[0].revents & POLLIN))
     {
-        ret = ::read(uart_fd, buffer, len);
+        ret = ringbuf.read(uart_fd);
     }
 
     return ret;
