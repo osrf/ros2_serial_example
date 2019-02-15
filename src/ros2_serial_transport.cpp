@@ -489,16 +489,9 @@ ssize_t Transport_node::write(const uint8_t topic_ID, char buffer[], size_t leng
     ssize_t len = node_write(buffer, length + sizeof(header));
     if (len != ssize_t(length + sizeof(header)))
     {
-        goto err;
+        return len;
     }
     return len + sizeof(header);
-
-err:
-    //int errsv = errno;
-    //if (len == -1 ) printf("                               => Writing error '%d'\n", errsv);
-    //else            printf("                               => Wrote '%ld' != length(%lu) error '%d'\n", (long)len, (unsigned long)length, errsv);
-
-    return len;
 }
 
 UART_node::UART_node(const char *_uart_name, uint32_t _baudrate, uint32_t _poll_ms):
