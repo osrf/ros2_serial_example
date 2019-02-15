@@ -1,6 +1,7 @@
 #pragma once
 
 // C++ includes
+#include <array>
 #include <cstdint>
 #include <map>
 #include <memory>
@@ -10,6 +11,9 @@
 // ROS 2 includes
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/string.hpp>
+
+#include <fastcdr/Cdr.h>
+#include <fastcdr/FastCdr.h>
 
 class ROS2Topics
 {
@@ -52,14 +56,15 @@ public:
         return true;
     }
 
-    void dispatch(uint8_t topic_ID, uint8_t data_buffer[], ssize_t length)
+    void dispatch(uint8_t topic_ID, char data_buffer[], ssize_t length)
     {
         if (std_msgs_String_serial_to_pub.count(topic_ID) > 0)
         {
               // string topic
+              eprosima::fastcdr::FastBuffer cdrbuffer(data_buffer, length);
+              eprosima::fastcdr::Cdr cdrdes(cdrbuffer);
               auto msg = std::make_shared<std_msgs::msg::String>();
-              msg->data.resize(length);
-              memcpy(&msg->data[0], data_buffer, length);
+              cdrdes >> msg->data;
               std_msgs_String_serial_to_pub[topic_ID]->publish(msg);
         }
     }

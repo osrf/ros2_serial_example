@@ -102,7 +102,7 @@ uint16_t Transport_node::crc16(uint8_t const *buffer, size_t len)
     return crc;
 }
 
-ssize_t Transport_node::read(uint8_t *topic_ID, uint8_t out_buffer[], size_t buffer_len)
+ssize_t Transport_node::read(uint8_t *topic_ID, char out_buffer[], size_t buffer_len)
 {
     // TODO(clalancette): this method is actually flawed in a few different ways:
     // 1.  It is not careful not to run off the end when checking for the start
@@ -224,7 +224,7 @@ ssize_t Transport_node::get_header_length()
     return sizeof(struct Header);
 }
 
-ssize_t Transport_node::write(const uint8_t topic_ID, uint8_t buffer[], size_t length)
+ssize_t Transport_node::write(const uint8_t topic_ID, char buffer[], size_t length)
 {
     if (!fds_OK())
     {

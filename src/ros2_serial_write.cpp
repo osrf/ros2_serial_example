@@ -5,7 +5,12 @@
 #include <termios.h>
 #include <unistd.h>
 
+#include <fastcdr/Cdr.h>
+#include <fastcdr/FastCdr.h>
+
 #include "ros2_serial_example/ros2_serial_transport.hpp"
+
+constexpr int BUFFER_SIZE = 1024;
 
 static void usage(const char *name)
 {
@@ -52,30 +57,21 @@ int main(int argc, char *argv[])
       return 1;
     }
 
-    // 9 bytes for header, plus 83 bytes for battery_status message
-    uint8_t buffer[9 + 8 + 15*4 + 5*2 + 5*1] = {};
-
-    buffer[9] = 0xaa;
-
-    transport_node->write(6, buffer, sizeof(buffer));
-
-    ::sleep(1);
-
-    uint8_t buffer2[9 + 10*1] = {};
-
-    buffer2[9] = 'a';
-    buffer2[10] = 'a';
-
-    transport_node->write(9, buffer2, 10);
+    char data_buffer[BUFFER_SIZE] = {};
+    eprosima::fastcdr::FastBuffer cdrbuffer(&data_buffer[9], sizeof(data_buffer) - 9);
+    eprosima::fastcdr::Cdr scdr(cdrbuffer);
+    scdr << "aa";
+    transport_node->write(9, data_buffer, scdr.getSerializedDataLength());
 
     ::sleep(1);
 
-    uint8_t buffer3[9 + 12*1] = {};
+    char data_buffer2[BUFFER_SIZE] = {};
+    eprosima::fastcdr::FastBuffer cdrbuffer2(&data_buffer2[9], sizeof(data_buffer2) - 9);
+    eprosima::fastcdr::Cdr scdr2(cdrbuffer2);
+    scdr2 << "bb";
+    transport_node->write(12, data_buffer2, scdr2.getSerializedDataLength());
 
-    buffer3[9] = 'b';
-    buffer3[10] = 'b';
-
-    transport_node->write(12, buffer3, 12);
+    transport_node->close();
 
     return 0;
 }

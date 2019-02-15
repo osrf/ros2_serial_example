@@ -11,6 +11,7 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 endif()
 
 find_package(ament_cmake_ros REQUIRED)
+find_package(fastcdr REQUIRED CONFIG)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 
@@ -21,13 +22,23 @@ add_executable(ros2_serializer
   src/ros2_serial_transport.cpp
 )
 ament_target_dependencies(ros2_serializer
+  fastcdr
   rclcpp
   std_msgs
+)
+target_link_libraries(ros2_serializer
+  fastcdr
 )
 
 add_executable(ros2_serial_write
   src/ros2_serial_write.cpp
   src/ros2_serial_transport.cpp
+)
+ament_target_dependencies(ros2_serial_write
+  fastcdr
+)
+target_link_libraries(ros2_serial_write
+  fastcdr
 )
 
 install(TARGETS

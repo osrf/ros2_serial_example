@@ -205,7 +205,7 @@ int main(int argc, char *argv[])
 
     ::sleep(1);
 
-    uint8_t data_buffer[BUFFER_SIZE] = {};
+    char data_buffer[BUFFER_SIZE] = {};
     ssize_t length = 0;
     uint8_t topic_ID = 255;
 
