@@ -74,6 +74,7 @@ protected:
     uint8_t rx_buffer[1024] = {};
 
 private:
+    uint8_t seq{0};
     struct __attribute__((packed)) Header {
         uint8_t marker[3];
         uint8_t topic_ID;

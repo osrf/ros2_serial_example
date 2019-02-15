@@ -226,9 +226,6 @@ ssize_t Transport_node::write(const uint8_t topic_ID, uint8_t buffer[], size_t l
     header.marker[1] = '>';
     header.marker[2] = '>';
 
-    // TODO(clalancette): Very bad, not thread-safe!
-    static uint8_t seq = 0;
-
     // [>,>,>,topic_ID,seq,payload_length,CRCHigh,CRCLow,payload_start, ... ,payload_end]
 
     uint16_t crc = crc16((uint8_t *)&buffer[sizeof(header)], length);

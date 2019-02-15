@@ -68,5 +68,14 @@ int main(int argc, char *argv[])
 
     transport_node->write(9, buffer2, 10);
 
+    ::sleep(1);
+
+    uint8_t buffer3[9 + 12*1] = {};
+
+    buffer3[9] = 'b';
+    buffer3[10] = 'b';
+
+    transport_node->write(12, buffer3, 12);
+
     return 0;
 }
