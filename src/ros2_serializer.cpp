@@ -229,8 +229,6 @@ int main(int argc, char *argv[])
 
     ::sleep(1);
 
-    std::shared_ptr<rclcpp::Publisher<std_msgs::msg::String>> str_pub = node->create_publisher<std_msgs::msg::String>("chatter");
-
     uint8_t data_buffer[BUFFER_SIZE] = {};
     int length = 0;
     uint8_t topic_ID = 255;
