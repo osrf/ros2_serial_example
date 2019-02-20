@@ -1,4 +1,10 @@
+#pragma once
+
+#include <memory>
+#include <string>
+
 #include <rclcpp/rclcpp.hpp>
+#include <std_msgs/msg/string.hpp>
 
 #include <fastcdr/Cdr.h>
 #include <fastcdr/FastCdr.h>
@@ -14,6 +20,8 @@ public:
         auto callback = [serial_mapping, transporter](const std_msgs::msg::String::SharedPtr msg) -> void
         {
             size_t headlen = transporter->get_header_length();
+            // From empirical testing, we know that doing CDR framing on strings results
+            // in 5 additional bytes being added to the length.
             char *data_buffer = new char[msg->data.size() + 5 + headlen]();
             eprosima::fastcdr::FastBuffer cdrbuffer(&data_buffer[headlen], msg->data.size() + 5);
             eprosima::fastcdr::Cdr scdr(cdrbuffer);

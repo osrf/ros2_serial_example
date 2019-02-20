@@ -9,7 +9,6 @@
 
 // ROS 2 includes
 #include <rclcpp/rclcpp.hpp>
-#include <std_msgs/msg/string.hpp>
 
 #include "ros2_serial_example/transporter.hpp"
 
