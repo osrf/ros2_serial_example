@@ -30,20 +30,20 @@ target_link_libraries(ros2_serializer
   fastcdr
 )
 
-add_executable(ros2_serial_write
-  src/ros2_serial_write.cpp
+add_executable(serial_writer
+  src/serial_writer.cpp
   src/ros2_serial_transport.cpp
 )
-ament_target_dependencies(ros2_serial_write
+ament_target_dependencies(serial_writer
   fastcdr
 )
-target_link_libraries(ros2_serial_write
+target_link_libraries(serial_writer
   fastcdr
 )
 
 install(TARGETS
   ros2_serializer
-  ros2_serial_write
+  serial_writer
   DESTINATION lib/${PROJECT_NAME}
 )
 
