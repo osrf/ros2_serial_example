@@ -354,7 +354,7 @@ ssize_t Transporter::find_and_copy_message(uint8_t *topic_ID, char out_buffer[],
     // a peek/copy (rather than just mapping to the array) because the
     // header might be non-contiguous in memory in the ring.
 
-    ringbuf.peek(headerbuf, sizeof(Header));
+    ringbuf.peek(headerbuf, get_header_length());
     Header *header = reinterpret_cast<Header *>(headerbuf);
 
     uint32_t payload_len = (static_cast<uint32_t>(header->payload_len_h) << 8) | header->payload_len_l;
@@ -474,7 +474,7 @@ ssize_t Transporter::write(const uint8_t topic_ID, char buffer[], size_t length)
 
     // [>,>,>,topic_ID,seq,payload_length,CRCHigh,CRCLow,payload_start, ... ,payload_end]
 
-    uint16_t crc = crc16((uint8_t *)&buffer[sizeof(header)], length);
+    uint16_t crc = crc16((uint8_t *)&buffer[get_header_length()], length);
 
     header.topic_ID = topic_ID;
     header.seq = seq++;
@@ -485,11 +485,11 @@ ssize_t Transporter::write(const uint8_t topic_ID, char buffer[], size_t length)
 
     /* Headroom for header is created in client */
     /*Fill in the header in the same payload buffer to call a single node_write */
-    ::memcpy(buffer, &header, sizeof(header));
-    ssize_t len = node_write(buffer, length + sizeof(header));
-    if (len != ssize_t(length + sizeof(header)))
+    ::memcpy(buffer, &header, get_header_length());
+    ssize_t len = node_write(buffer, length + get_header_length());
+    if (len != ssize_t(length + get_header_length()))
     {
         return len;
     }
-    return len + sizeof(header);
+    return len + get_header_length();
 }

@@ -68,8 +68,9 @@ public:
                 {
                     auto callback = [t, transporter](const std_msgs::msg::String::SharedPtr msg) -> void
                     {
-                        char *data_buffer = new char[msg->data.size() + 5 + 9]();
-                        eprosima::fastcdr::FastBuffer cdrbuffer(&data_buffer[9], 1024 - 9);
+                        size_t headlen = transporter->get_header_length();
+                        char *data_buffer = new char[msg->data.size() + 5 + headlen]();
+                        eprosima::fastcdr::FastBuffer cdrbuffer(&data_buffer[headlen], msg->data.size() + 5);
                         eprosima::fastcdr::Cdr scdr(cdrbuffer);
                         scdr << msg->data;
                         transporter->write(t.second.serial_mapping, data_buffer, scdr.getSerializedDataLength());

@@ -58,14 +58,16 @@ int main(int argc, char *argv[])
         return 1;
     }
 
+    size_t headlen = transporter->get_header_length();
+
     char data_buffer[BUFFER_SIZE] = {};
-    eprosima::fastcdr::FastBuffer cdrbuffer(&data_buffer[9], sizeof(data_buffer) - 9);
+    eprosima::fastcdr::FastBuffer cdrbuffer(&data_buffer[headlen], sizeof(data_buffer) - headlen);
     eprosima::fastcdr::Cdr scdr(cdrbuffer);
     scdr << "aa";
     transporter->write(9, data_buffer, scdr.getSerializedDataLength());
 
     char data_buffer2[BUFFER_SIZE] = {};
-    eprosima::fastcdr::FastBuffer cdrbuffer2(&data_buffer2[9], sizeof(data_buffer2) - 9);
+    eprosima::fastcdr::FastBuffer cdrbuffer2(&data_buffer2[headlen], sizeof(data_buffer2) - headlen);
     eprosima::fastcdr::Cdr scdr2(cdrbuffer2);
     scdr2 << "bb";
     transporter->write(12, data_buffer2, scdr2.getSerializedDataLength());
