@@ -1,6 +1,7 @@
 #pragma once
 
 // C++ includes
+#include <algorithm>
 #include <cstdint>
 #include <map>
 #include <memory>
@@ -53,17 +54,29 @@ public:
                 continue;
             }
 
+            // Check to make sure this isn't a duplicate publication ID.
+            if (serial_to_pub.count(t.second.serial_mapping) != 0)
+            {
+                fprintf(stderr, "Topic '%s' has duplicate serial_mapping; this is not allowed\n", t.first.c_str());
+                return false;
+            }
+
+            // Check to make sure this isn't a duplicate subscription ID.
+            if (std::find_if(serial_subs.begin(), serial_subs.end(),
+                             [t](std::unique_ptr<Subscription> & e) {
+                                 return t.second.serial_mapping == e->get_serial_mapping();
+                             }) != serial_subs.end())
+            {
+                fprintf(stderr, "Topic '%s' has duplicate serial_mapping; this is not allowed\n", t.first.c_str());
+                return false;
+            }
+
             // OK, we've verified that this is a valid topic.  Let's create the
             // publisher for it.
             if (t.second.type == "std_msgs/String")
             {
                 if (t.second.direction == TopicMapping::Direction::SERIAL_TO_ROS2)
                 {
-                    if (serial_to_pub.count(t.second.serial_mapping) != 0)
-                    {
-                        fprintf(stderr, "Topic '%s' has duplicate serial_mapping; this is not allowed\n", t.first.c_str());
-                        return false;
-                    }
                     serial_to_pub[t.second.serial_mapping] = std::make_unique<std_msgs_String_Publisher>(node, t.first);
                 }
                 else if (t.second.direction == TopicMapping::Direction::ROS2_TO_SERIAL)
