@@ -8,3 +8,7 @@ ros2_serializer:
             serial_mapping: 12
             type: std_msgs/String
             direction: SerialToROS2
+        another:
+            serial_mapping: 13
+            type: std_msgs/String
+            direction: ROS2ToSerial

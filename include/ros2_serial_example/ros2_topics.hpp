@@ -75,7 +75,6 @@ public:
                         transporter->write(9, data_buffer.get(), scdr.getSerializedDataLength());
                     };
                     std_msgs_String_serial_subs.push_back(node->create_subscription<std_msgs::msg::String>(t.first, callback));
-                    return false;
                 }
                 else
                 {
