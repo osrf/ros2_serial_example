@@ -18,15 +18,15 @@
 
 struct TopicMapping
 {
-  std::string type{""};
-  topic_id_size_t serial_mapping{0};
-  enum class Direction
-  {
-      UNKNOWN,
-      SERIAL_TO_ROS2,
-      ROS2_TO_SERIAL,
-  };
-  Direction direction{Direction::UNKNOWN};
+    std::string type{""};
+    topic_id_size_t serial_mapping{0};
+    enum class Direction
+    {
+        UNKNOWN,
+        SERIAL_TO_ROS2,
+        ROS2_TO_SERIAL,
+    };
+    Direction direction{Direction::UNKNOWN};
 };
 
 class ROS2Topics
