@@ -230,12 +230,13 @@ int main(int argc, char *argv[])
 
     running = 1;
 
-    while (running)
+    while (rclcpp::ok() && running)
     {
         while ((length = transporter->read(&topic_ID, data_buffer, BUFFER_SIZE)) > 0)
         {
             ros2_topics->dispatch(topic_ID, data_buffer, length);
         }
+        rclcpp::spin_some(node);
         ::usleep(1);
     }
 

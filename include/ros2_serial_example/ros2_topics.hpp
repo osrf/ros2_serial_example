@@ -66,15 +66,16 @@ public:
                 }
                 else if (t.second.direction == TopicMapping::Direction::ROS2_TO_SERIAL)
                 {
-                    auto callback = [transporter](const std_msgs::msg::String::SharedPtr msg) -> void
+                    auto callback = [t, transporter](const std_msgs::msg::String::SharedPtr msg) -> void
                     {
-                        auto data_buffer = std::make_shared<char>(9 + msg->data.length());
-                        eprosima::fastcdr::FastBuffer cdrbuffer(data_buffer.get() + 9, msg->data.length());
+                        char *data_buffer = new char[msg->data.size() + 5 + 9]();
+                        eprosima::fastcdr::FastBuffer cdrbuffer(&data_buffer[9], 1024 - 9);
                         eprosima::fastcdr::Cdr scdr(cdrbuffer);
                         scdr << msg->data;
-                        transporter->write(9, data_buffer.get(), scdr.getSerializedDataLength());
+                        transporter->write(t.second.serial_mapping, data_buffer, scdr.getSerializedDataLength());
+                        delete [] data_buffer;
                     };
-                    std_msgs_String_serial_subs.push_back(node->create_subscription<std_msgs::msg::String>(t.first, callback));
+                    std_msgs_String_serial_subs.push_back(node->create_subscription<std_msgs::msg::String>(t.first, callback, rmw_qos_profile_default));
                 }
                 else
                 {
