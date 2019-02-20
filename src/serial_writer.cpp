@@ -8,7 +8,7 @@
 #include <fastcdr/Cdr.h>
 #include <fastcdr/FastCdr.h>
 
-#include "ros2_serial_example/ros2_serial_transport.hpp"
+#include "ros2_serial_example/transporter.hpp"
 
 constexpr int BUFFER_SIZE = 1024;
 

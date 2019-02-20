@@ -45,7 +45,7 @@
 #include <unistd.h>
 #include <sys/socket.h>
 
-#include "ros2_serial_example/ros2_serial_transport.hpp"
+#include "ros2_serial_example/transporter.hpp"
 
 RingBuffer::RingBuffer(size_t capacity)
 {
