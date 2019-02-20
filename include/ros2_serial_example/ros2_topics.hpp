@@ -42,13 +42,15 @@ public:
                    const std::map<std::string, TopicMapping> & topic_names_and_serialization,
                    std::shared_ptr<Transporter> transporter)
     {
-      // Now go through every topic and ensure that it has both a valid type
-      // (not "") and a valid serial mapping (not 0).
+        // Now go through every topic and ensure that it has a valid type
+        // (not ""), a valid serial mapping (not 0), and a valid direction
+        // (not UNKNOWN).
         for (const auto & t : topic_names_and_serialization)
         {
-          if (t.second.type == "" || t.second.serial_mapping == 0 || t.second.direction == TopicMapping::Direction::UNKNOWN)
+            if (t.second.type == "" || t.second.serial_mapping == 0 || t.second.direction == TopicMapping::Direction::UNKNOWN)
             {
-                return false;
+                fprintf(stderr, "Topic '%s' missing type, serial_mapping, or direction; skipping\n", t.first.c_str());
+                continue;
             }
 
             // OK, we've verified that this is a valid topic.  Let's create the
@@ -59,7 +61,7 @@ public:
                 {
                     if (std_msgs_String_serial_to_pub.count(t.second.serial_mapping) != 0)
                     {
-                        fprintf(stderr, "Duplicate serial mapping is not allowed\n");
+                        fprintf(stderr, "Topic '%s' has duplicate serial_mapping; this is not allowed\n", t.first.c_str());
                         return false;
                     }
                     std_msgs_String_serial_to_pub[t.second.serial_mapping] = node->create_publisher<std_msgs::msg::String>(t.first);
@@ -80,14 +82,14 @@ public:
                 }
                 else
                 {
-                    fprintf(stderr, "Unsupported direction\n");
-                    return false;
+                    fprintf(stderr, "Topic '%s' has unsupported direction '%d'; skipping\n", t.first.c_str(), static_cast<int32_t>(t.second.direction));
+                    continue;
                 }
             }
             else
             {
-                fprintf(stderr, "Unsupported type\n");
-                return false;
+                fprintf(stderr, "Topic '%s' has unsupported type '%s'; skipping\n", t.first.c_str(), t.second.type.c_str());
+                continue;
             }
         }
 
