@@ -36,6 +36,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <limits>
 #include <stdexcept>
 #include <vector>
 
@@ -308,7 +309,7 @@ uint16_t Transporter::crc16(uint8_t const *buffer, size_t len)
     return crc;
 }
 
-ssize_t Transporter::find_and_copy_message(uint8_t *topic_ID, char out_buffer[], size_t buffer_len)
+ssize_t Transporter::find_and_copy_message(topic_id_size_t *topic_ID, char out_buffer[], size_t buffer_len)
 {
     if (ringbuf.bytes_used() < get_header_length())
     {
@@ -385,7 +386,7 @@ ssize_t Transporter::find_and_copy_message(uint8_t *topic_ID, char out_buffer[],
     if (ringbuf.memcpy_from(out_buffer, payload_len) == nullptr)
     {
         // We already checked above, so this should never happen.
-      throw std::runtime_error("Unexpected ring buffer failure");
+        throw std::runtime_error("Unexpected ring buffer failure");
     }
 
     uint16_t read_crc = (static_cast<uint16_t>(header->crc_h) << 8) | header->crc_l;
@@ -406,14 +407,14 @@ ssize_t Transporter::find_and_copy_message(uint8_t *topic_ID, char out_buffer[],
     return len;
 }
 
-ssize_t Transporter::read(uint8_t *topic_ID, char out_buffer[], size_t buffer_len)
+ssize_t Transporter::read(topic_id_size_t *topic_ID, char out_buffer[], size_t buffer_len)
 {
     if (nullptr == out_buffer || nullptr == topic_ID || !fds_OK())
     {
         return -1;
     }
 
-    *topic_ID = 255;
+    *topic_ID = std::numeric_limits<topic_id_size_t>::max();
 
     if (ringbuf.bytes_used() >= get_header_length())
     {
@@ -460,7 +461,7 @@ size_t Transporter::get_header_length()
     return sizeof(Header);
 }
 
-ssize_t Transporter::write(const uint8_t topic_ID, char buffer[], size_t length)
+ssize_t Transporter::write(const topic_id_size_t topic_ID, char buffer[], size_t length)
 {
     if (!fds_OK())
     {

@@ -2,6 +2,7 @@
 #include <cstdio>
 #include <cstring>
 #include <iostream>
+#include <limits>
 #include <map>
 #include <memory>
 #include <string>
@@ -150,7 +151,7 @@ static std::unique_ptr<ROS2Topics> parse_node_parameters_for_topics(const std::s
                 params_usage();
                 return nullptr;
             }
-            topic_names_and_serialization[topic_name].serial_mapping = static_cast<uint8_t>(serial_mapping);
+            topic_names_and_serialization[topic_name].serial_mapping = static_cast<topic_id_size_t>(serial_mapping);
         }
         else if (param_name == "type")
         {
@@ -224,7 +225,7 @@ int main(int argc, char *argv[])
 
     char data_buffer[BUFFER_SIZE] = {};
     ssize_t length = 0;
-    uint8_t topic_ID = 255;
+    topic_id_size_t topic_ID = std::numeric_limits<topic_id_size_t>::max();
 
     ::signal(SIGINT, signal_handler);
 

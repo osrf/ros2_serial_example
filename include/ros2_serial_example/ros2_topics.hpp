@@ -20,7 +20,7 @@
 struct TopicMapping
 {
   std::string type{""};
-  uint8_t serial_mapping{0};
+  topic_id_size_t serial_mapping{0};
   enum class Direction
   {
       UNKNOWN,
@@ -96,7 +96,7 @@ public:
         return true;
     }
 
-    void dispatch(uint8_t topic_ID, char data_buffer[], ssize_t length)
+    void dispatch(topic_id_size_t topic_ID, char data_buffer[], ssize_t length)
     {
         if (std_msgs_String_serial_to_pub.count(topic_ID) > 0)
         {
@@ -110,6 +110,6 @@ public:
     }
 
 private:
-    std::map<uint8_t, std::shared_ptr<rclcpp::Publisher<std_msgs::msg::String>>> std_msgs_String_serial_to_pub;
+    std::map<topic_id_size_t, std::shared_ptr<rclcpp::Publisher<std_msgs::msg::String>>> std_msgs_String_serial_to_pub;
     std::vector<std::shared_ptr<rclcpp::Subscription<std_msgs::msg::String>>> std_msgs_String_serial_subs;
 };
