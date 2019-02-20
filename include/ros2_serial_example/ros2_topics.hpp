@@ -11,12 +11,10 @@
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/string.hpp>
 
-#include <fastcdr/Cdr.h>
-#include <fastcdr/FastCdr.h>
-
 #include "ros2_serial_example/transporter.hpp"
 
 #include "ros2_serial_example/std_msgs_String_Publisher.hpp"
+#include "ros2_serial_example/std_msgs_String_Subscriber.hpp"
 
 struct TopicMapping
 {
@@ -69,17 +67,7 @@ public:
                 }
                 else if (t.second.direction == TopicMapping::Direction::ROS2_TO_SERIAL)
                 {
-                    auto callback = [t, transporter](const std_msgs::msg::String::SharedPtr msg) -> void
-                    {
-                        size_t headlen = transporter->get_header_length();
-                        char *data_buffer = new char[msg->data.size() + 5 + headlen]();
-                        eprosima::fastcdr::FastBuffer cdrbuffer(&data_buffer[headlen], msg->data.size() + 5);
-                        eprosima::fastcdr::Cdr scdr(cdrbuffer);
-                        scdr << msg->data;
-                        transporter->write(t.second.serial_mapping, data_buffer, scdr.getSerializedDataLength());
-                        delete [] data_buffer;
-                    };
-                    std_msgs_String_serial_subs.push_back(node->create_subscription<std_msgs::msg::String>(t.first, callback, rmw_qos_profile_default));
+                    std_msgs_String_serial_subs.push_back(std::make_unique<std_msgs_String_Subscriber>(node, t.second.serial_mapping, t.first, transporter));
                 }
                 else
                 {
@@ -107,5 +95,5 @@ public:
 
 private:
     std::map<topic_id_size_t, std::unique_ptr<std_msgs_String_Publisher>> std_msgs_String_serial_to_pub;
-    std::vector<std::shared_ptr<rclcpp::Subscription<std_msgs::msg::String>>> std_msgs_String_serial_subs;
+    std::vector<std::unique_ptr<std_msgs_String_Subscriber>> std_msgs_String_serial_subs;
 };
