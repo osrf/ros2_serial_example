@@ -16,6 +16,8 @@
 
 #include "ros2_serial_example/transporter.hpp"
 
+#include "ros2_serial_example/std_msgs_String_Publisher.hpp"
+
 struct TopicMapping
 {
     std::string type{""};
@@ -63,7 +65,7 @@ public:
                         fprintf(stderr, "Topic '%s' has duplicate serial_mapping; this is not allowed\n", t.first.c_str());
                         return false;
                     }
-                    std_msgs_String_serial_to_pub[t.second.serial_mapping] = node->create_publisher<std_msgs::msg::String>(t.first);
+                    std_msgs_String_serial_to_pub[t.second.serial_mapping] = std::make_unique<std_msgs_String_Publisher>(node, t.first);
                 }
                 else if (t.second.direction == TopicMapping::Direction::ROS2_TO_SERIAL)
                 {
@@ -99,16 +101,11 @@ public:
     {
         if (std_msgs_String_serial_to_pub.count(topic_ID) > 0)
         {
-              // string topic
-              eprosima::fastcdr::FastBuffer cdrbuffer(data_buffer, length);
-              eprosima::fastcdr::Cdr cdrdes(cdrbuffer);
-              auto msg = std::make_shared<std_msgs::msg::String>();
-              cdrdes >> msg->data;
-              std_msgs_String_serial_to_pub[topic_ID]->publish(msg);
+            std_msgs_String_serial_to_pub[topic_ID]->dispatch(data_buffer, length);
         }
     }
 
 private:
-    std::map<topic_id_size_t, std::shared_ptr<rclcpp::Publisher<std_msgs::msg::String>>> std_msgs_String_serial_to_pub;
+    std::map<topic_id_size_t, std::unique_ptr<std_msgs_String_Publisher>> std_msgs_String_serial_to_pub;
     std::vector<std::shared_ptr<rclcpp::Subscription<std_msgs::msg::String>>> std_msgs_String_serial_subs;
 };
