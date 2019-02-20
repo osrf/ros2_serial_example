@@ -34,6 +34,11 @@
 
 #include <cstdint>
 
+// If you want to allow > 255 topic name/topic types on the serial wire,
+// increase the size of this typedef.  Note that it will break on-wire
+// serial compatibility.
+typedef uint8_t topic_id_size_t;
+
 class RingBuffer final
 {
 public:
@@ -111,7 +116,7 @@ private:
     uint8_t seq{0};
     struct __attribute__((packed)) Header {
         uint8_t marker[3];
-        uint8_t topic_ID;
+        topic_id_size_t topic_ID;
         uint8_t seq;
         uint8_t payload_len_h;
         uint8_t payload_len_l;
