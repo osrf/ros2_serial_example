@@ -348,13 +348,13 @@ ssize_t Transporter::find_and_copy_message(uint8_t *topic_ID, char out_buffer[],
     // Looking for a header of the form:
     // [>,>,>,topic_ID,seq,payload_length_H,payload_length_L,CRCHigh,CRCLow,payloadStart, ... ,payloadEnd]
 
-    uint8_t headerbuf[9];
+    uint8_t headerbuf[sizeof(Header)];
 
     // Peek at the header out of the buffer.  Note that we need to do
     // a peek/copy (rather than just mapping to the array) because the
     // header might be non-contiguous in memory in the ring.
 
-    ringbuf.peek(headerbuf, 9);
+    ringbuf.peek(headerbuf, sizeof(Header));
     Header *header = reinterpret_cast<Header *>(headerbuf);
 
     uint32_t payload_len = (static_cast<uint32_t>(header->payload_len_h) << 8) | header->payload_len_l;
