@@ -1,12 +1,11 @@
 #pragma once
 
 // C++ includes
-#include <array>
 #include <cstdint>
 #include <map>
 #include <memory>
 #include <string>
-#include <utility>
+#include <vector>
 
 // ROS 2 includes
 #include <rclcpp/rclcpp.hpp>
