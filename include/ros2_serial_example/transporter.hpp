@@ -69,11 +69,11 @@ private:
     size_t size;
 };
 
-class Transport_node
+class Transporter
 {
 public:
-    Transport_node();
-    virtual ~Transport_node();
+    Transporter();
+    virtual ~Transporter();
 
     virtual int init() {return 0;}
     virtual uint8_t close() {return 0;}

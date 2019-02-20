@@ -44,7 +44,7 @@
 #include "ros2_serial_example/transporter.hpp"
 #include "ros2_serial_example/uart_transporter.hpp"
 
-UART_node::UART_node(const char *_uart_name, uint32_t _baudrate, uint32_t _poll_ms):
+UARTTransporter::UARTTransporter(const char *_uart_name, uint32_t _baudrate, uint32_t _poll_ms):
     uart_fd(-1),
     baudrate(_baudrate),
     poll_ms(_poll_ms)
@@ -56,12 +56,12 @@ UART_node::UART_node(const char *_uart_name, uint32_t _baudrate, uint32_t _poll_
     }
 }
 
-UART_node::~UART_node()
+UARTTransporter::~UARTTransporter()
 {
     close();
 }
 
-int UART_node::init()
+int UARTTransporter::init()
 {
     // Open a serial port
     uart_fd = ::open(uart_name, O_RDWR | O_NOCTTY | O_NONBLOCK);
@@ -151,12 +151,12 @@ int UART_node::init()
     return uart_fd;
 }
 
-bool UART_node::fds_OK()
+bool UARTTransporter::fds_OK()
 {
     return (-1 != uart_fd);
 }
 
-uint8_t UART_node::close()
+uint8_t UARTTransporter::close()
 {
     if (-1 != uart_fd)
     {
@@ -169,7 +169,7 @@ uint8_t UART_node::close()
     return 0;
 }
 
-ssize_t UART_node::node_read()
+ssize_t UARTTransporter::node_read()
 {
     if (!fds_OK())
     {
@@ -187,7 +187,7 @@ ssize_t UART_node::node_read()
     return ret;
 }
 
-ssize_t UART_node::node_write(void *buffer, size_t len)
+ssize_t UARTTransporter::node_write(void *buffer, size_t len)
 {
     if (nullptr == buffer || !fds_OK())
     {

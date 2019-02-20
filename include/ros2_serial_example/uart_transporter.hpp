@@ -40,11 +40,11 @@
 // Local includes
 #include "ros2_serial_example/transporter.hpp"
 
-class UART_node : public Transport_node
+class UARTTransporter : public Transporter
 {
 public:
-    UART_node(const char *uart_name, uint32_t baudrate, uint32_t poll_ms);
-    virtual ~UART_node();
+    UARTTransporter(const char *uart_name, uint32_t baudrate, uint32_t poll_ms);
+    virtual ~UARTTransporter();
 
     int init() override;
     uint8_t close() override;

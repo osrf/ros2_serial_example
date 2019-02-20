@@ -40,7 +40,7 @@ public:
 
     bool configure(const std::shared_ptr<rclcpp::Node> & node,
                    const std::map<std::string, TopicMapping> & topic_names_and_serialization,
-                   std::shared_ptr<Transport_node> transport_node)
+                   std::shared_ptr<Transporter> transporter)
     {
       // Now go through every topic and ensure that it has both a valid type
       // (not "") and a valid serial mapping (not 0).
@@ -66,13 +66,13 @@ public:
                 }
                 else if (t.second.direction == TopicMapping::Direction::ROS2_TO_SERIAL)
                 {
-                    auto callback = [transport_node](const std_msgs::msg::String::SharedPtr msg) -> void
+                    auto callback = [transporter](const std_msgs::msg::String::SharedPtr msg) -> void
                     {
                         auto data_buffer = std::make_shared<char>(9 + msg->data.length());
                         eprosima::fastcdr::FastBuffer cdrbuffer(data_buffer.get() + 9, msg->data.length());
                         eprosima::fastcdr::Cdr scdr(cdrbuffer);
                         scdr << msg->data;
-                        transport_node->write(9, data_buffer.get(), scdr.getSerializedDataLength());
+                        transporter->write(9, data_buffer.get(), scdr.getSerializedDataLength());
                     };
                     std_msgs_String_serial_subs.push_back(node->create_subscription<std_msgs::msg::String>(t.first, callback));
                     return false;

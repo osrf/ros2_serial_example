@@ -109,7 +109,7 @@ static int parse_options(const std::vector<std::string> & args, std::string & de
 }
 
 static std::unique_ptr<ROS2Topics> parse_node_parameters_for_topics(const std::shared_ptr<rclcpp::Node> & node,
-                                                                    std::shared_ptr<Transport_node> transport_node)
+                                                                    std::shared_ptr<Transporter> transporter)
 {
     // Now we go through the YAML file containing our parameters, looking for
     // parameters of the form:
@@ -185,7 +185,7 @@ static std::unique_ptr<ROS2Topics> parse_node_parameters_for_topics(const std::s
     }
 
     std::unique_ptr<ROS2Topics> ros2_topics = std::make_unique<ROS2Topics>();
-    if (!ros2_topics->configure(node, topic_names_and_serialization, transport_node))
+    if (!ros2_topics->configure(node, topic_names_and_serialization, transporter))
     {
         return nullptr;
     }
@@ -207,14 +207,14 @@ int main(int argc, char *argv[])
 
     auto node = rclcpp::Node::make_shared("ros2_serializer");
 
-    std::shared_ptr<Transport_node> transport_node = std::make_shared<UART_node>(device.c_str(), B115200, 0);
+    std::shared_ptr<Transporter> transporter = std::make_shared<UARTTransporter>(device.c_str(), B115200, 0);
 
-    if (transport_node->init() < 0)
+    if (transporter->init() < 0)
     {
         return 1;
     }
 
-    std::unique_ptr<ROS2Topics> ros2_topics = parse_node_parameters_for_topics(node, transport_node);
+    std::unique_ptr<ROS2Topics> ros2_topics = parse_node_parameters_for_topics(node, transporter);
     if (ros2_topics == nullptr)
     {
         return 2;
@@ -232,14 +232,14 @@ int main(int argc, char *argv[])
 
     while (running)
     {
-        while ((length = transport_node->read(&topic_ID, data_buffer, BUFFER_SIZE)) > 0)
+        while ((length = transporter->read(&topic_ID, data_buffer, BUFFER_SIZE)) > 0)
         {
             ros2_topics->dispatch(topic_ID, data_buffer, length);
         }
         ::usleep(1);
     }
 
-    transport_node->close();
+    transporter->close();
 
     return 0;
 }

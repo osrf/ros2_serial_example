@@ -51,9 +51,9 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    std::unique_ptr<Transport_node> transport_node = std::make_unique<UART_node>(device, B115200, 0);
+    std::unique_ptr<Transporter> transporter = std::make_unique<UARTTransporter>(device, B115200, 0);
 
-    if (transport_node->init() < 0)
+    if (transporter->init() < 0)
     {
         return 1;
     }
@@ -62,15 +62,15 @@ int main(int argc, char *argv[])
     eprosima::fastcdr::FastBuffer cdrbuffer(&data_buffer[9], sizeof(data_buffer) - 9);
     eprosima::fastcdr::Cdr scdr(cdrbuffer);
     scdr << "aa";
-    transport_node->write(9, data_buffer, scdr.getSerializedDataLength());
+    transporter->write(9, data_buffer, scdr.getSerializedDataLength());
 
     char data_buffer2[BUFFER_SIZE] = {};
     eprosima::fastcdr::FastBuffer cdrbuffer2(&data_buffer2[9], sizeof(data_buffer2) - 9);
     eprosima::fastcdr::Cdr scdr2(cdrbuffer2);
     scdr2 << "bb";
-    transport_node->write(12, data_buffer2, scdr2.getSerializedDataLength());
+    transporter->write(12, data_buffer2, scdr2.getSerializedDataLength());
 
-    transport_node->close();
+    transporter->close();
 
     return 0;
 }

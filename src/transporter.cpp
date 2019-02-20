@@ -283,20 +283,20 @@ uint16_t const crc16_table[256] = {
     0x8201, 0x42C0, 0x4380, 0x8341, 0x4100, 0x81C1, 0x8081, 0x4040
 };
 
-Transport_node::Transport_node() : ringbuf(1024)
+Transporter::Transporter() : ringbuf(1024)
 {
 }
 
-Transport_node::~Transport_node()
+Transporter::~Transporter()
 {
 }
 
-uint16_t Transport_node::crc16_byte(uint16_t crc, const uint8_t data)
+uint16_t Transporter::crc16_byte(uint16_t crc, const uint8_t data)
 {
     return (crc >> 8) ^ crc16_table[(crc ^ data) & 0xff];
 }
 
-uint16_t Transport_node::crc16(uint8_t const *buffer, size_t len)
+uint16_t Transporter::crc16(uint8_t const *buffer, size_t len)
 {
     uint16_t crc = 0;
 
@@ -308,7 +308,7 @@ uint16_t Transport_node::crc16(uint8_t const *buffer, size_t len)
     return crc;
 }
 
-ssize_t Transport_node::find_and_copy_message(uint8_t *topic_ID, char out_buffer[], size_t buffer_len)
+ssize_t Transporter::find_and_copy_message(uint8_t *topic_ID, char out_buffer[], size_t buffer_len)
 {
     if (ringbuf.bytes_used() < get_header_length())
     {
@@ -406,7 +406,7 @@ ssize_t Transport_node::find_and_copy_message(uint8_t *topic_ID, char out_buffer
     return len;
 }
 
-ssize_t Transport_node::read(uint8_t *topic_ID, char out_buffer[], size_t buffer_len)
+ssize_t Transporter::read(uint8_t *topic_ID, char out_buffer[], size_t buffer_len)
 {
     if (nullptr == out_buffer || nullptr == topic_ID || !fds_OK())
     {
@@ -455,12 +455,12 @@ ssize_t Transport_node::read(uint8_t *topic_ID, char out_buffer[], size_t buffer
     return 0;
 }
 
-size_t Transport_node::get_header_length()
+size_t Transporter::get_header_length()
 {
     return sizeof(Header);
 }
 
-ssize_t Transport_node::write(const uint8_t topic_ID, char buffer[], size_t length)
+ssize_t Transporter::write(const uint8_t topic_ID, char buffer[], size_t length)
 {
     if (!fds_OK())
     {
