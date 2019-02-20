@@ -107,7 +107,8 @@ static int parse_options(const std::vector<std::string> & args, std::string & de
     return -1;
 }
 
-static std::unique_ptr<ROS2Topics> parse_node_parameters_for_topics(const std::shared_ptr<rclcpp::Node> & node)
+static std::unique_ptr<ROS2Topics> parse_node_parameters_for_topics(const std::shared_ptr<rclcpp::Node> & node,
+                                                                    std::shared_ptr<Transport_node> transport_node)
 {
     // Now we go through the YAML file containing our parameters, looking for
     // parameters of the form:
@@ -183,7 +184,7 @@ static std::unique_ptr<ROS2Topics> parse_node_parameters_for_topics(const std::s
     }
 
     std::unique_ptr<ROS2Topics> ros2_topics = std::make_unique<ROS2Topics>();
-    if (!ros2_topics->configure(node, topic_names_and_serialization))
+    if (!ros2_topics->configure(node, topic_names_and_serialization, transport_node))
     {
         return nullptr;
     }
@@ -205,17 +206,17 @@ int main(int argc, char *argv[])
 
     auto node = rclcpp::Node::make_shared("ros2_serializer");
 
-    std::unique_ptr<ROS2Topics> ros2_topics = parse_node_parameters_for_topics(node);
-    if (ros2_topics == nullptr)
-    {
-        return 2;
-    }
-
-    std::unique_ptr<Transport_node> transport_node = std::make_unique<UART_node>(device.c_str(), B115200, 0);
+    std::shared_ptr<Transport_node> transport_node = std::make_shared<UART_node>(device.c_str(), B115200, 0);
 
     if (transport_node->init() < 0)
     {
         return 1;
+    }
+
+    std::unique_ptr<ROS2Topics> ros2_topics = parse_node_parameters_for_topics(node, transport_node);
+    if (ros2_topics == nullptr)
+    {
+        return 2;
     }
 
     ::sleep(1);
