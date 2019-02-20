@@ -9,13 +9,15 @@
 #include <fastcdr/Cdr.h>
 #include <fastcdr/FastCdr.h>
 
-class std_msgs_String_Subscriber
+#include "ros2_serial_example/subscription.hpp"
+
+class std_msgs_String_Subscription : public Subscription
 {
 public:
-    explicit std_msgs_String_Subscriber(const std::shared_ptr<rclcpp::Node> & node,
-                                        topic_id_size_t serial_mapping,
-                                        const std::string & name,
-                                        std::shared_ptr<Transporter> transporter)
+    explicit std_msgs_String_Subscription(const std::shared_ptr<rclcpp::Node> & node,
+                                          topic_id_size_t serial_mapping,
+                                          const std::string & name,
+                                          std::shared_ptr<Transporter> transporter)
     {
         auto callback = [serial_mapping, transporter](const std_msgs::msg::String::SharedPtr msg) -> void
         {
