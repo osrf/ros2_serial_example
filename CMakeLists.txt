@@ -20,6 +20,7 @@ include_directories(include)
 add_executable(ros2_serializer
   src/ros2_serializer.cpp
   src/transporter.cpp
+  src/uart_transporter.cpp
 )
 ament_target_dependencies(ros2_serializer
   fastcdr
@@ -33,6 +34,7 @@ target_link_libraries(ros2_serializer
 add_executable(serial_writer
   src/serial_writer.cpp
   src/transporter.cpp
+  src/uart_transporter.cpp
 )
 ament_target_dependencies(serial_writer
   fastcdr

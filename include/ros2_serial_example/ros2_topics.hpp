@@ -15,6 +15,8 @@
 #include <fastcdr/Cdr.h>
 #include <fastcdr/FastCdr.h>
 
+#include "ros2_serial_example/transporter.hpp"
+
 struct TopicMapping
 {
   std::string type{""};

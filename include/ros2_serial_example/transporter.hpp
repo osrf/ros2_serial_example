@@ -34,41 +34,39 @@
 
 #include <cstdint>
 
-#include <poll.h>
-
 class RingBuffer final
 {
 public:
-  explicit RingBuffer(size_t capacity);
+    explicit RingBuffer(size_t capacity);
 
-  virtual ~RingBuffer();
+    virtual ~RingBuffer();
 
-  ssize_t read(int fd);
+    ssize_t read(int fd);
 
-  void *peek(void *dst, size_t count);
+    void *peek(void *dst, size_t count);
 
-  void *memcpy_from(void *dst, size_t count);
+    void *memcpy_from(void *dst, size_t count);
 
-  size_t findseq(uint8_t *seq, size_t seqlen);
+    size_t findseq(uint8_t *seq, size_t seqlen);
 
-  size_t bytes_used() const;
+    size_t bytes_used() const;
 
-  bool is_full() const;
+    bool is_full() const;
 
-  void *head_pointer() const;
+    void *head_pointer() const;
 
 private:
-  size_t buffer_size() const;
-  size_t capacity() const;
-  uint8_t *end() const;
-  size_t bytes_free() const;
-  bool is_empty() const;
-  uint8_t *nextp(uint8_t *p);
+    size_t buffer_size() const;
+    size_t capacity() const;
+    uint8_t *end() const;
+    size_t bytes_free() const;
+    bool is_empty() const;
+    uint8_t *nextp(uint8_t *p);
 
-  uint8_t *buf;
-  uint8_t *head;
-  uint8_t *tail;
-  size_t size;
+    uint8_t *buf;
+    uint8_t *head;
+    uint8_t *tail;
+    size_t size;
 };
 
 class Transport_node
@@ -120,25 +118,4 @@ private:
         uint8_t crc_h;
         uint8_t crc_l;
     };
-};
-
-class UART_node: public Transport_node
-{
-public:
-    UART_node(const char *uart_name, uint32_t baudrate, uint32_t poll_ms);
-    virtual ~UART_node();
-
-    int init() override;
-    uint8_t close() override;
-
-protected:
-    ssize_t node_read();
-    ssize_t node_write(void *buffer, size_t len);
-    bool fds_OK();
-
-    int uart_fd;
-    char uart_name[64] = {};
-    uint32_t baudrate;
-    uint32_t poll_ms;
-    struct pollfd poll_fd[1] = {};
 };
