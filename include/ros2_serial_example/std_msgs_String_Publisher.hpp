@@ -6,6 +6,7 @@
 
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/string.hpp>
+#include <std_msgs/msg/string__rosidl_typesupport_fastrtps_cpp.hpp>
 
 #include <fastcdr/Cdr.h>
 #include <fastcdr/FastCdr.h>
@@ -26,7 +27,7 @@ public:
         eprosima::fastcdr::FastBuffer cdrbuffer(data_buffer, length);
         eprosima::fastcdr::Cdr cdrdes(cdrbuffer);
         auto msg = std::make_shared<std_msgs::msg::String>();
-        cdrdes >> msg->data;
+        std_msgs::msg::typesupport_fastrtps_cpp::cdr_deserialize(cdrdes, *(msg.get()));
         pub->publish(msg);
     }
 
