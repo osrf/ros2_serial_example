@@ -15,8 +15,8 @@
 
 #include "ros2_serial_example/publisher.hpp"
 #include "ros2_serial_example/subscription.hpp"
-#include "ros2_serial_example/std_msgs_String_Subscription.hpp"
 #include "ros2_serial_example/Publisher_impl.hpp"
+#include "ros2_serial_example/Subscription_impl.hpp"
 
 struct TopicMapping
 {
@@ -81,7 +81,7 @@ public:
                 }
                 else if (t.second.direction == TopicMapping::Direction::ROS2_TO_SERIAL)
                 {
-                    serial_subs.push_back(std::make_unique<std_msgs_String_Subscription>(node, t.second.serial_mapping, t.first, transporter));
+                    serial_subs.push_back(std::make_unique<Subscription_impl<std_msgs::msg::String>>(node, t.second.serial_mapping, t.first, transporter));
                 }
                 else
                 {
