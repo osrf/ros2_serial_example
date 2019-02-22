@@ -77,7 +77,7 @@ public:
             {
                 if (t.second.direction == TopicMapping::Direction::SERIAL_TO_ROS2)
                 {
-                    serial_to_pub[t.second.serial_mapping] = std::make_unique<Publisher_impl<std_msgs::msg::String>>(node, t.first);
+                    serial_to_pub[t.second.serial_mapping] = std::make_unique<Publisher_impl<std_msgs::msg::String>>(node, t.first, std_msgs::msg::typesupport_fastrtps_cpp::cdr_deserialize);
                 }
                 else if (t.second.direction == TopicMapping::Direction::ROS2_TO_SERIAL)
                 {
