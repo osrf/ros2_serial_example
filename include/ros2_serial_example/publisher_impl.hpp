@@ -24,7 +24,6 @@ public:
 
     void dispatch(char data_buffer[], ssize_t length) override
     {
-        // string topic
         eprosima::fastcdr::FastBuffer cdrbuffer(data_buffer, length);
         eprosima::fastcdr::Cdr cdrdes(cdrbuffer);
         auto msg = std::make_shared<T>();
