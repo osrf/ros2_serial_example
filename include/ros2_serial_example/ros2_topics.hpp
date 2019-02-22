@@ -18,6 +18,8 @@
 #include "ros2_serial_example/Publisher_impl.hpp"
 #include "ros2_serial_example/Subscription_impl.hpp"
 
+#include <std_msgs/msg/string__rosidl_typesupport_fastrtps_cpp.hpp>
+
 struct TopicMapping
 {
     std::string type{""};
@@ -81,7 +83,7 @@ public:
                 }
                 else if (t.second.direction == TopicMapping::Direction::ROS2_TO_SERIAL)
                 {
-                    serial_subs.push_back(std::make_unique<Subscription_impl<std_msgs::msg::String>>(node, t.second.serial_mapping, t.first, transporter));
+                    serial_subs.push_back(std::make_unique<Subscription_impl<std_msgs::msg::String>>(node, t.second.serial_mapping, t.first, transporter, std_msgs::msg::typesupport_fastrtps_cpp::get_serialized_size, std_msgs::msg::typesupport_fastrtps_cpp::cdr_serialize));
                 }
                 else
                 {
