@@ -1,11 +1,11 @@
 #pragma once
 
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <string>
 
 #include <rclcpp/rclcpp.hpp>
-#include <std_msgs/msg/string__rosidl_typesupport_fastrtps_cpp.hpp>
 
 #include <fastcdr/Cdr.h>
 #include <fastcdr/FastCdr.h>
@@ -16,7 +16,8 @@ template<typename T>
 class Publisher_impl : public Publisher
 {
 public:
-    explicit Publisher_impl(const std::shared_ptr<rclcpp::Node> & node, const std::string & name)
+    explicit Publisher_impl(const std::shared_ptr<rclcpp::Node> & node, const std::string & name,
+                            std::function<bool(eprosima::fastcdr::Cdr &, T &)> des) : deserialize(des)
     {
         pub = node->create_publisher<T>(name);
     }
@@ -27,10 +28,11 @@ public:
         eprosima::fastcdr::FastBuffer cdrbuffer(data_buffer, length);
         eprosima::fastcdr::Cdr cdrdes(cdrbuffer);
         auto msg = std::make_shared<T>();
-        std_msgs::msg::typesupport_fastrtps_cpp::cdr_deserialize(cdrdes, *(msg.get()));
+        deserialize(cdrdes, *(msg.get()));
         pub->publish(msg);
     }
 
 private:
+    std::function<bool(eprosima::fastcdr::Cdr &, T &)> deserialize;
     std::shared_ptr<rclcpp::Publisher<T>> pub;
 };
