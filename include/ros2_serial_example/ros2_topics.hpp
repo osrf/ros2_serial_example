@@ -15,8 +15,8 @@
 
 #include "ros2_serial_example/publisher.hpp"
 #include "ros2_serial_example/subscription.hpp"
-#include "ros2_serial_example/Publisher_impl.hpp"
-#include "ros2_serial_example/Subscription_impl.hpp"
+#include "ros2_serial_example/publisher_impl.hpp"
+#include "ros2_serial_example/subscription_impl.hpp"
 
 #include <std_msgs/msg/string__rosidl_typesupport_fastrtps_cpp.hpp>
 
