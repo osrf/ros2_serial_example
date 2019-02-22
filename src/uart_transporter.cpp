@@ -126,23 +126,11 @@ int UARTTransporter::init()
         return -errno_bkp;
     }
 
+    // Flush out any pending data in the file descriptor.
     uint8_t aux[64];
-    bool flush = false;
-
     while (0 < ::read(uart_fd, (void *)&aux, 64))
     {
-        //printf("%s ", aux);
-        flush = true;
         usleep(1000);
-    }
-
-    if (flush)
-    {
-        ::printf("flush\n");
-    }
-    else
-    {
-        ::printf("no flush\n");
     }
 
     poll_fd[0].fd = uart_fd;
@@ -160,7 +148,6 @@ uint8_t UARTTransporter::close()
 {
     if (-1 != uart_fd)
     {
-        ::printf("Close UART\n");
         ::close(uart_fd);
         uart_fd = -1;
         ::memset(&poll_fd, 0, sizeof(poll_fd));
@@ -194,5 +181,27 @@ ssize_t UARTTransporter::node_write(void *buffer, size_t len)
         return -1;
     }
 
-    return ::write(uart_fd, buffer, len);
+    // Ensure that the entire buffer gets out to the file descriptor (unless a
+    // fatal error occurs)
+    char *b = static_cast<char *>(buffer);
+    size_t n = len;
+    while (n > 0)
+    {
+        ssize_t ret = ::write(uart_fd, b, n);
+        if (ret == -1)
+        {
+          if (errno == EINTR || errno == EWOULDBLOCK)
+          {
+              continue;
+          }
+          else
+          {
+              break;
+          }
+        }
+        n -= ret;
+        b += ret;
+    }
+
+    return (n > 0) ? -1 : len;
 }
