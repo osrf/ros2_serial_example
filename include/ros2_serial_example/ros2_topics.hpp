@@ -12,8 +12,10 @@
 
 #include "ros2_serial_example/transporter.hpp"
 
+#include "ros2_serial_example/publisher.hpp"
+#include "ros2_serial_example/subscription.hpp"
 #include "ros2_serial_example/std_msgs_String_Publisher.hpp"
-#include "ros2_serial_example/std_msgs_String_Subscriber.hpp"
+#include "ros2_serial_example/std_msgs_String_Subscription.hpp"
 
 struct TopicMapping
 {
@@ -57,16 +59,16 @@ public:
             {
                 if (t.second.direction == TopicMapping::Direction::SERIAL_TO_ROS2)
                 {
-                    if (std_msgs_String_serial_to_pub.count(t.second.serial_mapping) != 0)
+                    if (serial_to_pub.count(t.second.serial_mapping) != 0)
                     {
                         fprintf(stderr, "Topic '%s' has duplicate serial_mapping; this is not allowed\n", t.first.c_str());
                         return false;
                     }
-                    std_msgs_String_serial_to_pub[t.second.serial_mapping] = std::make_unique<std_msgs_String_Publisher>(node, t.first);
+                    serial_to_pub[t.second.serial_mapping] = std::make_unique<std_msgs_String_Publisher>(node, t.first);
                 }
                 else if (t.second.direction == TopicMapping::Direction::ROS2_TO_SERIAL)
                 {
-                    std_msgs_String_serial_subs.push_back(std::make_unique<std_msgs_String_Subscriber>(node, t.second.serial_mapping, t.first, transporter));
+                    serial_subs.push_back(std::make_unique<std_msgs_String_Subscription>(node, t.second.serial_mapping, t.first, transporter));
                 }
                 else
                 {
@@ -86,13 +88,13 @@ public:
 
     void dispatch(topic_id_size_t topic_ID, char data_buffer[], ssize_t length)
     {
-        if (std_msgs_String_serial_to_pub.count(topic_ID) > 0)
+        if (serial_to_pub.count(topic_ID) > 0)
         {
-            std_msgs_String_serial_to_pub[topic_ID]->dispatch(data_buffer, length);
+            serial_to_pub[topic_ID]->dispatch(data_buffer, length);
         }
     }
 
 private:
-    std::map<topic_id_size_t, std::unique_ptr<std_msgs_String_Publisher>> std_msgs_String_serial_to_pub;
-    std::vector<std::unique_ptr<std_msgs_String_Subscriber>> std_msgs_String_serial_subs;
+    std::map<topic_id_size_t, std::unique_ptr<Publisher>> serial_to_pub;
+    std::vector<std::unique_ptr<Subscription>> serial_subs;
 };
