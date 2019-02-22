@@ -5,6 +5,7 @@
 
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/string.hpp>
+#include <std_msgs/msg/string__rosidl_typesupport_fastrtps_cpp.hpp>
 
 #include <fastcdr/Cdr.h>
 #include <fastcdr/FastCdr.h>
@@ -24,12 +25,11 @@ public:
         auto callback = [mapping, transporter](const std_msgs::msg::String::SharedPtr msg) -> void
         {
             size_t headlen = transporter->get_header_length();
-            // From empirical testing, we know that doing CDR framing on strings results
-            // in 5 additional bytes being added to the length.
-            char *data_buffer = new char[msg->data.size() + 5 + headlen]();
-            eprosima::fastcdr::FastBuffer cdrbuffer(&data_buffer[headlen], msg->data.size() + 5);
+            size_t serialized_size = std_msgs::msg::typesupport_fastrtps_cpp::get_serialized_size(*(msg.get()), 0);
+            char *data_buffer = new char[headlen + serialized_size];
+            eprosima::fastcdr::FastBuffer cdrbuffer(&data_buffer[headlen], serialized_size);
             eprosima::fastcdr::Cdr scdr(cdrbuffer);
-            scdr << msg->data;
+            std_msgs::msg::typesupport_fastrtps_cpp::cdr_serialize(*(msg.get()), scdr);
             transporter->write(mapping, data_buffer, scdr.getSerializedDataLength());
             delete [] data_buffer;
         };
