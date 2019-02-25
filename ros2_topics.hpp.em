@@ -18,7 +18,9 @@
 #include "ros2_serial_example/publisher_impl.hpp"
 #include "ros2_serial_example/subscription_impl.hpp"
 
-#include <std_msgs/msg/string__rosidl_typesupport_fastrtps_cpp.hpp>
+@[for t in types]@
+#include <@(t.include)>
+@[end for]@
 
 struct TopicMapping
 {
@@ -73,24 +75,27 @@ public:
                 return false;
             }
 
-            // OK, we've verified that this is a valid topic.  Let's create the
-            // publisher for it.
-            if (t.second.type == "std_msgs/String")
+            // OK, we've verified that this is a valid topic.  Validate that the
+            // direction is valid.
+            if (t.second.direction != TopicMapping::Direction::SERIAL_TO_ROS2 && t.second.direction != TopicMapping::Direction::ROS2_TO_SERIAL)
+            {
+                fprintf(stderr, "Topic '%s' has unsupported direction '%d'; skipping\n", t.first.c_str(), static_cast<int32_t>(t.second.direction));
+                continue;
+            }
+
+@[for i,t in enumerate(types)]@
+            @(i != 0 ? "else ")if (t.second.type == "@(t.name)")
             {
                 if (t.second.direction == TopicMapping::Direction::SERIAL_TO_ROS2)
                 {
-                    serial_to_pub[t.second.serial_mapping] = std::make_unique<Publisher_impl<std_msgs::msg::String>>(node, t.first, std_msgs::msg::typesupport_fastrtps_cpp::cdr_deserialize);
-                }
-                else if (t.second.direction == TopicMapping::Direction::ROS2_TO_SERIAL)
-                {
-                    serial_subs.push_back(std::make_unique<Subscription_impl<std_msgs::msg::String>>(node, t.second.serial_mapping, t.first, transporter, std_msgs::msg::typesupport_fastrtps_cpp::get_serialized_size, std_msgs::msg::typesupport_fastrtps_cpp::cdr_serialize));
+                    serial_to_pub[t.second.serial_mapping] = std::make_unique<Publisher_impl<@(t.cpp_type)>>(node, t.first, @(t.serialize_ns)::cdr_deserialize);
                 }
                 else
                 {
-                    fprintf(stderr, "Topic '%s' has unsupported direction '%d'; skipping\n", t.first.c_str(), static_cast<int32_t>(t.second.direction));
-                    continue;
+                    serial_subs.push_back(std::make_unique<Subscription_impl<@(t.cpp_type)>>(node, t.second.serial_mapping, t.first, transporter, @(t.serialize_ns)::get_serialized_size, @(t.serialize_ns)::cdr_serialize));
                 }
             }
+@[end for]@
             else
             {
                 fprintf(stderr, "Topic '%s' has unsupported type '%s'; skipping\n", t.first.c_str(), t.second.type.c_str());

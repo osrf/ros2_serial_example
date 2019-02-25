@@ -15,9 +15,11 @@
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/string.hpp>
 
-#include "ros2_serial_example/ros2_topics.hpp"
 #include "ros2_serial_example/transporter.hpp"
 #include "ros2_serial_example/uart_transporter.hpp"
+
+// Generated file
+#include "ros2_topics.hpp"
 
 constexpr int BUFFER_SIZE = 1024;
 
