@@ -17,12 +17,23 @@ find_package(std_msgs REQUIRED)
 
 include_directories(include "${CMAKE_CURRENT_BINARY_DIR}")
 
+# This is the set of packages to build the ROS2<->serial bridge for.
+# A few important notes:
+# 1.  Be *very* wary of adding whole packages to this list.  With just
+#     std_msgs, the build takes something like 1.8GB to compile and the
+#     resulting binary is 38MB.  Each additional package causes both of
+#     those numbers to go up dramatically.
+# 2.  If you add a new package here, you *must* remember to "find_package"
+#     it above, and add it to package.xml since this package now depends on it.
+set(_packages
+  std_msgs
+)
 set(_generator "${CMAKE_CURRENT_SOURCE_DIR}/generate_ros2_topics.py")
 set(_ros2_topics "${CMAKE_CURRENT_BINARY_DIR}/ros2_topics.hpp")
 set(_ros2_topics_tmpl "${CMAKE_CURRENT_SOURCE_DIR}/ros2_topics.hpp.em")
 add_custom_command(
   OUTPUT ${_ros2_topics}
-  COMMAND ${PYTHON_EXECUTABLE} ${_generator} ${_ros2_topics_tmpl} ${_ros2_topics} --packages std_msgs
+  COMMAND ${PYTHON_EXECUTABLE} ${_generator} ${_ros2_topics_tmpl} ${_ros2_topics} --packages ${_packages}
   DEPENDS ${_generator} ${_ros2_topics_tmpl}
   COMMENT "Generating ros2_topics.hpp"
 )
@@ -36,7 +47,7 @@ add_executable(ros2_serializer
 ament_target_dependencies(ros2_serializer
   fastcdr
   rclcpp
-  std_msgs
+  ${_packages}
 )
 target_link_libraries(ros2_serializer
   fastcdr
