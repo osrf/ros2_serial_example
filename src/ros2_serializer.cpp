@@ -240,7 +240,7 @@ int main(int argc, char *argv[])
             ros2_topics->dispatch(topic_ID, data_buffer, length);
         }
         rclcpp::spin_some(node);
-        ::usleep(1);
+        ::usleep(1000);
     }
 
     transporter->close();
