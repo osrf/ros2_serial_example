@@ -88,11 +88,23 @@ public:
             {
                 if (t.second.direction == TopicMapping::Direction::SERIAL_TO_ROS2)
                 {
-                    serial_to_pub[t.second.serial_mapping] = std::make_unique<Publisher_impl<@(t.cpp_type)>>(node, t.first, @(t.serialize_ns)::cdr_deserialize);
+                    // We have to do this dance to with the function types
+                    // because the compiler cannot automatically figure out the
+                    // correct overload.
+                    typedef bool (*des_t)(eprosima::fastcdr::Cdr &, @(t.cpp_type) &);
+                    des_t func = @(t.serialize_ns)::cdr_deserialize;
+                    serial_to_pub[t.second.serial_mapping] = std::make_unique<Publisher_impl<@(t.cpp_type)>>(node, t.first, func);
                 }
                 else
                 {
-                    serial_subs.push_back(std::make_unique<Subscription_impl<@(t.cpp_type)>>(node, t.second.serial_mapping, t.first, transporter, @(t.serialize_ns)::get_serialized_size, @(t.serialize_ns)::cdr_serialize));
+                    // We have to do this dance to with the function types
+                    // because the compiler cannot automatically figure out the
+                    // correct overload.
+                    typedef size_t (*getsize_t)(const @(t.cpp_type) &, size_t);
+                    getsize_t getsize = @(t.serialize_ns)::get_serialized_size;
+                    typedef bool (*ser_t)(const @(t.cpp_type) &, eprosima::fastcdr::Cdr &);
+                    ser_t ser = @(t.serialize_ns)::cdr_serialize;
+                    serial_subs.push_back(std::make_unique<Subscription_impl<@(t.cpp_type)>>(node, t.second.serial_mapping, t.first, transporter, getsize, ser));
                 }
             }
 @[end for]@
