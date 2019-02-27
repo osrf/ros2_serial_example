@@ -19,7 +19,7 @@ include_directories(include "${CMAKE_CURRENT_BINARY_DIR}")
 
 # This is the set of packages to build the ROS2<->serial bridge for.  All
 # messages in packages referenced by _packages will have support compiled in,
-# and the individual files referenced in _idl_files will also be compiled in.
+# and the individual messages mentioned in _msgs will also be compiled in.
 #
 # A few important notes:
 # 1.  Be *very* wary of adding whole packages to this list.  For instance, with
@@ -30,17 +30,19 @@ include_directories(include "${CMAKE_CURRENT_BINARY_DIR}")
 #     "find_package" it above, and add it to package.xml since this package now
 #     depends on it.
 set(_packages
-  std_msgs
 )
-set(_idl_files
+set(_msgs
+  std_msgs/String
+  std_msgs/UInt16
 )
 
+# Given the packages and messages above, create the target for code generation.
 set(_flags)
 if (NOT "${_packages}" STREQUAL "")
   set(_flags "${_flags}" "--packages" "${_packages}")
 endif()
-if (NOT "${idl_files}" STREQUAL "")
-  set(_flags "${_flags}" "--idl-files" "${idl_files}")
+if (NOT "${_msgs}" STREQUAL "")
+  set(_flags "${_flags}" "--ros2-msgs" "${_msgs}")
 endif()
 set(_generator "${CMAKE_CURRENT_SOURCE_DIR}/generate_ros2_topics.py")
 set(_ros2_topics "${CMAKE_CURRENT_BINARY_DIR}/ros2_topics.hpp")
@@ -52,6 +54,20 @@ add_custom_command(
   COMMENT "Generating ros2_topics.hpp"
 )
 
+# Now setup the ament_target_dependencies for below.
+set(_deps ${_packages})
+foreach(msg ${_msgs})
+  string(REPLACE "/" ";" msglist ${msg})
+  list(LENGTH msglist msglen)
+  if (NOT ${msglen} EQUAL 2)
+    message(FATAL_ERROR "Invalid message format ${msg}, should be <package>/<name")
+  endif()
+  list(GET msglist 0 pkg)
+  list(APPEND _deps ${pkg})
+endforeach()
+
+list(REMOVE_DUPLICATES _deps)
+
 add_executable(ros2_serializer
   src/ros2_serializer.cpp
   src/transporter.cpp
@@ -61,7 +77,7 @@ add_executable(ros2_serializer
 ament_target_dependencies(ros2_serializer
   fastcdr
   rclcpp
-  ${_packages}
+  ${_deps}
 )
 target_link_libraries(ros2_serializer
   fastcdr

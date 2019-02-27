@@ -13,7 +13,6 @@
 #include <unistd.h>
 
 #include <rclcpp/rclcpp.hpp>
-#include <std_msgs/msg/string.hpp>
 
 #include "ros2_serial_example/transporter.hpp"
 #include "ros2_serial_example/uart_transporter.hpp"
