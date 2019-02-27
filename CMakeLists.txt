@@ -17,19 +17,24 @@ find_package(std_msgs REQUIRED)
 
 include_directories(include "${CMAKE_CURRENT_BINARY_DIR}")
 
-# This is the set of packages to build the ROS2<->serial bridge for.
+# This is the set of packages to build the ROS2<->serial bridge for.  All
+# messages in packages referenced by _packages will have support compiled in,
+# and the individual files referenced in _idl_files will also be compiled in.
+#
 # A few important notes:
-# 1.  Be *very* wary of adding whole packages to this list.  With just
-#     'std_msgs', the build takes something like 1.8GB of RAM to compile and the
-#     resulting binary is 38MB.  Each additional package causes both of those
-#     numbers to go up dramatically.
-# 2.  If you add a new package here, you *must* remember to "find_package"
-#     it above, and add it to package.xml since this package now depends on it.
+# 1.  Be *very* wary of adding whole packages to this list.  For instance, with
+#     just 'std_msgs', the build takes something like 1.8GB of RAM to compile
+#     and the resulting binary is 38MB.  Each additional package causes both of
+#     those numbers to go up dramatically.
+# 2.  If you add a new package or idl file here, you *must* remember to
+#     "find_package" it above, and add it to package.xml since this package now
+#     depends on it.
 set(_packages
   std_msgs
 )
 set(_idl_files
 )
+
 set(_flags)
 if (NOT "${_packages}" STREQUAL "")
   set(_flags "${_flags}" "--packages" "${_packages}")
