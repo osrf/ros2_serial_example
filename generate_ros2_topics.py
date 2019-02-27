@@ -38,26 +38,45 @@ MARKER_START = '// with input from '
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--idl-files', help='Space-separated list of individual IDL files to generate code for', nargs='*', default=[])
     parser.add_argument('--packages', help='Space-separated list of packages to generate code for', nargs='*', default=[])
+    parser.add_argument('--ros2-msgs', help='Space-separated list of ROS 2 messages to generate code for', nargs='*', default=[])
     parser.add_argument('template', help='Path to template file')
     parser.add_argument('output', help='Path to output file')
     args = parser.parse_args()
 
     idl_files = []
-    for f in args.idl_files:
-        idl_files.append(f)
-
     for p in args.packages:
         directory = os.path.join(ament_index_python.packages.get_package_share_directory(p), 'msg')
         idl_files.extend([os.path.join(directory, f) for f in os.listdir(directory) if f.endswith('.idl')])
+
+    for t in args.ros2_msgs:
+        split = t.strip().split('/')
+        if len(split) != 2:
+            print("Invalid ros2 message type; must be of the form <package>/<msg>")
+            sys.exit(1)
+        package = split[0]
+        message = split[1]
+        directory = os.path.join(ament_index_python.packages.get_package_share_directory(package), 'msg')
+        found = False
+        for f in os.listdir(directory):
+            if not f.endswith('.idl'):
+                continue
+
+            if f[:-4] == message:
+                idl_files.append(os.path.join(directory, f))
+                found = True
+                break
+
+        if not found:
+            print("Failed to find message '%s' in package '%s'; quitting" % (message, package))
+            sys.exit(1)
 
     # Uniquify the list to only generate code for each message once.
     idl_files = uniquify(idl_files)
 
     em_globals = {'types': []}
-    for arg in idl_files:
-        with open(arg, 'r') as infp:
+    for f in idl_files:
+        with open(f, 'r') as infp:
             found_marker = False
             for line in infp:
                 # The IDL files that are generated from rosidl_fastrtps_cpp all
@@ -82,7 +101,7 @@ if __name__ == '__main__':
                 # We found the name of the original file; we can do conversions on it now
                 split = line[len(MARKER_START):].strip().split('/')
                 if len(split) != 3:
-                    print("Failed to find proper marker '%s' in '%s'; quitting" % (MARKER_START, arg))
+                    print("Failed to find proper marker '%s' in '%s'; quitting" % (MARKER_START, f))
                     sys.exit(2)
 
                 ns = split[0]
@@ -102,7 +121,7 @@ if __name__ == '__main__':
                 break
 
             if not found_marker:
-                print("Failed to find marker '%s' in '%s'; quitting" % (MARKER_START, arg))
+                print("Failed to find marker '%s' in '%s'; quitting" % (MARKER_START, f))
                 sys.exit(3)
 
     with open(args.output, 'w') as outfp:
