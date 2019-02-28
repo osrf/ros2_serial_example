@@ -207,7 +207,7 @@ int main(int argc, char *argv[])
         return ret;
     }
 
-    auto node = rclcpp::Node::make_shared("ros2_serializer");
+    auto node = rclcpp::Node::make_shared("ros2_to_serial_bridge");
 
     std::shared_ptr<Transporter> transporter = std::make_shared<UARTTransporter>(device.c_str(), B115200, 0);
 
