@@ -19,6 +19,7 @@
 #include <cstdint>
 #include <map>
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -53,13 +54,9 @@ class ROS2Topics
 {
 
 public:
-    ROS2Topics()
-    {
-    }
-
-    bool configure(const std::shared_ptr<rclcpp::Node> & node,
-                   const std::map<std::string, TopicMapping> & topic_names_and_serialization,
-                   std::shared_ptr<Transporter> transporter)
+    explicit ROS2Topics(const std::shared_ptr<rclcpp::Node> & node,
+                        const std::map<std::string, TopicMapping> & topic_names_and_serialization,
+                        std::shared_ptr<Transporter> transporter)
     {
         // Now go through every topic and ensure that it has a valid type
         // (not ""), a valid serial mapping (not 0), and a valid direction
@@ -75,8 +72,7 @@ public:
             // Check to make sure this isn't a duplicate publication ID.
             if (serial_to_pub.count(t.second.serial_mapping) != 0)
             {
-                fprintf(stderr, "Topic '%s' has duplicate serial_mapping; this is not allowed\n", t.first.c_str());
-                return false;
+                throw std::runtime_error("Topic '" + t.first + "' has duplicate pub serial_mapping; this is not allowed");
             }
 
             // Check to make sure this isn't a duplicate subscription ID.
@@ -85,8 +81,7 @@ public:
                                  return t.second.serial_mapping == e->get_serial_mapping();
                              }) != serial_subs.end())
             {
-                fprintf(stderr, "Topic '%s' has duplicate serial_mapping; this is not allowed\n", t.first.c_str());
-                return false;
+                throw std::runtime_error("Topic '" + t.first + "' has duplicate sub serial_mapping; this is not allowed");
             }
 
             // OK, we've verified that this is a valid topic.  Validate that the
@@ -128,8 +123,6 @@ public:
                 continue;
             }
         }
-
-        return true;
     }
 
     void dispatch(topic_id_size_t topic_ID, char data_buffer[], ssize_t length)
