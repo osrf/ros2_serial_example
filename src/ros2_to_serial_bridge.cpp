@@ -204,12 +204,11 @@ void read_thread_func(Transporter * transporter, ROS2Topics * ros2_topics)
 
     while (rclcpp::ok() && running)
     {
-        topic_ID = std::numeric_limits<topic_id_size_t>::max();
-
         // Process serial -> ROS 2 data
         while ((length = transporter->read(&topic_ID, data_buffer, BUFFER_SIZE)) > 0)
         {
             ros2_topics->dispatch(topic_ID, data_buffer, length);
+            topic_ID = std::numeric_limits<topic_id_size_t>::max();
         }
     }
 }
@@ -228,7 +227,7 @@ int main(int argc, char *argv[])
 
     auto node = rclcpp::Node::make_shared("ros2_to_serial_bridge");
 
-    std::shared_ptr<Transporter> transporter = std::make_shared<UARTTransporter>(device.c_str(), B115200, 0);
+    std::shared_ptr<Transporter> transporter = std::make_shared<UARTTransporter>(device.c_str(), B115200, 1);
 
     if (transporter->init() < 0)
     {
