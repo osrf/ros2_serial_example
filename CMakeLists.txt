@@ -22,14 +22,8 @@ include_directories(include "${CMAKE_CURRENT_BINARY_DIR}")
 # messages in packages referenced by _packages will have support compiled in,
 # and the individual messages mentioned in _msgs will also be compiled in.
 #
-# A few important notes:
-# 1.  Be *very* wary of adding whole packages to this list.  For instance, with
-#     just 'std_msgs', the build takes something like 1.8GB of RAM to compile
-#     and the resulting binary is 38MB.  Each additional package causes both of
-#     those numbers to go up dramatically.
-# 2.  If you add a new package or idl file here, you *must* remember to
-#     "find_package" it above, and add it to package.xml since this package now
-#     depends on it.
+# If a new package or message is added here, the corresponding package must
+# be "find_package"d above and added to package.xml.
 set(_packages
   std_msgs
 )
@@ -73,7 +67,6 @@ foreach(msg ${_msgs})
   list(GET msglist 0 pkg)
   list(APPEND _deps ${pkg})
 endforeach()
-
 list(REMOVE_DUPLICATES _deps)
 
 add_executable(ros2_to_serial_bridge
