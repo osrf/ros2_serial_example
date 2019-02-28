@@ -242,8 +242,6 @@ int main(int argc, char *argv[])
 
     ::signal(SIGINT, signal_handler);
 
-    running = 1;
-
     std::thread read_thread(read_thread_func, transporter.get(), ros2_topics.get());
 
     rclcpp::WallRate loop_rate(1000);
