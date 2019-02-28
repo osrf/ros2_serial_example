@@ -14,6 +14,7 @@ find_package(ament_cmake_ros REQUIRED)
 find_package(fastcdr REQUIRED CONFIG)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
+find_package(Threads REQUIRED)
 
 include_directories(include "${CMAKE_CURRENT_BINARY_DIR}")
 
@@ -93,6 +94,7 @@ ament_target_dependencies(dummy_serial
 )
 target_link_libraries(dummy_serial
   fastcdr
+  ${CMAKE_THREAD_LIBS_INIT}
 )
 
 install(TARGETS
