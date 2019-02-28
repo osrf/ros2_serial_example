@@ -205,9 +205,16 @@ static std::unique_ptr<ROS2Topics> parse_node_parameters_for_topics(const std::s
         }
     }
 
-    std::unique_ptr<ROS2Topics> ros2_topics = std::make_unique<ROS2Topics>();
-    if (!ros2_topics->configure(node, topic_names_and_serialization, transporter))
+    std::unique_ptr<ROS2Topics> ros2_topics;
+    try
     {
+        ros2_topics = std::make_unique<ROS2Topics>(node,
+                                                   topic_names_and_serialization,
+                                                   transporter);
+    }
+    catch (const std::runtime_error & err)
+    {
+        fprintf(stderr, "%s\n", err.what());
         return nullptr;
     }
 
