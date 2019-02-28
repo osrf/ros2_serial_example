@@ -22,11 +22,10 @@ import em
 import ament_index_python.packages
 
 class ROS2Type:
-    def __init__(self, include, name, cpp_type, serialize_ns):
-        self.include = include
-        self.name = name
-        self.cpp_type = cpp_type
-        self.serialize_ns = serialize_ns
+    def __init__(self, ns, ros_type, lower_type):
+        self.ns = ns
+        self.ros_type = ros_type
+        self.lower_type = lower_type
 
 # Copied from rosidl_cmake
 def convert_camel_case_to_lower_case_underscore(value):
@@ -54,8 +53,9 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--packages', help='Space-separated list of packages to generate code for', nargs='*', default=[])
     parser.add_argument('--ros2-msgs', help='Space-separated list of ROS 2 messages to generate code for', nargs='*', default=[])
-    parser.add_argument('template', help='Path to template file')
-    parser.add_argument('output', help='Path to output file')
+    parser.add_argument('--print-outputs', help='Print a semicolon-separated list of the files that *would* be generated', action='store_true')
+    parser.add_argument('template_dir', help='Path to template directory')
+    parser.add_argument('output_dir', help='Path to output directory')
     args = parser.parse_args()
 
     idl_files = []
@@ -88,10 +88,11 @@ if __name__ == '__main__':
     # Uniquify the list to only generate code for each message once.
     idl_files = uniquify(idl_files)
 
-    em_globals = {'types': []}
+    em_globals = {'ros2_types': []}
+    outputs_to_print = []
     for f in idl_files:
         with open(f, 'r') as infp:
-            found_marker = False
+            marker_line = None
             for line in infp:
                 # The IDL files that are generated from rosidl_fastrtps_cpp all
                 # have a two-line comment header; the second line looks like:
@@ -112,36 +113,66 @@ if __name__ == '__main__':
                 if not line.startswith(MARKER_START):
                     continue
 
-                # We found the name of the original file; we can do conversions on it now
-                split = line[len(MARKER_START):].strip().split('/')
-                if len(split) != 3:
-                    print("Failed to find proper marker '%s' in '%s'; quitting" % (MARKER_START, f))
-                    sys.exit(2)
-
-                ns = split[0]
-                msg = split[1]
-                name = split[2][:-4]  # This removes the '.msg' off the back
-                lowername = convert_camel_case_to_lower_case_underscore(name)
-
-                include = ns + '/' + msg + '/' + lowername + '__rosidl_typesupport_fastrtps_cpp.hpp'
-                typename = ns + '/' + name
-                cpp_type = ns + '::' + msg + '::' + name
-                serialize_ns = ns + '::' + msg + '::typesupport_fastrtps_cpp'
-
-                em_globals['types'].append(ROS2Type(include, typename, cpp_type, serialize_ns))
-
-                found_marker = True
-
+                marker_line = line
                 break
 
-            if not found_marker:
+            if marker_line is None:
                 print("Failed to find marker '%s' in '%s'; quitting" % (MARKER_START, f))
                 sys.exit(3)
 
-    with open(args.output, 'w') as outfp:
-        interpreter = em.Interpreter(output=outfp, globals=em_globals,
-                                     options={em.RAW_OPT: True, em.BUFFERED_OPT: True})
-        with open(args.template, 'r') as infp:
-            interpreter.file(infp)
+            # We found the name of the original file; we can do conversions on it now
+            split = marker_line[len(MARKER_START):].strip().split('/')
+            if len(split) != 3:
+                print("Failed to find proper marker '%s' in '%s'; quitting" % (MARKER_START, f))
+                sys.exit(2)
 
-        interpreter.shutdown()
+            ns = split[0]
+            msg = split[1]
+            name = split[2][:-4]  # This removes the '.msg' off the back
+            lowername = convert_camel_case_to_lower_case_underscore(name)
+
+            ros2_type = ROS2Type(ns, name, lowername)
+
+            em_globals['ros2_types'].append(ros2_type)
+
+            cpp_tmpl = os.path.join(args.template_dir, 'pub_sub_type.cpp.em')
+            cpp_output = os.path.join(args.output_dir, ns + '_' + lowername + '_pub_sub_type.cpp')
+            hpp_tmpl = os.path.join(args.template_dir, 'pub_sub_type.hpp.em')
+            hpp_output = os.path.join(args.output_dir, ns + '_' + lowername + '_pub_sub_type.hpp')
+
+            if args.print_outputs:
+                outputs_to_print.append(cpp_output)
+                outputs_to_print.append(hpp_output)
+                continue
+
+            em_cpp_locals = {'ros2_type': ros2_type}
+            with open(cpp_output, 'w') as outfp:
+                interpreter = em.Interpreter(output=outfp, globals=em_cpp_locals,
+                                             options={em.RAW_OPT: True, em.BUFFERED_OPT: True})
+                with open(cpp_tmpl, 'r') as infp:
+                    interpreter.file(infp)
+
+                interpreter.shutdown()
+
+            em_hpp_locals = {'ros2_type': ros2_type}
+            with open(hpp_output, 'w') as outfp:
+                interpreter = em.Interpreter(output=outfp, globals=em_hpp_locals,
+                                             options={em.RAW_OPT: True, em.BUFFERED_OPT: True})
+                with open(hpp_tmpl, 'r') as infp:
+                    interpreter.file(infp)
+
+                interpreter.shutdown()
+
+    ros2_topics_tmpl = os.path.join(args.template_dir, 'ros2_topics.hpp.em')
+    ros2_topics_output = os.path.join(args.output_dir, 'ros2_topics.hpp')
+    if args.print_outputs:
+        outputs_to_print.append(ros2_topics_output)
+        print(';'.join(outputs_to_print))
+    else:
+        with open(ros2_topics_output, 'w') as outfp:
+            interpreter = em.Interpreter(output=outfp, globals=em_globals,
+                                         options={em.RAW_OPT: True, em.BUFFERED_OPT: True})
+            with open(ros2_topics_tmpl, 'r') as infp:
+                interpreter.file(infp)
+
+            interpreter.shutdown()
