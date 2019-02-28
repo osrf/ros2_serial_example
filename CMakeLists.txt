@@ -60,7 +60,7 @@ foreach(msg ${_msgs})
   string(REPLACE "/" ";" msglist ${msg})
   list(LENGTH msglist msglen)
   if (NOT ${msglen} EQUAL 2)
-    message(FATAL_ERROR "Invalid message format ${msg}, should be <package>/<name")
+    message(FATAL_ERROR "Invalid message format ${msg}, should be <package>/<name>")
   endif()
   list(GET msglist 0 pkg)
   list(APPEND _deps ${pkg})
@@ -83,21 +83,21 @@ target_link_libraries(ros2_to_serial_bridge
   fastcdr
 )
 
-add_executable(serial_writer
-  src/serial_writer.cpp
+add_executable(dummy_serial
+  src/dummy_serial.cpp
   src/transporter.cpp
   src/uart_transporter.cpp
 )
-ament_target_dependencies(serial_writer
+ament_target_dependencies(dummy_serial
   fastcdr
 )
-target_link_libraries(serial_writer
+target_link_libraries(dummy_serial
   fastcdr
 )
 
 install(TARGETS
+  dummy_serial
   ros2_to_serial_bridge
-  serial_writer
   DESTINATION lib/${PROJECT_NAME}
 )
 

@@ -29,7 +29,7 @@ In terminal two, run the serial <-> RTPS bridge:
 
 In terminal three, send some data into the serial port that will show up in the ROS 2 network:
 
-`./install/ros2_serial_example/lib/ros2_serial_example/serial_writer -d /dev/pts/26`
+`./install/ros2_serial_example/lib/ros2_serial_example/dummy_serial -d /dev/pts/26`
 
 Also in terminal three, send some data from the ROS 2 network that will end up on the serial port:
 
