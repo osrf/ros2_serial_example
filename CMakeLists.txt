@@ -47,7 +47,7 @@ if (NOT "${_msgs}" STREQUAL "")
 endif()
 set(_generator "${CMAKE_CURRENT_SOURCE_DIR}/generate_ros2_topics.py")
 set(_ros2_topics "${CMAKE_CURRENT_BINARY_DIR}/ros2_topics.hpp")
-set(_ros2_topics_tmpl "${CMAKE_CURRENT_SOURCE_DIR}/ros2_topics.hpp.em")
+set(_ros2_topics_tmpl "${CMAKE_CURRENT_SOURCE_DIR}/templates/ros2_topics.hpp.em")
 add_custom_command(
   OUTPUT ${_ros2_topics}
   COMMAND ${PYTHON_EXECUTABLE} ${_generator} ${_ros2_topics_tmpl} ${_ros2_topics} ${_flags}
