@@ -68,18 +68,18 @@ endforeach()
 
 list(REMOVE_DUPLICATES _deps)
 
-add_executable(ros2_serializer
-  src/ros2_serializer.cpp
+add_executable(ros2_to_serial_bridge
+  src/ros2_to_serial_bridge.cpp
   src/transporter.cpp
   src/uart_transporter.cpp
   ${_ros2_topics}
 )
-ament_target_dependencies(ros2_serializer
+ament_target_dependencies(ros2_to_serial_bridge
   fastcdr
   rclcpp
   ${_deps}
 )
-target_link_libraries(ros2_serializer
+target_link_libraries(ros2_to_serial_bridge
   fastcdr
 )
 
@@ -96,7 +96,7 @@ target_link_libraries(serial_writer
 )
 
 install(TARGETS
-  ros2_serializer
+  ros2_to_serial_bridge
   serial_writer
   DESTINATION lib/${PROJECT_NAME}
 )

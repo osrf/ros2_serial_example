@@ -1,4 +1,4 @@
-ros2_serializer:
+ros2_to_serial_bridge:
     ros__parameters:
         chatter:
             serial_mapping: 9
