@@ -6,6 +6,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <thread>
 #include <utility>
 #include <vector>
 
@@ -195,6 +196,24 @@ static std::unique_ptr<ROS2Topics> parse_node_parameters_for_topics(const std::s
     return ros2_topics;
 }
 
+void read_thread_func(Transporter * transporter, ROS2Topics * ros2_topics)
+{
+    char data_buffer[BUFFER_SIZE] = {};
+    ssize_t length = 0;
+    topic_id_size_t topic_ID;
+
+    while (rclcpp::ok() && running)
+    {
+        topic_ID = std::numeric_limits<topic_id_size_t>::max();
+
+        // Process serial -> ROS 2 data
+        while ((length = transporter->read(&topic_ID, data_buffer, BUFFER_SIZE)) > 0)
+        {
+            ros2_topics->dispatch(topic_ID, data_buffer, length);
+        }
+    }
+}
+
 int main(int argc, char *argv[])
 {
     std::string device{"/dev/ttyACM0"};
@@ -216,31 +235,27 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    std::unique_ptr<ROS2Topics> ros2_topics = parse_node_parameters_for_topics(node, transporter);
+    std::shared_ptr<ROS2Topics> ros2_topics = parse_node_parameters_for_topics(node, transporter);
     if (ros2_topics == nullptr)
     {
         return 2;
     }
 
-    ::sleep(1);
-
-    char data_buffer[BUFFER_SIZE] = {};
-    ssize_t length = 0;
-    topic_id_size_t topic_ID = std::numeric_limits<topic_id_size_t>::max();
-
     ::signal(SIGINT, signal_handler);
 
     running = 1;
 
+    std::thread read_thread(read_thread_func, transporter.get(), ros2_topics.get());
+
+    rclcpp::WallRate loop_rate(1000);
     while (rclcpp::ok() && running)
     {
-        while ((length = transporter->read(&topic_ID, data_buffer, BUFFER_SIZE)) > 0)
-        {
-            ros2_topics->dispatch(topic_ID, data_buffer, length);
-        }
+        // Process ROS 2 -> serial data (via callbacks)
         rclcpp::spin_some(node);
-        ::usleep(1000);
+        loop_rate.sleep();
     }
+
+    read_thread.join();
 
     transporter->close();
 
