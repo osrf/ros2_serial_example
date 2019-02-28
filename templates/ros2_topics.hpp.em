@@ -28,14 +28,21 @@
 
 #include "ros2_serial_example/transporter.hpp"
 
-#include "ros2_serial_example/publisher.hpp"
-#include "ros2_serial_example/subscription.hpp"
-#include "ros2_serial_example/publisher_impl.hpp"
-#include "ros2_serial_example/subscription_impl.hpp"
-
-@[for t in types]@
-#include <@(t.include)>
+@[for t in ros2_types]@
+#include "@(t.ns)_@(t.lower_type)_pub_sub_type.hpp"
 @[end for]@
+
+std::map<std::string, std::function<std::unique_ptr<Publisher>(const std::shared_ptr<rclcpp::Node>, const std::string &)>> pub_type_to_factory{
+@[for t in ros2_types]@
+    {"@(t.ns)/@(t.ros_type)", @(t.ns)_@(t.lower_type)_pub_factory},
+@[end for]@
+};
+
+std::map<std::string, std::function<std::unique_ptr<Subscription>(const std::shared_ptr<rclcpp::Node>, topic_id_size_t, const std::string &, std::shared_ptr<Transporter>)>> sub_type_to_factory{
+@[for t in ros2_types]@
+    {"@(t.ns)/@(t.ros_type)", @(t.ns)_@(t.lower_type)_sub_factory},
+@[end for]@
+};
 
 struct TopicMapping
 {
@@ -52,7 +59,6 @@ struct TopicMapping
 
 class ROS2Topics
 {
-
 public:
     explicit ROS2Topics(const std::shared_ptr<rclcpp::Node> & node,
                         const std::map<std::string, TopicMapping> & topic_names_and_serialization,
@@ -92,35 +98,22 @@ public:
                 continue;
             }
 
-@[for i,t in enumerate(types)]@
-            @(i != 0 ? "else ")if (t.second.type == "@(t.name)")
+            if (t.second.direction == TopicMapping::Direction::SERIAL_TO_ROS2)
             {
-                if (t.second.direction == TopicMapping::Direction::SERIAL_TO_ROS2)
+                if (pub_type_to_factory.count(t.second.type) == 0)
                 {
-                    // We have to do this dance to with the function types
-                    // because the compiler cannot automatically figure out the
-                    // correct overload.
-                    typedef bool (*des_t)(eprosima::fastcdr::Cdr &, @(t.cpp_type) &);
-                    des_t func = @(t.serialize_ns)::cdr_deserialize;
-                    serial_to_pub[t.second.serial_mapping] = std::make_unique<Publisher_impl<@(t.cpp_type)>>(node, t.first, func);
+                    fprintf(stderr, "Topic '%s' has unsupported pub type '%s'; skipping\n", t.first.c_str(), t.second.type.c_str());
+                    continue;
                 }
-                else
-                {
-                    // We have to do this dance to with the function types
-                    // because the compiler cannot automatically figure out the
-                    // correct overload.
-                    typedef size_t (*getsize_t)(const @(t.cpp_type) &, size_t);
-                    getsize_t getsize = @(t.serialize_ns)::get_serialized_size;
-                    typedef bool (*ser_t)(const @(t.cpp_type) &, eprosima::fastcdr::Cdr &);
-                    ser_t ser = @(t.serialize_ns)::cdr_serialize;
-                    serial_subs.push_back(std::make_unique<Subscription_impl<@(t.cpp_type)>>(node, t.second.serial_mapping, t.first, transporter, getsize, ser));
-                }
+                serial_to_pub[t.second.serial_mapping] = pub_type_to_factory[t.second.type](node, t.first);
             }
-@[end for]@
             else
             {
-                fprintf(stderr, "Topic '%s' has unsupported type '%s'; skipping\n", t.first.c_str(), t.second.type.c_str());
-                continue;
+                if (sub_type_to_factory.count(t.second.type) == 0)
+                {
+                    fprintf(stderr, "Topic '%s' has unsupported sub type '%s'; skipping\n", t.first.c_str(), t.second.type.c_str());
+                }
+                serial_subs.push_back(sub_type_to_factory[t.second.type](node, t.second.serial_mapping, t.first, transporter));
             }
         }
     }
@@ -132,7 +125,6 @@ public:
             serial_to_pub[topic_ID]->dispatch(data_buffer, length);
         }
     }
-
 private:
     std::map<topic_id_size_t, std::unique_ptr<Publisher>> serial_to_pub;
     std::vector<std::unique_ptr<Subscription>> serial_subs;

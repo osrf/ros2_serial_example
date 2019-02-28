@@ -31,10 +31,9 @@ include_directories(include "${CMAKE_CURRENT_BINARY_DIR}")
 #     "find_package" it above, and add it to package.xml since this package now
 #     depends on it.
 set(_packages
+  std_msgs
 )
 set(_msgs
-  std_msgs/String
-  std_msgs/UInt16
 )
 
 # Given the packages and messages above, create the target for code generation.
@@ -45,14 +44,22 @@ endif()
 if (NOT "${_msgs}" STREQUAL "")
   set(_flags "${_flags}" "--ros2-msgs" "${_msgs}")
 endif()
+
 set(_generator "${CMAKE_CURRENT_SOURCE_DIR}/generate_ros2_topics.py")
-set(_ros2_topics "${CMAKE_CURRENT_BINARY_DIR}/ros2_topics.hpp")
-set(_ros2_topics_tmpl "${CMAKE_CURRENT_SOURCE_DIR}/templates/ros2_topics.hpp.em")
+set(_tmpl_dir "${CMAKE_CURRENT_SOURCE_DIR}/templates")
+set(_output_dir "${CMAKE_CURRENT_BINARY_DIR}")
+# TODO(clalancette): CMake will *not* reexecute this if the generator file changes.
+execute_process(
+  COMMAND ${PYTHON_EXECUTABLE} ${_generator} ${_tmpl_dir} ${_output_dir} --print-outputs ${_flags}
+  OUTPUT_VARIABLE _generated_sources
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
 add_custom_command(
-  OUTPUT ${_ros2_topics}
-  COMMAND ${PYTHON_EXECUTABLE} ${_generator} ${_ros2_topics_tmpl} ${_ros2_topics} ${_flags}
-  DEPENDS ${_generator} ${_ros2_topics_tmpl}
-  COMMENT "Generating ros2_topics.hpp"
+  OUTPUT ${_generated_sources}
+  COMMAND ${PYTHON_EXECUTABLE} ${_generator} ${_tmpl_dir} ${_output_dir} ${_flags}
+  DEPENDS ${_generator} ${_tmpl_dir}/ros2_topics.hpp.em ${_tmpl_dir}/pub_sub_type.hpp.em ${_tmpl_dir}/pub_sub_type.cpp.em
+  COMMENT "Generating topics"
 )
 
 # Now setup the ament_target_dependencies for below.
@@ -73,7 +80,7 @@ add_executable(ros2_to_serial_bridge
   src/ros2_to_serial_bridge.cpp
   src/transporter.cpp
   src/uart_transporter.cpp
-  ${_ros2_topics}
+  ${_generated_sources}
 )
 ament_target_dependencies(ros2_to_serial_bridge
   fastcdr
