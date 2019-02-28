@@ -29,6 +29,11 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+
+// Originally based on:
+// https://github.com/PX4/px4_ros_com/blob/69bdf6e70f3832ff00f2e9e7f17d9394532787d6/templates/microRTPS_transport.cpp
+// but modified to split UART code out of the original transporter.
+
 #include <cerrno>
 #include <cmath>
 #include <cstdio>

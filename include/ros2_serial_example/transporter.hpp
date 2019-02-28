@@ -30,6 +30,11 @@
  *
  ****************************************************************************/
 
+// Originally based on:
+// https://github.com/PX4/px4_ros_com/blob/69bdf6e70f3832ff00f2e9e7f17d9394532787d6/templates/microRTPS_transport.h
+// but modified to switch to a ring buffer and to split the UART implementation
+// into a separate file.
+
 #pragma once
 
 #include <cstdint>
