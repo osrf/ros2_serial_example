@@ -39,6 +39,8 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <stdexcept>
+#include <string>
 
 #include <fcntl.h>
 #include <poll.h>
@@ -49,7 +51,7 @@
 #include "ros2_serial_example/transporter.hpp"
 #include "ros2_serial_example/uart_transporter.hpp"
 
-UARTTransporter::UARTTransporter(const char *_uart_name, uint32_t _baudrate, uint32_t _poll_ms):
+UARTTransporter::UARTTransporter(const char *_uart_name, const std::string & _protocol, uint32_t _baudrate, uint32_t _poll_ms):
     uart_fd(-1),
     baudrate(_baudrate),
     poll_ms(_poll_ms)
@@ -58,6 +60,15 @@ UARTTransporter::UARTTransporter(const char *_uart_name, uint32_t _baudrate, uin
     if (nullptr != _uart_name)
     {
         ::strcpy(uart_name, _uart_name);
+    }
+
+    if (_protocol == "px4")
+    {
+        serial_protocol = SerialProtocol::PX4;
+    }
+    else
+    {
+        throw std::runtime_error("Invalid protocol; must be one of 'px4'");
     }
 }
 

@@ -38,6 +38,7 @@
 
 // C++ includes
 #include <cstdint>
+#include <string>
 
 #include <poll.h>
 
@@ -47,17 +48,22 @@
 class UARTTransporter : public Transporter
 {
 public:
-    UARTTransporter(const char *uart_name, uint32_t baudrate, uint32_t poll_ms);
+    UARTTransporter(const char *uart_name, const std::string & protocol, uint32_t baudrate, uint32_t poll_ms);
     virtual ~UARTTransporter();
 
     int init() override;
     uint8_t close() override;
 
-protected:
-    ssize_t node_read();
-    ssize_t node_write(void *buffer, size_t len);
-    bool fds_OK();
+private:
+    enum class SerialProtocol
+    {
+        PX4,
+    };
+    ssize_t node_read() override;
+    ssize_t node_write(void *buffer, size_t len) override;
+    bool fds_OK() override;
 
+    SerialProtocol serial_protocol;
     int uart_fd;
     char uart_name[64] = {};
     uint32_t baudrate;

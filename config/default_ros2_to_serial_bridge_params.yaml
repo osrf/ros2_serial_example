@@ -1,5 +1,7 @@
 ros2_to_serial_bridge:
     ros__parameters:
+        device: /dev/pts/25
+        serial_protocol: px4
         chatter:
             serial_mapping: 9
             type: std_msgs/String
