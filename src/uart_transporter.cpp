@@ -39,6 +39,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <map>
 #include <stdexcept>
 #include <string>
 
@@ -51,11 +52,46 @@
 #include "ros2_serial_example/transporter.hpp"
 #include "ros2_serial_example/uart_transporter.hpp"
 
-UARTTransporter::UARTTransporter(const char *_uart_name, const std::string & _protocol, uint32_t _baudrate, uint32_t _poll_ms):
-    uart_fd(-1),
-    baudrate(_baudrate),
-    poll_ms(_poll_ms)
+// This is a table of the standard baudrates as defined in
+// /usr/include/asm-generic/termbits.h
+std::map<uint32_t, uint32_t> BaudNumberToRate{
+    {0,       B0},
+    {50,      B50},
+    {75,      B75},
+    {110,     B110},
+    {134,     B134},
+    {150,     B150},
+    {200,     B200},
+    {300,     B300},
+    {600,     B600},
+    {1200,    B1200},
+    {1800,    B1800},
+    {2400,    B2400},
+    {4800,    B4800},
+    {9600,    B9600},
+    {19200,   B19200},
+    {38400,   B38400},
+    {57600,   B57600},
+    {115200,  B115200},
+    {230400,  B230400},
+    {460800,  B460800},
+    {500000,  B500000},
+    {576000,  B576000},
+    {921600,  B921600},
+    {1000000, B1000000},
+    {1500000, B1500000},
+    {2000000, B2000000},
+    {2500000, B2500000},
+    {3000000, B3000000},
+    {3500000, B3500000},
+    {4000000, B4000000},
+};
 
+UARTTransporter::UARTTransporter(const char *_uart_name, const std::string & _protocol, uint32_t _baudrate, uint32_t _poll_ms):
+    baudrate(_baudrate),
+    poll_ms(_poll_ms),
+    uart_fd(-1),
+    write_timeout_us(20)
 {
     if (nullptr != _uart_name)
     {
@@ -70,6 +106,13 @@ UARTTransporter::UARTTransporter(const char *_uart_name, const std::string & _pr
     {
         throw std::runtime_error("Invalid protocol; must be one of 'px4'");
     }
+
+    if (BaudNumberToRate.count(_baudrate) == 0)
+    {
+        throw std::runtime_error("Invalid baudrate");
+    }
+
+    baudrate = BaudNumberToRate[_baudrate];
 }
 
 UARTTransporter::~UARTTransporter()
@@ -141,7 +184,7 @@ int UARTTransporter::init()
     uint8_t aux[64];
     while (0 < ::read(uart_fd, (void *)&aux, 64))
     {
-        usleep(1000);
+        ::usleep(1000);
     }
 
     poll_fd[0].fd = uart_fd;
@@ -192,6 +235,8 @@ ssize_t UARTTransporter::node_write(void *buffer, size_t len)
         return -1;
     }
 
+    uint32_t intr_times = 0;
+
     // Ensure that the entire buffer gets out to the file descriptor (unless a
     // fatal error occurs)
     char *b = static_cast<char *>(buffer);
@@ -201,8 +246,25 @@ ssize_t UARTTransporter::node_write(void *buffer, size_t len)
         ssize_t ret = ::write(uart_fd, b, n);
         if (ret == -1)
         {
-          if (errno == EINTR || errno == EWOULDBLOCK)
+          if (errno == EINTR || errno == EAGAIN)
           {
+              // We can get an EINTR/EAGAIN for a temporary failure (for
+              // instance, the remote end of a pipe is temporarily busy and not
+              // draining the data fast enough), or for a more permanent one
+              // (for instance, nothing is draining the remote end of a pipe).
+              // Just doing "continue" here in the latter case means that we'll
+              // be stuck in this loop forever, burning CPU.  Thus, we add a
+              // small delay and a counter in here.  If we get into here
+              // `write_timeout_us` times in a row (with no data being
+              // transferred in between), we presume this is a permanent failure
+              // and return an error to the application.
+              intr_times++;
+              if (intr_times > write_timeout_us)
+              {
+                  // Too many failures, get out.
+                  break;
+              }
+              ::usleep(1);
               continue;
           }
           else
@@ -210,6 +272,7 @@ ssize_t UARTTransporter::node_write(void *buffer, size_t len)
               break;
           }
         }
+        intr_times = 0;
         n -= ret;
         b += ret;
     }

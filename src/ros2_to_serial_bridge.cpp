@@ -28,7 +28,6 @@
 #include <utility>
 #include <vector>
 
-#include <termios.h>
 #include <unistd.h>
 
 #include <rclcpp/rclcpp.hpp>
@@ -146,7 +145,7 @@ static std::unique_ptr<ROS2Topics> parse_node_parameters_for_topics(const std::s
     }
     catch (const std::runtime_error & err)
     {
-        fprintf(stderr, "%s\n", err.what());
+        ::fprintf(stderr, "%s\n", err.what());
         return nullptr;
     }
 
@@ -174,6 +173,7 @@ int main(int argc, char *argv[])
 {
     std::string device{};
     std::string serial_protocol{};
+    uint32_t baudrate;
 
     rclcpp::init(argc, argv);
 
@@ -181,17 +181,27 @@ int main(int argc, char *argv[])
 
     if (!node->get_parameter("device", device))
     {
-        fprintf(stderr, "No device parameter specified, cannot continue\n");
+        ::fprintf(stderr, "No device parameter specified, cannot continue\n");
         return 1;
     }
 
     if (!node->get_parameter("serial_protocol", serial_protocol))
     {
-        fprintf(stderr, "No serial_protocol specified, cannot continue\n");
+        ::fprintf(stderr, "No serial_protocol specified, cannot continue\n");
         return 1;
     }
 
-    std::shared_ptr<Transporter> transporter = std::make_shared<UARTTransporter>(device.c_str(), serial_protocol, B115200, 1);
+    rclcpp::Parameter baudparm;
+    if (node->get_parameter("baudrate", baudparm))
+    {
+        baudrate = baudparm.get_value<uint32_t>();
+    }
+    else
+    {
+        baudrate = 0;
+    }
+
+    std::shared_ptr<Transporter> transporter = std::make_shared<UARTTransporter>(device.c_str(), serial_protocol, baudrate, 1);
 
     if (transporter->init() < 0)
     {

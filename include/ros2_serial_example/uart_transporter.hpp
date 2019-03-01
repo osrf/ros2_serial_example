@@ -64,9 +64,10 @@ private:
     bool fds_OK() override;
 
     SerialProtocol serial_protocol;
-    int uart_fd;
     char uart_name[64] = {};
     uint32_t baudrate;
     uint32_t poll_ms;
+    int uart_fd;
+    uint32_t write_timeout_us;
     struct pollfd poll_fd[1] = {};
 };
