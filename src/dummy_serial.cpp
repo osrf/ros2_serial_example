@@ -14,11 +14,11 @@
 
 #include <csignal>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <memory>
 #include <thread>
 
-#include <termios.h>
 #include <unistd.h>
 
 #include <fastcdr/Cdr.h>
@@ -56,12 +56,12 @@ void read_thread_func(Transporter * transporter)
         // Process data coming over serial
         while ((length = transporter->read(&topic_ID, data_buffer, BUFFER_SIZE)) > 0)
         {
-            fprintf(stderr, "Topic ID: %d, data: ", topic_ID);
+            ::fprintf(stderr, "Topic ID: %d, data: ", topic_ID);
             for (ssize_t i = 0; i < length; ++i)
             {
-                fprintf(stderr, "0x%x ", data_buffer[i]);
+                ::fprintf(stderr, "0x%x ", data_buffer[i]);
             }
-            fprintf(stderr, "\n");
+            ::fprintf(stderr, "\n");
         }
     }
 }
@@ -69,12 +69,31 @@ void read_thread_func(Transporter * transporter)
 int main(int argc, char *argv[])
 {
     char device[64] = "/dev/ttyACM0";
+    uint32_t baudrate = 0;
 
     int ch;
-    while ((ch = ::getopt(argc, argv, "d:h")) != EOF)
+    while ((ch = ::getopt(argc, argv, "b:d:h")) != EOF)
     {
         switch (ch)
         {
+        case 'b':
+            if (optarg != nullptr)
+            {
+                char *endptr;
+                errno = 0;
+                baudrate = ::strtoul(optarg, &endptr, 10);
+                if (errno == ERANGE)
+                {
+                    ::fprintf(stderr, "Invalid baudrate (outside of valid range)\n");
+                    return 1;
+                }
+                if (*optarg == '\0' || *endptr != '\0')
+                {
+                    ::fprintf(stderr, "Entire baudrate not converted; must be a number\n");
+                    return 1;
+                }
+            }
+            break;
         case 'd':
             if (optarg != nullptr)
             {
@@ -96,7 +115,7 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    std::unique_ptr<Transporter> transporter = std::make_unique<UARTTransporter>(device, "px4", B115200, 1);
+    std::unique_ptr<Transporter> transporter = std::make_unique<UARTTransporter>(device, "px4", baudrate, 1);
 
     if (transporter->init() < 0)
     {
