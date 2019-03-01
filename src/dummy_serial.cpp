@@ -96,7 +96,7 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    std::unique_ptr<Transporter> transporter = std::make_unique<UARTTransporter>(device, B115200, 1);
+    std::unique_ptr<Transporter> transporter = std::make_unique<UARTTransporter>(device, "px4", B115200, 1);
 
     if (transporter->init() < 0)
     {

@@ -49,14 +49,6 @@ static void signal_handler(int signum)
     running = 0;
 }
 
-static void usage(const char *name)
-{
-    ::printf("Usage: %s [options]\n\n"
-             "  -d <device> UART device. Default /dev/ttyACM0\n"
-             "  -h          Print this help message\n",
-             name);
-}
-
 static void params_usage()
 {
     ::printf("Invalid topic parameter.  Topic parameters must be in the form:\n"
@@ -65,68 +57,6 @@ static void params_usage()
              "        type: <string>\n"
              "        direction: [SerialToROS2|ROS2ToSerial]\n"
              );
-}
-
-static int parse_options(const std::vector<std::string> & args, std::string & device)
-{
-    char need_next_arg = ' ';
-
-    // We skip the first element since it contains the program name
-    for (auto it = args.begin() + 1; it != args.end(); ++it)
-    {
-        if ((*it)[0] == '-')
-        {
-            // This is an option
-            // Make sure we aren't waiting for data from a previous option
-            if (need_next_arg != ' ')
-            {
-                usage(args[0].c_str());
-                return 1;
-            }
-            // Make sure it has exactly one more character
-            if (it->length() != 2)
-            {
-                usage(args[0].c_str());
-                return 1;
-            }
-
-            char opt = (*it)[1];
-            switch (opt)
-            {
-            case 'd':
-                need_next_arg = 'd';
-                break;
-            case 'h':
-                usage(args[0].c_str());
-                return 0;
-            default:
-                usage(args[0].c_str());
-                return 1;
-            };
-        }
-        else
-        {
-            if (need_next_arg == ' ')
-            {
-                // A command-line argument we don't understand
-                usage(args[0].c_str());
-                return 1;
-            }
-            else if (need_next_arg == 'd')
-            {
-                device = *it;
-            }
-            else
-            {
-                fprintf(stderr, "Internal error parsing command-line arguments\n");
-                return 2;
-            }
-
-            need_next_arg = ' ';
-        }
-    }
-
-    return -1;
 }
 
 static std::unique_ptr<ROS2Topics> parse_node_parameters_for_topics(const std::shared_ptr<rclcpp::Node> & node,
@@ -145,8 +75,10 @@ static std::unique_ptr<ROS2Topics> parse_node_parameters_for_topics(const std::s
     {
         if (std::count(name.begin(), name.end(), '.') != 1)
         {
-            params_usage();
-            return nullptr;
+            // This is not a parameter in a subsection, so it can't possibly be
+            // what we are looking for.  Just silently ignore and continue to
+            // allow other parameters.
+            continue;
         }
         std::size_t last_dot_pos = name.find_last_of(".");
         if (last_dot_pos == std::string::npos)
@@ -240,19 +172,26 @@ void read_thread_func(Transporter * transporter, ROS2Topics * ros2_topics)
 
 int main(int argc, char *argv[])
 {
-    std::string device{"/dev/ttyACM0"};
+    std::string device{};
+    std::string serial_protocol{};
 
-    std::vector<std::string> args = rclcpp::init_and_remove_ros_arguments(argc, argv);
-
-    int ret = parse_options(args, device);
-    if (ret >= 0)
-    {
-        return ret;
-    }
+    rclcpp::init(argc, argv);
 
     auto node = rclcpp::Node::make_shared("ros2_to_serial_bridge");
 
-    std::shared_ptr<Transporter> transporter = std::make_shared<UARTTransporter>(device.c_str(), B115200, 1);
+    if (!node->get_parameter("device", device))
+    {
+        fprintf(stderr, "No device parameter specified, cannot continue\n");
+        return 1;
+    }
+
+    if (!node->get_parameter("serial_protocol", serial_protocol))
+    {
+        fprintf(stderr, "No serial_protocol specified, cannot continue\n");
+        return 1;
+    }
+
+    std::shared_ptr<Transporter> transporter = std::make_shared<UARTTransporter>(device.c_str(), serial_protocol, B115200, 1);
 
     if (transporter->init() < 0)
     {

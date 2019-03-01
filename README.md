@@ -21,11 +21,11 @@ In terminal one:
 
 `socat -d -d pty,raw,echo=0 pty,raw,echo=0`
 
-(socat will print two ptys out like /dev/pts/25 and /dev/pts/26)
+socat will print two ptys out like /dev/pts/25 and /dev/pts/26; put the first one in the config file src/ros2_serial_example/config/default_ros2_to_serial_bridge_params.yaml, and we'll use the second one below.
 
 In terminal two, run the serial <-> RTPS bridge:
 
-`./install/ros2_serial_example/lib/ros2_serial_example/ros2_to_serial_bridge -d /dev/pts/25 __params:=src/ros2_serial_example/config/default_ros2_to_serial_bridge_params.yaml`
+`./install/ros2_serial_example/lib/ros2_serial_example/ros2_to_serial_bridge __params:=src/ros2_serial_example/config/default_ros2_to_serial_bridge_params.yaml`
 
 In terminal three, send some data into the serial port that will show up in the ROS 2 network:
 
