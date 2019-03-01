@@ -131,53 +131,51 @@ int UARTTransporter::init()
         return -errno;
     }
 
-    // If using shared UART, no need to set it up
-    if (baudrate == 0)
+    // If a baudrate > 0 is specified, we setup the UART with that rate.
+    if (baudrate != B0)
     {
-        return uart_fd;
-    }
+        // Try to set baud rate
+        struct termios uart_config;
+        int termios_state;
 
-    // Try to set baud rate
-    struct termios uart_config;
-    int termios_state;
+        // Back up the original uart configuration to restore it after exit
+        if ((termios_state = tcgetattr(uart_fd, &uart_config)) < 0)
+        {
+            int errno_bkp = errno;
+            ::printf("ERR GET CONF %s: %d (%d)\n", uart_name, termios_state, errno);
+            close();
+            return -errno_bkp;
+        }
 
-    // Back up the original uart configuration to restore it after exit
-    if ((termios_state = tcgetattr(uart_fd, &uart_config)) < 0)
-    {
-        int errno_bkp = errno;
-        ::printf("ERR GET CONF %s: %d (%d)\n", uart_name, termios_state, errno);
-        close();
-        return -errno_bkp;
-    }
+        // Set up the UART for non-canonical binary communication: 8 bits, 1 stop bit, no parity,
+        // no flow control, no modem control
+        uart_config.c_iflag &= !(INPCK | ISTRIP | INLCR | IGNCR | ICRNL | IXON | IXANY | IXOFF);
+        uart_config.c_iflag |= IGNBRK | IGNPAR;
 
-    // Set up the UART for non-canonical binary communication: 8 bits, 1 stop bit, no parity,
-    // no flow control, no modem control
-    uart_config.c_iflag &= !(INPCK | ISTRIP | INLCR | IGNCR | ICRNL | IXON | IXANY | IXOFF);
-    uart_config.c_iflag |= IGNBRK | IGNPAR;
+        uart_config.c_oflag &= !(OPOST | ONLCR | OCRNL | ONOCR | ONLRET | OFILL | NLDLY | VTDLY);
+        uart_config.c_oflag |= NL0 | VT0;
 
-    uart_config.c_oflag &= !(OPOST | ONLCR | OCRNL | ONOCR | ONLRET | OFILL | NLDLY | VTDLY);
-    uart_config.c_oflag |= NL0 | VT0;
+        uart_config.c_cflag &= !(CSIZE | CSTOPB | PARENB);
+        uart_config.c_cflag |= CS8 | CREAD | CLOCAL;
 
-    uart_config.c_cflag &= !(CSIZE | CSTOPB | PARENB);
-    uart_config.c_cflag |= CS8 | CREAD | CLOCAL;
+        uart_config.c_lflag &= !(ISIG | ICANON | ECHO | TOSTOP | IEXTEN);
 
-    uart_config.c_lflag &= !(ISIG | ICANON | ECHO | TOSTOP | IEXTEN);
+        // Set baud rate
+        if (::cfsetispeed(&uart_config, baudrate) < 0 || ::cfsetospeed(&uart_config, baudrate) < 0)
+        {
+            int errno_bkp = errno;
+            ::printf("ERR SET BAUD %s: %d (%d)\n", uart_name, termios_state, errno);
+            close();
+            return -errno_bkp;
+        }
 
-    // Set baud rate
-    if (::cfsetispeed(&uart_config, baudrate) < 0 || ::cfsetospeed(&uart_config, baudrate) < 0)
-    {
-        int errno_bkp = errno;
-        ::printf("ERR SET BAUD %s: %d (%d)\n", uart_name, termios_state, errno);
-        close();
-        return -errno_bkp;
-    }
-
-    if ((termios_state = ::tcsetattr(uart_fd, TCSANOW, &uart_config)) < 0)
-    {
-        int errno_bkp = errno;
-        ::printf("ERR SET CONF %s (%d)\n", uart_name, errno);
-        close();
-        return -errno_bkp;
+        if ((termios_state = ::tcsetattr(uart_fd, TCSANOW, &uart_config)) < 0)
+        {
+            int errno_bkp = errno;
+            ::printf("ERR SET CONF %s (%d)\n", uart_name, errno);
+            close();
+            return -errno_bkp;
+        }
     }
 
     // Flush out any pending data in the file descriptor.
