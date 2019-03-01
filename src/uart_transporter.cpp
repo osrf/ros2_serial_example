@@ -107,8 +107,8 @@ int UARTTransporter::init()
         return -errno_bkp;
     }
 
-    //Set up the UART for non-canonical binary communication: 8 bits, 1 stop bit, no parity,
-    //no flow control, no modem control
+    // Set up the UART for non-canonical binary communication: 8 bits, 1 stop bit, no parity,
+    // no flow control, no modem control
     uart_config.c_iflag &= !(INPCK | ISTRIP | INLCR | IGNCR | ICRNL | IXON | IXANY | IXOFF);
     uart_config.c_iflag |= IGNBRK | IGNPAR;
 
@@ -120,18 +120,13 @@ int UARTTransporter::init()
 
     uart_config.c_lflag &= !(ISIG | ICANON | ECHO | TOSTOP | IEXTEN);
 
-    // USB serial is indicated by /dev/ttyACM0
-    // TODO(clalancette): this is arbitrary, probably remove this
-    if (::strcmp(uart_name, "/dev/ttyACM0") != 0 && ::strcmp(uart_name, "/dev/ttyACM1") != 0)
+    // Set baud rate
+    if (::cfsetispeed(&uart_config, baudrate) < 0 || ::cfsetospeed(&uart_config, baudrate) < 0)
     {
-        // Set baud rate
-        if (::cfsetispeed(&uart_config, baudrate) < 0 || ::cfsetospeed(&uart_config, baudrate) < 0)
-        {
-            int errno_bkp = errno;
-            ::printf("ERR SET BAUD %s: %d (%d)\n", uart_name, termios_state, errno);
-            close();
-            return -errno_bkp;
-        }
+        int errno_bkp = errno;
+        ::printf("ERR SET BAUD %s: %d (%d)\n", uart_name, termios_state, errno);
+        close();
+        return -errno_bkp;
     }
 
     if ((termios_state = ::tcsetattr(uart_fd, TCSANOW, &uart_config)) < 0)
