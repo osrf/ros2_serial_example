@@ -490,13 +490,9 @@ ssize_t Transporter::write(const topic_id_size_t topic_ID, char buffer[], size_t
     header.crc_h = (crc >> 8) & 0xff;
     header.crc_l = crc & 0xff;
 
-    /* Headroom for header is created in client */
-    /*Fill in the header in the same payload buffer to call a single node_write */
+    // Headroom for header is created in client
+    // Fill in the header in the same payload buffer to call a single node_write
     ::memcpy(buffer, &header, header_len);
-    ssize_t len = node_write(buffer, length + header_len);
-    if (len != ssize_t(length + header_len))
-    {
-        return len;
-    }
-    return len + header_len;
+
+    return node_write(buffer, length + header_len);
 }
