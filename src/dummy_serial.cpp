@@ -20,6 +20,7 @@
 #include <string>
 #include <thread>
 
+#include <errno.h>
 #include <unistd.h>
 
 #include <fastcdr/Cdr.h>
@@ -136,14 +137,20 @@ int main(int argc, char *argv[])
         eprosima::fastcdr::FastBuffer cdrbuffer(&data_buffer[headlen], sizeof(data_buffer) - headlen);
         eprosima::fastcdr::Cdr scdr(cdrbuffer);
         scdr << "aa";
-        transporter->write(9, data_buffer, scdr.getSerializedDataLength());
+        if (transporter->write(9, data_buffer, scdr.getSerializedDataLength()) < 0)
+        {
+            ::fprintf(stderr, "Failed to write topic %d: %s\n", 9, ::strerror(errno));
+        }
 
         // With the current configuration, topic 12 is a std_msgs/UInt16 topic.
         char data_buffer2[BUFFER_SIZE] = {};
         eprosima::fastcdr::FastBuffer cdrbuffer2(&data_buffer2[headlen], sizeof(data_buffer2) - headlen);
         eprosima::fastcdr::Cdr scdr2(cdrbuffer2);
         scdr2 << 256;
-        transporter->write(12, data_buffer2, scdr2.getSerializedDataLength());
+        if (transporter->write(12, data_buffer2, scdr2.getSerializedDataLength()) < 0)
+        {
+            ::fprintf(stderr, "Failed to write topic %d: %s\n", 12, ::strerror(errno));
+        }
 
         // every 100 milliseconds
         ::usleep(100000);

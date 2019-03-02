@@ -14,9 +14,12 @@
 
 #pragma once
 
+#include <cstring>
 #include <functional>
 #include <memory>
 #include <string>
+
+#include <errno.h>
 
 #include <rclcpp/rclcpp.hpp>
 
@@ -38,7 +41,7 @@ public:
                                std::function<bool(const T &, eprosima::fastcdr::Cdr &)> serialize)
     {
         serial_mapping = mapping;
-        auto callback = [mapping, transporter, get_size, serialize](const typename T::SharedPtr msg) -> void
+        auto callback = [node, mapping, transporter, get_size, serialize](const typename T::SharedPtr msg) -> void
         {
             size_t headlen = transporter->get_header_length();
             size_t serialized_size = get_size(*(msg.get()), 0);
@@ -46,9 +49,11 @@ public:
             eprosima::fastcdr::FastBuffer cdrbuffer(&data_buffer[headlen], serialized_size);
             eprosima::fastcdr::Cdr scdr(cdrbuffer);
             serialize(*(msg.get()), scdr);
-            // TODO(clalancette): we aren't checking the return value of write()
-            // here, should we?  What would we do on error?
-            transporter->write(mapping, data_buffer, scdr.getSerializedDataLength());
+            if (transporter->write(mapping, data_buffer, scdr.getSerializedDataLength()) < 0)
+            {
+                RCLCPP_WARN(node->get_logger(), "Failed to write data: %s", ::strerror(errno));
+            }
+
             delete [] data_buffer;
         };
         sub = node->create_subscription<T>(name, callback, rmw_qos_profile_default);
