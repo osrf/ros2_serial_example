@@ -117,7 +117,7 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    std::unique_ptr<Transporter> transporter = std::make_unique<UARTTransporter>(std::string(device), "px4", baudrate, 1);
+    std::unique_ptr<Transporter> transporter = std::make_unique<UARTTransporter>(std::string(device), "px4", baudrate, 100);
 
     if (transporter->init() < 0)
     {
