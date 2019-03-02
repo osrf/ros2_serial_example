@@ -226,6 +226,10 @@ int main(int argc, char *argv[])
         loop_rate.sleep();
     }
 
+    // This is to handle the case where rclcpp::ok() returned false for some
+    // reason; setting running to 0 causes the read_thread to quit as well.
+    running = 0;
+
     read_thread.join();
 
     transporter->close();
