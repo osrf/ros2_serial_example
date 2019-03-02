@@ -36,7 +36,7 @@ ros2_to_serial_bridge:
                                        # failing.  If this config is >= 0, the
                                        # any topics configured below will be
                                        # ignored.
-        serial_protocol: px4           # The serial protocol to use.  Currently
+        serial_protocol: cobs          # The serial protocol to use.  Currently
                                        # available protocols are 'px4'
                                        # and 'cobs'.
         topics:                        # The list of topics to map; only used
