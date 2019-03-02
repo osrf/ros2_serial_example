@@ -201,7 +201,7 @@ int main(int argc, char *argv[])
         baudrate = 0;
     }
 
-    std::shared_ptr<Transporter> transporter = std::make_shared<UARTTransporter>(device.c_str(), serial_protocol, baudrate, 1);
+    std::shared_ptr<Transporter> transporter = std::make_shared<UARTTransporter>(device, serial_protocol, baudrate, 1);
 
     if (transporter->init() < 0)
     {

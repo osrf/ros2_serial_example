@@ -17,6 +17,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <memory>
+#include <string>
 #include <thread>
 
 #include <unistd.h>
@@ -115,7 +116,7 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    std::unique_ptr<Transporter> transporter = std::make_unique<UARTTransporter>(device, "px4", baudrate, 1);
+    std::unique_ptr<Transporter> transporter = std::make_unique<UARTTransporter>(std::string(device), "px4", baudrate, 1);
 
     if (transporter->init() < 0)
     {
