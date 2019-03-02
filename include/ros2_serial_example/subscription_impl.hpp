@@ -46,6 +46,8 @@ public:
             eprosima::fastcdr::FastBuffer cdrbuffer(&data_buffer[headlen], serialized_size);
             eprosima::fastcdr::Cdr scdr(cdrbuffer);
             serialize(*(msg.get()), scdr);
+            // TODO(clalancette): we aren't checking the return value of write()
+            // here, should we?  What would we do on error?
             transporter->write(mapping, data_buffer, scdr.getSerializedDataLength());
             delete [] data_buffer;
         };
