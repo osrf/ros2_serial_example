@@ -48,7 +48,7 @@
 class UARTTransporter : public Transporter
 {
 public:
-    UARTTransporter(const char *uart_name, const std::string & protocol, uint32_t baudrate, uint32_t poll_ms);
+    UARTTransporter(const std::string & _uart_name, const std::string & _protocol, uint32_t _baudrate, uint32_t _poll_ms);
     virtual ~UARTTransporter();
 
     int init() override;
@@ -64,7 +64,7 @@ private:
     bool fds_OK() override;
 
     SerialProtocol serial_protocol;
-    char uart_name[64] = {};
+    std::string uart_name{};
     uint32_t baudrate;
     uint32_t poll_ms;
     int uart_fd;

@@ -87,17 +87,13 @@ std::map<uint32_t, uint32_t> BaudNumberToRate{
     {4000000, B4000000},
 };
 
-UARTTransporter::UARTTransporter(const char *_uart_name, const std::string & _protocol, uint32_t _baudrate, uint32_t _poll_ms):
+UARTTransporter::UARTTransporter(const std::string & _uart_name, const std::string & _protocol, uint32_t _baudrate, uint32_t _poll_ms):
+    uart_name(_uart_name),
     baudrate(_baudrate),
     poll_ms(_poll_ms),
     uart_fd(-1),
     write_timeout_us(20)
 {
-    if (nullptr != _uart_name)
-    {
-        ::strcpy(uart_name, _uart_name);
-    }
-
     if (_protocol == "px4")
     {
         serial_protocol = SerialProtocol::PX4;
@@ -123,11 +119,11 @@ UARTTransporter::~UARTTransporter()
 int UARTTransporter::init()
 {
     // Open a serial port
-    uart_fd = ::open(uart_name, O_RDWR | O_NOCTTY | O_NONBLOCK);
+    uart_fd = ::open(uart_name.c_str(), O_RDWR | O_NOCTTY | O_NONBLOCK);
 
     if (uart_fd < 0)
     {
-        ::printf("failed to open device: %s (%d)\n", uart_name, errno);
+        ::fprintf(stderr, "failed to open device: %s (%d)\n", uart_name.c_str(), errno);
         return -errno;
     }
 
@@ -142,7 +138,7 @@ int UARTTransporter::init()
         if ((termios_state = tcgetattr(uart_fd, &uart_config)) < 0)
         {
             int errno_bkp = errno;
-            ::printf("ERR GET CONF %s: %d (%d)\n", uart_name, termios_state, errno);
+            ::fprintf(stderr, "ERR GET CONF %s: %d (%d)\n", uart_name.c_str(), termios_state, errno);
             close();
             return -errno_bkp;
         }
@@ -164,7 +160,7 @@ int UARTTransporter::init()
         if (::cfsetispeed(&uart_config, baudrate) < 0 || ::cfsetospeed(&uart_config, baudrate) < 0)
         {
             int errno_bkp = errno;
-            ::printf("ERR SET BAUD %s: %d (%d)\n", uart_name, termios_state, errno);
+            ::fprintf(stderr, "ERR SET BAUD %s: %d (%d)\n", uart_name.c_str(), termios_state, errno);
             close();
             return -errno_bkp;
         }
@@ -172,7 +168,7 @@ int UARTTransporter::init()
         if ((termios_state = ::tcsetattr(uart_fd, TCSANOW, &uart_config)) < 0)
         {
             int errno_bkp = errno;
-            ::printf("ERR SET CONF %s (%d)\n", uart_name, errno);
+            ::fprintf(stderr, "ERR SET CONF %s (%d)\n", uart_name.c_str(), errno);
             close();
             return -errno_bkp;
         }
