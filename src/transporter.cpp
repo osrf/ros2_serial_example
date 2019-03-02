@@ -312,7 +312,8 @@ uint16_t Transporter::crc16(uint8_t const *buffer, size_t len)
 
 ssize_t Transporter::find_and_copy_message(topic_id_size_t *topic_ID, char out_buffer[], size_t buffer_len)
 {
-    if (ringbuf.bytes_used() < get_header_length())
+    size_t header_len = get_header_length();
+    if (ringbuf.bytes_used() < header_len)
     {
         throw std::runtime_error("Bad size");
     }
@@ -340,7 +341,7 @@ ssize_t Transporter::find_and_copy_message(topic_id_size_t *topic_ID, char out_b
         {
             throw std::runtime_error("Failed getting garbage data from ring buffer");
         }
-        if (ringbuf.bytes_used() < get_header_length())
+        if (ringbuf.bytes_used() < header_len)
         {
             // Not enough bytes now.
             return 0;
@@ -356,7 +357,7 @@ ssize_t Transporter::find_and_copy_message(topic_id_size_t *topic_ID, char out_b
     // a peek/copy (rather than just mapping to the array) because the
     // header might be non-contiguous in memory in the ring.
 
-    ringbuf.peek(headerbuf, get_header_length());
+    ringbuf.peek(headerbuf, header_len);
     Header *header = reinterpret_cast<Header *>(headerbuf);
 
     uint32_t payload_len = (static_cast<uint32_t>(header->payload_len_h) << 8) | header->payload_len_l;
@@ -367,7 +368,7 @@ ssize_t Transporter::find_and_copy_message(topic_id_size_t *topic_ID, char out_b
         return -EMSGSIZE;
     }
 
-    if (ringbuf.bytes_used() < (get_header_length() + payload_len))
+    if (ringbuf.bytes_used() < (header_len + payload_len))
     {
         // We do not have a complete message yet
         return 0;
@@ -378,7 +379,7 @@ ssize_t Transporter::find_and_copy_message(topic_id_size_t *topic_ID, char out_b
     // ring.
 
     // Header
-    if (ringbuf.memcpy_from(headerbuf, get_header_length()) == nullptr)
+    if (ringbuf.memcpy_from(headerbuf, header_len) == nullptr)
     {
         // We already checked above, so this should never happen.
         throw std::runtime_error("Unexpected ring buffer failure");
@@ -415,9 +416,11 @@ ssize_t Transporter::read(topic_id_size_t *topic_ID, char out_buffer[], size_t b
         return -1;
     }
 
+    size_t header_len = get_header_length();
+
     *topic_ID = std::numeric_limits<topic_id_size_t>::max();
 
-    if (ringbuf.bytes_used() >= get_header_length())
+    if (ringbuf.bytes_used() >= header_len)
     {
         ssize_t len = find_and_copy_message(topic_ID, out_buffer, buffer_len);
         if (len > 0)
@@ -445,7 +448,7 @@ ssize_t Transporter::read(topic_id_size_t *topic_ID, char out_buffer[], size_t b
         return len;
     }
 
-    if (ringbuf.bytes_used() >= get_header_length())
+    if (ringbuf.bytes_used() >= header_len)
     {
         ssize_t len = find_and_copy_message(topic_ID, out_buffer, buffer_len);
         if (len > 0)
@@ -474,9 +477,11 @@ ssize_t Transporter::write(const topic_id_size_t topic_ID, char buffer[], size_t
     header.marker[1] = '>';
     header.marker[2] = '>';
 
+    size_t header_len = get_header_length();
+
     // [>,>,>,topic_ID,seq,payload_length,CRCHigh,CRCLow,payload_start, ... ,payload_end]
 
-    uint16_t crc = crc16((uint8_t *)&buffer[get_header_length()], length);
+    uint16_t crc = crc16((uint8_t *)&buffer[header_len], length);
 
     header.topic_ID = topic_ID;
     header.seq = seq++;
@@ -487,11 +492,11 @@ ssize_t Transporter::write(const topic_id_size_t topic_ID, char buffer[], size_t
 
     /* Headroom for header is created in client */
     /*Fill in the header in the same payload buffer to call a single node_write */
-    ::memcpy(buffer, &header, get_header_length());
-    ssize_t len = node_write(buffer, length + get_header_length());
-    if (len != ssize_t(length + get_header_length()))
+    ::memcpy(buffer, &header, header_len);
+    ssize_t len = node_write(buffer, length + header_len);
+    if (len != ssize_t(length + header_len))
     {
         return len;
     }
-    return len + get_header_length();
+    return len + header_len;
 }
