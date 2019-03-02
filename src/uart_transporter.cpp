@@ -255,7 +255,8 @@ ssize_t UARTTransporter::node_write(void *buffer, size_t len)
               intr_times++;
               if (intr_times > write_timeout_us)
               {
-                  // Too many failures, get out.
+                  // Too many failures, set an errno and get out.
+                  errno = EBUSY;
                   break;
               }
               ::usleep(1);
