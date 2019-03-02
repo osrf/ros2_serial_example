@@ -109,11 +109,6 @@ bool RingBuffer::is_empty() const
     return bytes_free() == capacity();
 }
 
-void *RingBuffer::head_pointer() const
-{
-    return head;
-}
-
 uint8_t *RingBuffer::nextp(uint8_t *p)
 {
     // Given a ring buffer rb and a pointer to a location within its
@@ -210,15 +205,15 @@ size_t RingBuffer::findseq(uint8_t *seq, size_t seqlen)
     if (used < seqlen)
     {
         // There aren't enough bytes in the ring for this sequence, so it
-      // can't possibly contain the entire sequence.
-      return used;
+        // can't possibly contain the entire sequence.
+        return used;
     }
 
     if (seqlen > capacity())
     {
         // The sequence to look for is larger than we can possibly hold;
-      // this can't work.
-      return used;
+        // this can't work.
+        return used;
     }
 
     uint8_t *ringp = tail;

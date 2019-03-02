@@ -63,8 +63,6 @@ public:
 
     bool is_full() const;
 
-    void *head_pointer() const;
-
 private:
     size_t buffer_size() const;
     size_t capacity() const;
