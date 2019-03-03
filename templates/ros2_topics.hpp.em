@@ -32,19 +32,25 @@
 #include "@(t.ns)_@(t.lower_type)_pub_sub_type.hpp"
 @[end for]@
 
+namespace ros2_to_serial_bridge
+{
+
+namespace pubsub
+{
+
 std::map<std::string, std::function<std::unique_ptr<Publisher>(const std::shared_ptr<rclcpp::Node>, const std::string &)>> pub_type_to_factory{
 @[for t in ros2_types]@
     {"@(t.ns)/@(t.ros_type)", @(t.ns)_@(t.lower_type)_pub_factory},
 @[end for]@
 };
 
-std::map<std::string, std::function<std::unique_ptr<Subscription>(const std::shared_ptr<rclcpp::Node>, topic_id_size_t, const std::string &, std::shared_ptr<Transporter>)>> sub_type_to_factory{
+std::map<std::string, std::function<std::unique_ptr<Subscription>(const std::shared_ptr<rclcpp::Node>, topic_id_size_t, const std::string &, std::shared_ptr<ros2_to_serial_bridge::transport::Transporter>)>> sub_type_to_factory{
 @[for t in ros2_types]@
     {"@(t.ns)/@(t.ros_type)", @(t.ns)_@(t.lower_type)_sub_factory},
 @[end for]@
 };
 
-struct TopicMapping
+struct TopicMapping final
 {
     std::string type{""};
     topic_id_size_t serial_mapping{0};
@@ -57,12 +63,12 @@ struct TopicMapping
     Direction direction{Direction::UNKNOWN};
 };
 
-class ROS2Topics
+class ROS2Topics final
 {
 public:
     explicit ROS2Topics(const std::shared_ptr<rclcpp::Node> & node,
                         const std::map<std::string, TopicMapping> & topic_names_and_serialization,
-                        std::shared_ptr<Transporter> transporter)
+                        std::shared_ptr<ros2_to_serial_bridge::transport::Transporter> transporter)
     {
         // Now go through every topic and ensure that it has a valid type
         // (not ""), a valid serial mapping (not 0), and a valid direction
@@ -129,3 +135,6 @@ private:
     std::map<topic_id_size_t, std::unique_ptr<Publisher>> serial_to_pub;
     std::vector<std::unique_ptr<Subscription>> serial_subs;
 };
+
+}  // namespace pubsub
+}  // namespace ros2_to_serial_bridge

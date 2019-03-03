@@ -58,8 +58,8 @@ static void params_usage()
              );
 }
 
-static std::unique_ptr<ROS2Topics> parse_node_parameters_for_topics(const std::shared_ptr<rclcpp::Node> & node,
-                                                                    std::shared_ptr<Transporter> transporter)
+static std::unique_ptr<ros2_to_serial_bridge::pubsub::ROS2Topics> parse_node_parameters_for_topics(const std::shared_ptr<rclcpp::Node> & node,
+                                                                    std::shared_ptr<ros2_to_serial_bridge::transport::Transporter> transporter)
 {
     // Now we go through the YAML file containing our parameters, looking for
     // parameters of the form:
@@ -67,7 +67,7 @@ static std::unique_ptr<ROS2Topics> parse_node_parameters_for_topics(const std::s
     //         serial_mapping: <uint8_t>
     //         type: <string>
     //         direction: [SerialToROS2|ROS2ToSerial]
-    std::map<std::string, TopicMapping> topic_names_and_serialization;
+    std::map<std::string, ros2_to_serial_bridge::pubsub::TopicMapping> topic_names_and_serialization;
 
     rcl_interfaces::msg::ListParametersResult list_params_result = node->list_parameters({}, 0);
     for (const auto & name : list_params_result.names)
@@ -91,7 +91,7 @@ static std::unique_ptr<ROS2Topics> parse_node_parameters_for_topics(const std::s
 
         if (topic_names_and_serialization.count(topic_name) == 0)
         {
-          topic_names_and_serialization[topic_name] = TopicMapping();
+            topic_names_and_serialization[topic_name] = ros2_to_serial_bridge::pubsub::TopicMapping();
         }
 
         if (param_name == "serial_mapping")
@@ -112,14 +112,14 @@ static std::unique_ptr<ROS2Topics> parse_node_parameters_for_topics(const std::s
         else if (param_name == "direction")
         {
             std::string dirstring = node->get_parameter(name).get_value<std::string>();
-            TopicMapping::Direction direction = TopicMapping::Direction::UNKNOWN;
+            ros2_to_serial_bridge::pubsub::TopicMapping::Direction direction = ros2_to_serial_bridge::pubsub::TopicMapping::Direction::UNKNOWN;
             if (dirstring == "SerialToROS2")
             {
-                direction = TopicMapping::Direction::SERIAL_TO_ROS2;
+                direction = ros2_to_serial_bridge::pubsub::TopicMapping::Direction::SERIAL_TO_ROS2;
             }
             else if (dirstring == "ROS2ToSerial")
             {
-                direction = TopicMapping::Direction::ROS2_TO_SERIAL;
+                direction = ros2_to_serial_bridge::pubsub::TopicMapping::Direction::ROS2_TO_SERIAL;
             }
             else
             {
@@ -136,10 +136,10 @@ static std::unique_ptr<ROS2Topics> parse_node_parameters_for_topics(const std::s
         }
     }
 
-    std::unique_ptr<ROS2Topics> ros2_topics;
+    std::unique_ptr<ros2_to_serial_bridge::pubsub::ROS2Topics> ros2_topics;
     try
     {
-        ros2_topics = std::make_unique<ROS2Topics>(node,
+        ros2_topics = std::make_unique<ros2_to_serial_bridge::pubsub::ROS2Topics>(node,
                                                    topic_names_and_serialization,
                                                    transporter);
     }
@@ -152,7 +152,7 @@ static std::unique_ptr<ROS2Topics> parse_node_parameters_for_topics(const std::s
     return ros2_topics;
 }
 
-void read_thread_func(Transporter * transporter, ROS2Topics * ros2_topics)
+void read_thread_func(ros2_to_serial_bridge::transport::Transporter * transporter, ros2_to_serial_bridge::pubsub::ROS2Topics * ros2_topics)
 {
     char data_buffer[BUFFER_SIZE] = {};
     ssize_t length = 0;
@@ -201,14 +201,14 @@ int main(int argc, char *argv[])
         baudrate = 0;
     }
 
-    std::shared_ptr<Transporter> transporter = std::make_shared<UARTTransporter>(device, serial_protocol, baudrate, 100);
+    std::shared_ptr<ros2_to_serial_bridge::transport::Transporter> transporter = std::make_shared<ros2_to_serial_bridge::transport::UARTTransporter>(device, serial_protocol, baudrate, 100);
 
     if (transporter->init() < 0)
     {
         return 1;
     }
 
-    std::shared_ptr<ROS2Topics> ros2_topics = parse_node_parameters_for_topics(node, transporter);
+    std::shared_ptr<ros2_to_serial_bridge::pubsub::ROS2Topics> ros2_topics = parse_node_parameters_for_topics(node, transporter);
     if (ros2_topics == nullptr)
     {
         return 2;

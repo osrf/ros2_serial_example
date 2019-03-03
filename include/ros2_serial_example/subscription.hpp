@@ -16,6 +16,12 @@
 
 #include "ros2_serial_example/transporter.hpp"
 
+namespace ros2_to_serial_bridge
+{
+
+namespace pubsub
+{
+
 class Subscription
 {
 public:
@@ -27,3 +33,6 @@ public:
 protected:
     topic_id_size_t serial_mapping;
 };
+
+}  // namespace pubsub
+}  // namespace ros2_to_serial_bridge

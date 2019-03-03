@@ -54,6 +54,15 @@
 
 #include "ros2_serial_example/transporter.hpp"
 
+namespace ros2_to_serial_bridge
+{
+
+namespace transport
+{
+
+namespace impl
+{
+
 RingBuffer::RingBuffer(size_t capacity)
 {
     size = capacity + 1;
@@ -248,6 +257,8 @@ size_t RingBuffer::findseq(uint8_t *seq, size_t seqlen)
 
     return used;
 }
+
+}  // namespace impl
 
 /** CRC table for the CRC-16. The poly is 0x8005 (x^16 + x^15 + x^2 + 1) */
 uint16_t const crc16_table[256] = {
@@ -496,3 +507,6 @@ ssize_t Transporter::write(const topic_id_size_t topic_ID, char buffer[], size_t
 
     return node_write(buffer, length + header_len);
 }
+
+}  // namespace transport
+}  // namespace ros2_to_serial_bridge

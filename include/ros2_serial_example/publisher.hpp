@@ -16,8 +16,17 @@
 
 #include <cstdint>
 
+namespace ros2_to_serial_bridge
+{
+
+namespace pubsub
+{
+
 class Publisher
 {
 public:
   virtual void dispatch(char data_buffer[], ssize_t length) = 0;
 };
+
+}  // namespace pubsub
+}  // namespace ros2_to_serial_bridge

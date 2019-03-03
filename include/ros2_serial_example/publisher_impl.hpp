@@ -26,8 +26,14 @@
 
 #include "ros2_serial_example/publisher.hpp"
 
+namespace ros2_to_serial_bridge
+{
+
+namespace pubsub
+{
+
 template<typename T>
-class Publisher_impl : public Publisher
+class Publisher_impl final : public Publisher
 {
 public:
     explicit Publisher_impl(const std::shared_ptr<rclcpp::Node> & node, const std::string & name,
@@ -49,3 +55,6 @@ private:
     std::function<bool(eprosima::fastcdr::Cdr &, T &)> deserialize;
     std::shared_ptr<rclcpp::Publisher<T>> pub;
 };
+
+}  // namespace pubsub
+}  // namespace ros2_to_serial_bridge

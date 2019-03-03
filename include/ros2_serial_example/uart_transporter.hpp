@@ -45,7 +45,13 @@
 // Local includes
 #include "ros2_serial_example/transporter.hpp"
 
-class UARTTransporter : public Transporter
+namespace ros2_to_serial_bridge
+{
+
+namespace transport
+{
+
+class UARTTransporter final : public Transporter
 {
 public:
     UARTTransporter(const std::string & _uart_name, const std::string & _protocol, uint32_t _baudrate, uint32_t _poll_ms);
@@ -71,3 +77,6 @@ private:
     uint32_t write_timeout_us;
     struct pollfd poll_fd[1] = {};
 };
+
+}  // namespace transport
+}  // namespace ros2_to_serial_bridge

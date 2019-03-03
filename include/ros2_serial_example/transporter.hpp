@@ -44,6 +44,15 @@
 // serial compatibility.
 typedef uint8_t topic_id_size_t;
 
+namespace ros2_to_serial_bridge
+{
+
+namespace transport
+{
+
+namespace impl
+{
+
 class RingBuffer final
 {
 public:
@@ -76,6 +85,8 @@ private:
     uint8_t *tail;
     size_t size;
 };
+
+}  // namespace impl
 
 class Transporter
 {
@@ -111,7 +122,7 @@ protected:
     uint16_t crc16_byte(uint16_t crc, const uint8_t data);
     uint16_t crc16(uint8_t const *buffer, size_t len);
 
-    RingBuffer ringbuf;
+    impl::RingBuffer ringbuf;
 
 private:
     ssize_t find_and_copy_message(topic_id_size_t *topic_ID, char out_buffer[], size_t buffer_len);
@@ -127,3 +138,5 @@ private:
         uint8_t crc_l;
     };
 };
+}  // namespace transport
+}  // namespace ros2_to_serial_bridge
