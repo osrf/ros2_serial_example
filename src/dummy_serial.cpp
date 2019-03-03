@@ -47,7 +47,7 @@ static void signal_handler(int signum)
     running = 0;
 }
 
-void read_thread_func(Transporter * transporter)
+void read_thread_func(ros2_to_serial_bridge::transport::Transporter * transporter)
 {
     char data_buffer[BUFFER_SIZE] = {};
     ssize_t length = 0;
@@ -117,7 +117,7 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    std::unique_ptr<Transporter> transporter = std::make_unique<UARTTransporter>(std::string(device), "px4", baudrate, 100);
+    std::unique_ptr<ros2_to_serial_bridge::transport::Transporter> transporter = std::make_unique<ros2_to_serial_bridge::transport::UARTTransporter>(std::string(device), "px4", baudrate, 100);
 
     if (transporter->init() < 0)
     {

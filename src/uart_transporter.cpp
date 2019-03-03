@@ -52,6 +52,12 @@
 #include "ros2_serial_example/transporter.hpp"
 #include "ros2_serial_example/uart_transporter.hpp"
 
+namespace ros2_to_serial_bridge
+{
+
+namespace transport
+{
+
 // This is a table of the standard baudrates as defined in
 // /usr/include/asm-generic/termbits.h
 std::map<uint32_t, uint32_t> BaudNumberToRate{
@@ -274,3 +280,6 @@ ssize_t UARTTransporter::node_write(void *buffer, size_t len)
 
     return (n > 0) ? -1 : len;
 }
+
+}  // namespace transport
+}  // namespace ros2_to_serial_bridge

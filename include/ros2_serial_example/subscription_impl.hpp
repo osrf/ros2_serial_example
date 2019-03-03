@@ -29,14 +29,20 @@
 #include "ros2_serial_example/subscription.hpp"
 #include "ros2_serial_example/transporter.hpp"
 
+namespace ros2_to_serial_bridge
+{
+
+namespace pubsub
+{
+
 template<typename T>
-class Subscription_impl : public Subscription
+class Subscription_impl final : public Subscription
 {
 public:
     explicit Subscription_impl(const std::shared_ptr<rclcpp::Node> & node,
                                topic_id_size_t mapping,
                                const std::string & name,
-                               std::shared_ptr<Transporter> transporter,
+                               std::shared_ptr<transport::Transporter> transporter,
                                std::function<size_t(const T &, size_t)> get_size,
                                std::function<bool(const T &, eprosima::fastcdr::Cdr &)> serialize)
     {
@@ -62,3 +68,6 @@ public:
 private:
     std::shared_ptr<rclcpp::Subscription<T>> sub;
 };
+
+}  // namespace pubsub
+}  // namespace ros2_to_serial_bridge
