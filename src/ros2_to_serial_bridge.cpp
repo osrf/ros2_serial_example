@@ -79,7 +79,7 @@ static std::unique_ptr<ros2_to_serial_bridge::pubsub::ROS2Topics> parse_node_par
             // allow other parameters.
             continue;
         }
-        std::size_t last_dot_pos = name.find_last_of(".");
+        std::size_t last_dot_pos = name.find_last_of('.');
         if (last_dot_pos == std::string::npos)
         {
             params_usage();
@@ -154,16 +154,18 @@ static std::unique_ptr<ros2_to_serial_bridge::pubsub::ROS2Topics> parse_node_par
 
 void read_thread_func(ros2_to_serial_bridge::transport::Transporter * transporter, ros2_to_serial_bridge::pubsub::ROS2Topics * ros2_topics)
 {
-    char data_buffer[BUFFER_SIZE] = {};
+    // We use a unique_ptr here both to make this a heap allocation and to quiet
+    // non-owning pointer warnings from clang-tidy
+    std::unique_ptr<char[]> data_buffer(new char[BUFFER_SIZE]);
     ssize_t length = 0;
     topic_id_size_t topic_ID;
 
-    while (rclcpp::ok() && running)
+    while (rclcpp::ok() && running != 0)
     {
         // Process serial -> ROS 2 data
-        while ((length = transporter->read(&topic_ID, data_buffer, BUFFER_SIZE)) > 0)
+        while ((length = transporter->read(&topic_ID, data_buffer.get(), BUFFER_SIZE)) > 0)
         {
-            ros2_topics->dispatch(topic_ID, data_buffer, length);
+            ros2_topics->dispatch(topic_ID, data_buffer.get(), length);
             topic_ID = std::numeric_limits<topic_id_size_t>::max();
         }
     }
@@ -219,7 +221,7 @@ int main(int argc, char *argv[])
     std::thread read_thread(read_thread_func, transporter.get(), ros2_topics.get());
 
     rclcpp::WallRate loop_rate(1000);
-    while (rclcpp::ok() && running)
+    while (rclcpp::ok() && running != 0)
     {
         // Process ROS 2 -> serial data (via callbacks)
         rclcpp::spin_some(node);
