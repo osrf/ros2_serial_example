@@ -47,7 +47,6 @@
 #include <poll.h>
 #include <termios.h>
 #include <unistd.h>
-#include <sys/socket.h>
 
 #include "ros2_serial_example/transporter.hpp"
 #include "ros2_serial_example/uart_transporter.hpp"
@@ -58,40 +57,49 @@ namespace ros2_to_serial_bridge
 namespace transport
 {
 
-// This is a table of the standard baudrates as defined in
-// /usr/include/asm-generic/termbits.h
-std::map<uint32_t, uint32_t> BaudNumberToRate{
-    {0,       B0},
-    {50,      B50},
-    {75,      B75},
-    {110,     B110},
-    {134,     B134},
-    {150,     B150},
-    {200,     B200},
-    {300,     B300},
-    {600,     B600},
-    {1200,    B1200},
-    {1800,    B1800},
-    {2400,    B2400},
-    {4800,    B4800},
-    {9600,    B9600},
-    {19200,   B19200},
-    {38400,   B38400},
-    {57600,   B57600},
-    {115200,  B115200},
-    {230400,  B230400},
-    {460800,  B460800},
-    {500000,  B500000},
-    {576000,  B576000},
-    {921600,  B921600},
-    {1000000, B1000000},
-    {1500000, B1500000},
-    {2000000, B2000000},
-    {2500000, B2500000},
-    {3000000, B3000000},
-    {3500000, B3500000},
-    {4000000, B4000000},
-};
+uint32_t baud_number_to_rate(uint32_t baud)
+{
+    // This is a table of the standard baudrates as defined in
+    // /usr/include/asm-generic/termbits.h
+    static std::map<uint32_t, uint32_t> BaudNumberToRate{
+        {0,       B0},
+        {50,      B50},
+        {75,      B75},
+        {110,     B110},
+        {134,     B134},
+        {150,     B150},
+        {200,     B200},
+        {300,     B300},
+        {600,     B600},
+        {1200,    B1200},
+        {1800,    B1800},
+        {2400,    B2400},
+        {4800,    B4800},
+        {9600,    B9600},
+        {19200,   B19200},
+        {38400,   B38400},
+        {57600,   B57600},
+        {115200,  B115200},
+        {230400,  B230400},
+        {460800,  B460800},
+        {500000,  B500000},
+        {576000,  B576000},
+        {921600,  B921600},
+        {1000000, B1000000},
+        {1500000, B1500000},
+        {2000000, B2000000},
+        {2500000, B2500000},
+        {3000000, B3000000},
+        {3500000, B3500000},
+        {4000000, B4000000},
+    };
+
+    if (BaudNumberToRate.count(baud) == 0)
+    {
+        throw std::runtime_error("Invalid baudrate");
+    }
+    return BaudNumberToRate[baud];
+}
 
 UARTTransporter::UARTTransporter(const std::string & _uart_name, const std::string & _protocol, uint32_t _baudrate, uint32_t _poll_ms):
     uart_name(_uart_name),
@@ -109,12 +117,7 @@ UARTTransporter::UARTTransporter(const std::string & _uart_name, const std::stri
         throw std::runtime_error("Invalid protocol; must be one of 'px4'");
     }
 
-    if (BaudNumberToRate.count(_baudrate) == 0)
-    {
-        throw std::runtime_error("Invalid baudrate");
-    }
-
-    baudrate = BaudNumberToRate[_baudrate];
+    baudrate = baud_number_to_rate(_baudrate);
 }
 
 UARTTransporter::~UARTTransporter()
@@ -125,7 +128,7 @@ UARTTransporter::~UARTTransporter()
 int UARTTransporter::init()
 {
     // Open a serial port
-    uart_fd = ::open(uart_name.c_str(), O_RDWR | O_NOCTTY | O_NONBLOCK);
+    uart_fd = ::open(uart_name.c_str(), O_RDWR | O_NOCTTY | O_NONBLOCK | O_CLOEXEC);
 
     if (uart_fd < 0)
     {
@@ -137,7 +140,7 @@ int UARTTransporter::init()
     if (baudrate != B0)
     {
         // Try to set baud rate
-        struct termios uart_config;
+        struct termios uart_config{};
         int termios_state;
 
         // Back up the original uart configuration to restore it after exit
@@ -182,7 +185,7 @@ int UARTTransporter::init()
 
     // Flush out any pending data in the file descriptor.
     uint8_t aux[64];
-    while (0 < ::read(uart_fd, (void *)&aux, 64))
+    while (0 < ::read(uart_fd, &aux, 64))
     {
         ::usleep(1000);
     }
@@ -220,7 +223,7 @@ ssize_t UARTTransporter::node_read()
     ssize_t ret = 0;
     int r = ::poll(poll_fd, 1, poll_ms);
 
-    if (r == 1 && (poll_fd[0].revents & POLLIN))
+    if (r == 1 && (poll_fd[0].revents & POLLIN) != 0)
     {
         ret = ringbuf.read(uart_fd);
     }
@@ -268,10 +271,8 @@ ssize_t UARTTransporter::node_write(void *buffer, size_t len)
               ::usleep(1);
               continue;
           }
-          else
-          {
-              break;
-          }
+
+          break;
         }
         intr_times = 0;
         n -= ret;
