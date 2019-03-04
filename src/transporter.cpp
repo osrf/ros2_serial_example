@@ -50,7 +50,6 @@
 #include <poll.h>
 #include <termios.h>
 #include <unistd.h>
-#include <sys/socket.h>
 
 #include "ros2_serial_example/transporter.hpp"
 
@@ -97,10 +96,8 @@ size_t RingBuffer::bytes_free() const
     {
         return capacity() - (head - tail);
     }
-    else
-    {
-        return tail - head - 1;
-    }
+
+    return tail - head - 1;
 }
 
 size_t RingBuffer::bytes_used() const
@@ -239,14 +236,12 @@ size_t RingBuffer::findseq(uint8_t *seq, size_t seqlen)
                 // Found it!  Return the start of the sequence
                 return found - start;
             }
-            else
+
+            if (found == nullptr)
             {
-                if (found == nullptr)
-                {
-                    found = ringp;
-                }
-                seqp++;
+                found = ringp;
             }
+            seqp++;
         }
         else
         {
@@ -313,7 +308,7 @@ uint16_t Transporter::crc16(uint8_t const *buffer, size_t len)
 {
     uint16_t crc = 0;
 
-    while (len--)
+    while ((len--) != 0)
     {
         crc = crc16_byte(crc, *buffer++);
     }
@@ -457,7 +452,7 @@ ssize_t Transporter::read(topic_id_size_t *topic_ID, char out_buffer[], size_t b
     {
         int errsv = errno;
 
-        if (errsv && EAGAIN != errsv && ETIMEDOUT != errsv)
+        if (errsv != 0 && EAGAIN != errsv && ETIMEDOUT != errsv)
         {
             ::printf("Read fail %d\n", errsv);
         }
