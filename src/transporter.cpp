@@ -368,7 +368,13 @@ ssize_t Transporter::find_and_copy_message(topic_id_size_t *topic_ID, char out_b
     // a peek/copy (rather than just mapping to the array) because the
     // header might be non-contiguous in memory in the ring.
 
-    ringbuf.peek(headerbuf, header_len);
+    if (ringbuf.peek(headerbuf, header_len) == nullptr)
+    {
+        // ringbuf.peek returns nullptr if there isn't enough data in the
+        // ring buffer for the requested length
+        return 0;
+    }
+
     Header *header = reinterpret_cast<Header *>(headerbuf);
 
     uint32_t payload_len = (static_cast<uint32_t>(header->payload_len_h) << 8) | header->payload_len_l;
