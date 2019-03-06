@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <cerrno>
 #include <csignal>
 #include <cstdio>
 #include <cstdlib>
@@ -20,7 +21,6 @@
 #include <string>
 #include <thread>
 
-#include <errno.h>
 #include <unistd.h>
 
 #include <fastcdr/Cdr.h>
@@ -49,19 +49,21 @@ static void signal_handler(int signum)
 
 void read_thread_func(ros2_to_serial_bridge::transport::Transporter * transporter)
 {
-    char data_buffer[BUFFER_SIZE] = {};
+    // We use a unique_ptr here both to make this a heap allocation and to quiet
+    // non-owning pointer warnings from clang-tidy
+    std::unique_ptr<char[]> data_buffer(new char[BUFFER_SIZE]);
     ssize_t length = 0;
     topic_id_size_t topic_ID;
 
-    while (running)
+    while (running != 0)
     {
         // Process data coming over serial
-        while ((length = transporter->read(&topic_ID, data_buffer, BUFFER_SIZE)) > 0)
+        while ((length = transporter->read(&topic_ID, data_buffer.get(), BUFFER_SIZE)) > 0)
         {
             ::fprintf(stderr, "Topic ID: %d, data: ", topic_ID);
             for (ssize_t i = 0; i < length; ++i)
             {
-                ::fprintf(stderr, "0x%x ", data_buffer[i]);
+              ::fprintf(stderr, "0x%x ", *(data_buffer.get() + i));
             }
             ::fprintf(stderr, "\n");
         }
@@ -130,7 +132,7 @@ int main(int argc, char *argv[])
 
     size_t headlen = transporter->get_header_length();
 
-    while (running)
+    while (running != 0)
     {
         // With the current configuration, topic 9 is a std_msgs/String topic.
         char data_buffer[BUFFER_SIZE] = {};
