@@ -61,20 +61,15 @@ public:
     uint8_t close() override;
 
 private:
-    enum class SerialProtocol
-    {
-        PX4,
-    };
     ssize_t node_read() override;
     ssize_t node_write(void *buffer, size_t len) override;
     bool fds_OK() override;
 
-    SerialProtocol serial_protocol;
     std::string uart_name{};
     uint32_t baudrate;
     uint32_t poll_ms;
-    int uart_fd;
-    uint32_t write_timeout_us;
+    int uart_fd{-1};
+    uint32_t write_timeout_us{20};
     struct pollfd poll_fd[1] = {};
 };
 

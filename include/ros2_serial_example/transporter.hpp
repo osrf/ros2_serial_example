@@ -38,6 +38,7 @@
 #pragma once
 
 #include <cstdint>
+#include <string>
 
 #include "ros2_serial_example/ring_buffer.hpp"
 
@@ -55,7 +56,7 @@ namespace transport
 class Transporter
 {
 public:
-    Transporter();
+    explicit Transporter(const std::string & _protocol);
     virtual ~Transporter();
 
     virtual int init() {return 0;}
@@ -89,8 +90,15 @@ protected:
     impl::RingBuffer ringbuf;
 
 private:
+    enum class SerialProtocol
+    {
+        PX4,
+        COBS,
+    };
+
     ssize_t find_and_copy_message(topic_id_size_t *topic_ID, char out_buffer[], size_t buffer_len);
 
+    SerialProtocol serial_protocol;
     uint8_t seq{0};
     struct __attribute__((packed)) PX4Header {
         uint8_t marker[3];

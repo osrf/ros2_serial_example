@@ -102,21 +102,11 @@ uint32_t baud_number_to_rate(uint32_t baud)
 }
 
 UARTTransporter::UARTTransporter(const std::string & _uart_name, const std::string & _protocol, uint32_t _baudrate, uint32_t _poll_ms):
+    Transporter(_protocol),
     uart_name(_uart_name),
     baudrate(_baudrate),
-    poll_ms(_poll_ms),
-    uart_fd(-1),
-    write_timeout_us(20)
+    poll_ms(_poll_ms)
 {
-    if (_protocol == "px4")
-    {
-        serial_protocol = SerialProtocol::PX4;
-    }
-    else
-    {
-        throw std::runtime_error("Invalid protocol; must be one of 'px4'");
-    }
-
     baudrate = baud_number_to_rate(_baudrate);
 }
 

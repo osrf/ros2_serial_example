@@ -93,8 +93,20 @@ uint16_t const crc16_table[256] = {
     0x8201, 0x42C0, 0x4380, 0x8341, 0x4100, 0x81C1, 0x8081, 0x4040
 };
 
-Transporter::Transporter() : ringbuf(1024)
+Transporter::Transporter(const std::string & _protocol) : ringbuf(1024)
 {
+    if (_protocol == "px4")
+    {
+        serial_protocol = SerialProtocol::PX4;
+    }
+    else if (_protocol == "cobs")
+    {
+        serial_protocol = SerialProtocol::COBS;
+    }
+    else
+    {
+        throw std::runtime_error("Invalid protocol; must be one of 'px4' or 'cobs'");
+    }
 }
 
 Transporter::~Transporter()
