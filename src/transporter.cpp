@@ -162,7 +162,7 @@ ssize_t Transporter::find_and_copy_message(topic_id_size_t *topic_ID, char out_b
     // Looking for a header of the form:
     // [>,>,>,topic_ID,seq,payload_length_H,payload_length_L,CRCHigh,CRCLow,payloadStart, ... ,payloadEnd]
 
-    uint8_t headerbuf[sizeof(Header)];
+    uint8_t headerbuf[sizeof(PX4Header)];
 
     // Peek at the header out of the buffer.  Note that we need to do
     // a peek/copy (rather than just mapping to the array) because the
@@ -175,7 +175,7 @@ ssize_t Transporter::find_and_copy_message(topic_id_size_t *topic_ID, char out_b
         return 0;
     }
 
-    Header *header = reinterpret_cast<Header *>(headerbuf);
+    PX4Header *header = reinterpret_cast<PX4Header *>(headerbuf);
 
     uint32_t payload_len = (static_cast<uint32_t>(header->payload_len_h) << 8) | header->payload_len_l;
 
@@ -282,7 +282,7 @@ ssize_t Transporter::read(topic_id_size_t *topic_ID, char out_buffer[], size_t b
 
 size_t Transporter::get_header_length()
 {
-    return sizeof(Header);
+    return sizeof(PX4Header);
 }
 
 ssize_t Transporter::write(const topic_id_size_t topic_ID, char buffer[], size_t length)
@@ -292,7 +292,7 @@ ssize_t Transporter::write(const topic_id_size_t topic_ID, char buffer[], size_t
         return -1;
     }
 
-    Header header{};
+    PX4Header header{};
     header.marker[0] = '>';
     header.marker[1] = '>';
     header.marker[2] = '>';
