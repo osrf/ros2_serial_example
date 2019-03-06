@@ -132,24 +132,27 @@ int main(int argc, char *argv[])
 
     size_t headlen = transporter->get_header_length();
 
+    // We use a unique_ptr here both to make this a heap allocation and to quiet
+    // non-owning pointer warnings from clang-tidy
+    std::unique_ptr<char[]> data_buffer(new char[BUFFER_SIZE]);
+    std::unique_ptr<char[]> data_buffer2(new char[BUFFER_SIZE]);
+
     while (running != 0)
     {
         // With the current configuration, topic 9 is a std_msgs/String topic.
-        char data_buffer[BUFFER_SIZE] = {};
-        eprosima::fastcdr::FastBuffer cdrbuffer(&data_buffer[headlen], sizeof(data_buffer) - headlen);
+        eprosima::fastcdr::FastBuffer cdrbuffer(data_buffer.get() + headlen, BUFFER_SIZE - headlen);
         eprosima::fastcdr::Cdr scdr(cdrbuffer);
         scdr << "aa";
-        if (transporter->write(9, data_buffer, scdr.getSerializedDataLength()) < 0)
+        if (transporter->write(9, data_buffer.get(), scdr.getSerializedDataLength()) < 0)
         {
             ::fprintf(stderr, "Failed to write topic %d: %s\n", 9, ::strerror(errno));
         }
 
         // With the current configuration, topic 12 is a std_msgs/UInt16 topic.
-        char data_buffer2[BUFFER_SIZE] = {};
-        eprosima::fastcdr::FastBuffer cdrbuffer2(&data_buffer2[headlen], sizeof(data_buffer2) - headlen);
+        eprosima::fastcdr::FastBuffer cdrbuffer2(data_buffer2.get() + headlen, BUFFER_SIZE - headlen);
         eprosima::fastcdr::Cdr scdr2(cdrbuffer2);
         scdr2 << 256;
-        if (transporter->write(12, data_buffer2, scdr2.getSerializedDataLength()) < 0)
+        if (transporter->write(12, data_buffer2.get(), scdr2.getSerializedDataLength()) < 0)
         {
             ::fprintf(stderr, "Failed to write topic %d: %s\n", 12, ::strerror(errno));
         }
