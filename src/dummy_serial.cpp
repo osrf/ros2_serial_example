@@ -72,7 +72,7 @@ void read_thread_func(ros2_to_serial_bridge::transport::Transporter * transporte
 
 int main(int argc, char *argv[])
 {
-    char device[64] = "/dev/ttyACM0";
+    std::string device{};
     uint32_t baudrate = 0;
 
     int ch;
@@ -101,7 +101,7 @@ int main(int argc, char *argv[])
         case 'd':
             if (optarg != nullptr)
             {
-                ::strcpy(device, optarg);
+                device = optarg;
             }
             break;
         case 'h':
@@ -119,7 +119,7 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    std::unique_ptr<ros2_to_serial_bridge::transport::Transporter> transporter = std::make_unique<ros2_to_serial_bridge::transport::UARTTransporter>(std::string(device), "px4", baudrate, 100);
+    std::unique_ptr<ros2_to_serial_bridge::transport::Transporter> transporter = std::make_unique<ros2_to_serial_bridge::transport::UARTTransporter>(device, "px4", baudrate, 100);
 
     if (transporter->init() < 0)
     {
