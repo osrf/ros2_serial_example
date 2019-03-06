@@ -42,6 +42,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <limits>
+#include <memory>
 #include <stdexcept>
 #include <vector>
 
@@ -130,6 +131,41 @@ uint16_t Transporter::crc16(uint8_t const *buffer, size_t len)
     return crc;
 }
 
+// This function decodes length bytes of data at the location pointed to by
+// ptr, writing the output to the location pointed to by dst.  The amount of
+// memory needed by dst is guaranteed to be <= length.
+//
+// Returns the length of the decoded data.
+size_t cobs_unstuff_data(const uint8_t *ptr, size_t length, uint8_t *dst)
+{
+    const uint8_t *start = dst;
+    const uint8_t *end = ptr + length;
+    uint8_t code = 0xff;
+    uint8_t copy = 0;
+
+    for (; ptr < end; copy--)
+    {
+        if (copy != 0)
+        {
+            *dst++ = *ptr++;
+        }
+        else
+        {
+            if (code != 0xff)
+            {
+                *dst++ = 0;
+            }
+            copy = code = *ptr++;
+            if (code == 0)
+            {
+                break;  // source length too long
+            }
+        }
+    }
+
+    return dst - start;
+}
+
 ssize_t Transporter::find_and_copy_message(topic_id_size_t *topic_ID, char out_buffer[], size_t buffer_len)
 {
     size_t header_len = get_header_length();
@@ -138,104 +174,207 @@ ssize_t Transporter::find_and_copy_message(topic_id_size_t *topic_ID, char out_b
         throw std::runtime_error("Bad size");
     }
 
-    std::array<uint8_t, 3> headerseq{'>', '>', '>'};
-    ssize_t offset = ringbuf.findseq(&headerseq[0], headerseq.size());
-
-    if (offset < 0)
+    if (serial_protocol == SerialProtocol::PX4)
     {
-        // We didn't find the sequence; if the ring buffer is full, throw away one
-        // byte to make room.
-        if (ringbuf.is_full())
+        std::array<uint8_t, 3> headerseq{'>', '>', '>'};
+        ssize_t offset = ringbuf.findseq(&headerseq[0], headerseq.size());
+
+        if (offset < 0)
         {
-            uint8_t dummy;
-            if (ringbuf.memcpy_from(&dummy, 1) < 0)
+            // We didn't find the sequence; if the ring buffer is full, throw away one
+            // byte to make room.
+            if (ringbuf.is_full())
             {
-                throw std::runtime_error("Failed to clear out single byte from ring buffer");
+                uint8_t dummy;
+                if (ringbuf.memcpy_from(&dummy, 1) < 0)
+                {
+                    throw std::runtime_error("Failed to clear out single PX4 byte from ring buffer");
+                }
             }
-        }
-        return 0;
-    }
-
-    if (offset > 0)
-    {
-        // There is some garbage at the front, so just throw it away.
-        std::vector<uint8_t> garbage(offset);
-        if (ringbuf.memcpy_from(&garbage[0], offset) < 0)
-        {
-            throw std::runtime_error("Failed getting garbage data from ring buffer");
-        }
-        if (ringbuf.bytes_used() < header_len)
-        {
-            // Not enough bytes now.
             return 0;
         }
+
+        if (offset > 0)
+        {
+            // There is some garbage at the front, so just throw it away.
+            std::vector<uint8_t> garbage(offset);
+            if (ringbuf.memcpy_from(&garbage[0], offset) < 0)
+            {
+                throw std::runtime_error("Failed getting garbage data from ring buffer");
+            }
+            if (ringbuf.bytes_used() < header_len)
+            {
+                // Not enough bytes now.
+                return 0;
+            }
+        }
+
+        // Looking for a header of the form:
+        // [>,>,>,topic_ID,seq,payload_length_H,payload_length_L,CRCHigh,CRCLow,payloadStart, ... ,payloadEnd]
+
+        uint8_t headerbuf[sizeof(PX4Header)];
+
+        // Peek at the header out of the buffer.  Note that we need to do
+        // a peek/copy (rather than just mapping to the array) because the
+        // header might be non-contiguous in memory in the ring.
+
+        if (ringbuf.peek(headerbuf, header_len) < 0)
+        {
+            // ringbuf.peek returns nullptr if there isn't enough data in the
+            // ring buffer for the requested length
+            return 0;
+        }
+
+        PX4Header *header = reinterpret_cast<PX4Header *>(headerbuf);
+
+        uint32_t payload_len = (static_cast<uint32_t>(header->payload_len_h) << 8) | header->payload_len_l;
+
+        if (buffer_len < payload_len)
+        {
+            // The message won't fit the buffer.
+            return -EMSGSIZE;
+        }
+
+        if (ringbuf.bytes_used() < (header_len + payload_len))
+        {
+            // We do not have a complete message yet
+            return 0;
+        }
+
+        // At this point, we know that we have a complete header and the payload.
+        // Consume both; whether we keep the data or not, we want it out of the
+        // ring.
+
+        // Header
+        if (ringbuf.memcpy_from(headerbuf, header_len) < 0)
+        {
+            // We already checked above, so this should never happen.
+            throw std::runtime_error("Unexpected ring buffer failure");
+        }
+
+        if (ringbuf.memcpy_from(out_buffer, payload_len) < 0)
+        {
+            // We already checked above, so this should never happen.
+            throw std::runtime_error("Unexpected ring buffer failure");
+        }
+
+        uint16_t read_crc = (static_cast<uint16_t>(header->crc_h) << 8) | header->crc_l;
+        uint16_t calc_crc = crc16(reinterpret_cast<uint8_t *>(out_buffer), payload_len);
+
+        ssize_t len;
+        if (read_crc != calc_crc)
+        {
+            ::printf("BAD CRC %u != %u\n", read_crc, calc_crc);
+            len = -1;
+        }
+        else
+        {
+            *topic_ID = header->topic_ID;
+            len = payload_len;
+        }
+
+        return len;
     }
-
-    // Looking for a header of the form:
-    // [>,>,>,topic_ID,seq,payload_length_H,payload_length_L,CRCHigh,CRCLow,payloadStart, ... ,payloadEnd]
-
-    uint8_t headerbuf[sizeof(PX4Header)];
-
-    // Peek at the header out of the buffer.  Note that we need to do
-    // a peek/copy (rather than just mapping to the array) because the
-    // header might be non-contiguous in memory in the ring.
-
-    if (ringbuf.peek(headerbuf, header_len) < 0)
+    else if (serial_protocol == SerialProtocol::COBS)
     {
-        // ringbuf.peek returns negative if there isn't enough data in the
-        // ring buffer for the requested length
-        return 0;
-    }
+        // For COBS, we search for a tail sequence consisting just of 0x0.  If
+        // we find it, we find out how many bytes there are from the start of
+        // the ring until that sequence; if there are enough bytes, we can try
+        // to unstuff.
+        std::array<uint8_t, 1> tailseq{0x0};
+        ssize_t offset = ringbuf.findseq(&tailseq[0], tailseq.size());
 
-    PX4Header *header = reinterpret_cast<PX4Header *>(headerbuf);
+        if (offset < 0)
+        {
+            // We didn't find the sequence; if the ring buffer is full, throw away one
+            // byte to make room for new bytes.
+            if (ringbuf.is_full())
+            {
+                uint8_t dummy;
+                if (ringbuf.memcpy_from(&dummy, 1) < 0)
+                {
+                    throw std::runtime_error("Failed to clear out single COBS byte from ring buffer");
+                }
+            }
+            return 0;
+        }
 
-    uint32_t payload_len = (static_cast<uint32_t>(header->payload_len_h) << 8) | header->payload_len_l;
+        // Since findseq returns the number of bytes *up to* the sequence, we
+        // need to add one so we actually copy the 0 out as well.  This should
+        // always succeed since we found it above.
+        size_t needed = offset + 1;
+        std::unique_ptr<uint8_t[]> stuffed_buffer = std::make_unique<uint8_t[]>(needed);
 
-    if (buffer_len < payload_len)
-    {
-        // The message won't fit the buffer.
-        return -EMSGSIZE;
-    }
+        // Since we saw a 0 in the stream, copy all bytes out of the ring buffer
+        // up until the 0.  Note that we *always* copy the data out, even if it
+        // isn't large enough for our needs.  This is so we get the data out of
+        // the ring buffer; if it is bogus, we'll throw it away below.
+        // Otherwise we'll COBS unstuff it, do a CRC and see if it is valid.
+        if (ringbuf.memcpy_from(stuffed_buffer.get(), needed) < 0)
+        {
+            throw std::runtime_error("Unexpected ring buffer failure");
+        }
 
-    if (ringbuf.bytes_used() < (header_len + payload_len))
-    {
-        // We do not have a complete message yet
-        return 0;
-    }
+        // Unstuff the buffer before doing anything else.  Since COBS unstuffing
+        // is guaranteed to need less memory than the input buffer, just
+        // allocate enough for the input buffer here.
 
-    // At this point, we know that we have a complete header and the payload.
-    // Consume both; whether we keep the data or not, we want it out of the
-    // ring.
+        // Note that there is a tradeoff between being nice to the caller and
+        // performance here.  If we unstuffed directly into the out_buffer, we
+        // could save an allocation and a memcpy below.  But the tradeoff is
+        // that we would have to check that the out_buffer contains at least
+        // "needed" bytes, which is more than the unstuffed version will really
+        // require.  Thus we might fail unnecessarily.  For now we take the
+        // performance hit, but we might want to re-examine this decision.
 
-    // Header
-    if (ringbuf.memcpy_from(headerbuf, header_len) < 0)
-    {
-        // We already checked above, so this should never happen.
-        throw std::runtime_error("Unexpected ring buffer failure");
-    }
+        std::unique_ptr<uint8_t[]> unstuffed_buffer = std::make_unique<uint8_t[]>(needed);
+        size_t unstuffed_size = cobs_unstuff_data(stuffed_buffer.get(), offset, unstuffed_buffer.get());
 
-    if (ringbuf.memcpy_from(out_buffer, payload_len) < 0)
-    {
-        // We already checked above, so this should never happen.
-        throw std::runtime_error("Unexpected ring buffer failure");
-    }
+        if (unstuffed_size < header_len)
+        {
+            // We found a 0x0 in the data, but there wasn't enough for a full
+            // header.  Drop all of the data.
+            return 0;
+        }
 
-    uint16_t read_crc = (static_cast<uint16_t>(header->crc_h) << 8) | header->crc_l;
-    uint16_t calc_crc = crc16(reinterpret_cast<uint8_t *>(out_buffer), payload_len);
+        COBSHeader *header = reinterpret_cast<COBSHeader *>(unstuffed_buffer.get());
+        uint32_t payload_len = (static_cast<uint32_t>(header->payload_len_h) << 8) | header->payload_len_l;
 
-    ssize_t len;
-    if (read_crc != calc_crc)
-    {
-        ::printf("BAD CRC %u != %u\n", read_crc, calc_crc);
-        len = -1;
+        if ((unstuffed_size - header_len) < payload_len)
+        {
+            // The data we copied out and unstuffed was smaller than what the
+            // payload was, so this definitely isn't a valid message.
+        }
+
+        if ((unstuffed_size - header_len) > buffer_len)
+        {
+            // The message won't fit the buffer.
+            return -EMSGSIZE;
+        }
+
+        uint16_t read_crc = (static_cast<uint16_t>(header->crc_h) << 8) | header->crc_l;
+        uint16_t calc_crc = crc16(unstuffed_buffer.get() + header_len, payload_len);
+
+        ssize_t len;
+        if (read_crc != calc_crc)
+        {
+            ::printf("BAD CRC %u != %u\n", read_crc, calc_crc);
+            return -1;
+        }
+
+        *topic_ID = header->topic_ID;
+        len = payload_len;
+
+        // OK, everything checks out.  Copy the unstuffed data into the output
+        // buffer.
+        ::memcpy(out_buffer, unstuffed_buffer.get() + header_len, len);
+
+        return len;
     }
     else
     {
-        *topic_ID = header->topic_ID;
-        len = payload_len;
+        throw std::runtime_error("Bad protocol");
     }
-
-    return len;
 }
 
 ssize_t Transporter::read(topic_id_size_t *topic_ID, char out_buffer[], size_t buffer_len)
@@ -298,11 +437,56 @@ size_t Transporter::get_header_length()
     {
         return sizeof(PX4Header);
     }
+    else if (serial_protocol == SerialProtocol::COBS)
+    {
+        return sizeof(COBSHeader);
+    }
 
     throw std::runtime_error("Unknown protocol");
 }
 
-ssize_t Transporter::write(const topic_id_size_t topic_ID, char buffer[], size_t length)
+// This function stuffs length bytes of data at the location pointed to by
+// input, writing the output to the location pointed to by output.  In the worst
+// case (long sequences of data with no 0 in them), this can expand the
+// destination buffer requirements by 1 byte for the header plus one byte for
+// every 254 bytes.
+//
+// Returns the length of the encoded data.
+size_t cobs_stuff_data(const uint8_t *input, size_t length, uint8_t *output)
+{
+    size_t read_index = 0;
+    size_t write_index = 1;
+    size_t code_index = 0;
+    uint8_t code = 1;
+
+    while (read_index < length)
+    {
+        if (input[read_index] == 0)
+        {
+            output[code_index] = code;
+            code = 1;
+            code_index = write_index++;
+            read_index++;
+        }
+        else
+        {
+            output[write_index++] = input[read_index++];
+            code++;
+            if (code == 0xFF)
+            {
+                output[code_index] = code;
+                code = 1;
+                code_index = write_index++;
+            }
+        }
+    }
+
+    output[code_index] = code;
+
+    return write_index;
+}
+
+ssize_t Transporter::write(const topic_id_size_t topic_ID, char buffer[], size_t data_length)
 {
     if (!fds_OK())
     {
@@ -310,6 +494,13 @@ ssize_t Transporter::write(const topic_id_size_t topic_ID, char buffer[], size_t
     }
 
     size_t header_len = get_header_length();
+
+    std::unique_ptr<char[]> outbuf;  // Only used if we can't fit the output buffer into the input buffer
+
+    uint16_t crc = crc16(reinterpret_cast<uint8_t *>(&buffer[header_len]), data_length);
+
+    char *write_ptr;
+    size_t write_length;
 
     if (serial_protocol == SerialProtocol::PX4)
     {
@@ -320,25 +511,67 @@ ssize_t Transporter::write(const topic_id_size_t topic_ID, char buffer[], size_t
 
         // [>,>,>,topic_ID,seq,payload_length,CRCHigh,CRCLow,payload_start, ... ,payload_end]
 
-        uint16_t crc = crc16((uint8_t *)&buffer[header_len], length);
-
         header.topic_ID = topic_ID;
         header.seq = seq++;
-        header.payload_len_h = (length >> 8) & 0xff;
-        header.payload_len_l = length & 0xff;
+        header.payload_len_h = (data_length >> 8) & 0xff;
+        header.payload_len_l = data_length & 0xff;
         header.crc_h = (crc >> 8) & 0xff;
         header.crc_l = crc & 0xff;
 
         // Headroom for header is created in client
         // Fill in the header in the same payload buffer to call a single node_write
         ::memcpy(buffer, &header, header_len);
+
+        write_ptr = buffer;
+        write_length = data_length + header_len;
+    }
+    else if (serial_protocol == SerialProtocol::COBS)
+    {
+        COBSHeader header{};
+
+        // We'll use COBS (https://en.wikipedia.org/wiki/Consistent_Overhead_Byte_Stuffing)
+        // along with a well-known header.  Make sure the passed-in buffer has
+        // enough space for the header plus the stuffed payload.
+        size_t data_plus_header = header_len + data_length;
+        // COBS guarantees that the maximum length is the length of the data,
+        // plus one overhead byte per run of 254 or larger non-zero bytes,
+        // plus 1 byte for the header.  There is also one byte for the 00 added
+        // to the end to denote end-of-packet.
+        size_t needed_length = data_plus_header + data_plus_header / 254 + 1 + 1;
+
+        header.topic_ID = topic_ID;
+        // This is the payload length without the header and before stuffing
+        header.payload_len_h = (data_length >> 8) & 0xff;
+        header.payload_len_l = data_length & 0xff;
+        header.crc_h = (crc >> 8) & 0xff;
+        header.crc_l = crc & 0xff;
+
+        // Headroom for header is created in client
+        // Fill in the header in the same payload buffer to call a single node_write
+        ::memcpy(buffer, &header, header_len);
+
+        // TODO(clalancette): if we know that all runs of non-zero bytes in the
+        // data are shorter than 254 bytes, we can actually just encode into
+        // the input buffer.
+        outbuf = std::unique_ptr<char[]>(new char[needed_length]);
+
+        // OK, now stuff it
+        // TODO(clalancette): Yuck; these reinterpret_casts are nasty.  I'd
+        // much prefer to do uint8_t * everywhere, but we can't do that because
+        // Fast-CDR only takes in char *.  I'll have to think about this.
+        size_t stuffed_length = cobs_stuff_data(reinterpret_cast<uint8_t *>(buffer), data_plus_header, reinterpret_cast<uint8_t *>(outbuf.get()));
+        // Force the last byte to be 0 to mark the end-of-packet
+        *(outbuf.get() + stuffed_length) = '\0';
+
+        write_ptr = outbuf.get();
+        write_length = stuffed_length + 1;
     }
     else
     {
         throw std::runtime_error("Unknown protocol");
     }
 
-    return node_write(buffer, length + header_len);
+    return node_write(write_ptr, write_length);
 }
 
 }  // namespace transport

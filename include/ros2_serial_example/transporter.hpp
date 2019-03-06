@@ -109,6 +109,14 @@ private:
         uint8_t crc_h;
         uint8_t crc_l;
     };
+
+    struct __attribute__((packed)) COBSHeader {
+        topic_id_size_t topic_ID;
+        uint8_t payload_len_h;
+        uint8_t payload_len_l;
+        uint8_t crc_h;
+        uint8_t crc_l;
+    };
 };
 }  // namespace transport
 }  // namespace ros2_to_serial_bridge
