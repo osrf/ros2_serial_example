@@ -294,7 +294,12 @@ ssize_t Transporter::read(topic_id_size_t *topic_ID, char out_buffer[], size_t b
 
 size_t Transporter::get_header_length()
 {
-    return sizeof(PX4Header);
+    if (serial_protocol == SerialProtocol::PX4)
+    {
+        return sizeof(PX4Header);
+    }
+
+    throw std::runtime_error("Unknown protocol");
 }
 
 ssize_t Transporter::write(const topic_id_size_t topic_ID, char buffer[], size_t length)
@@ -304,27 +309,34 @@ ssize_t Transporter::write(const topic_id_size_t topic_ID, char buffer[], size_t
         return -1;
     }
 
-    PX4Header header{};
-    header.marker[0] = '>';
-    header.marker[1] = '>';
-    header.marker[2] = '>';
-
     size_t header_len = get_header_length();
 
-    // [>,>,>,topic_ID,seq,payload_length,CRCHigh,CRCLow,payload_start, ... ,payload_end]
+    if (serial_protocol == SerialProtocol::PX4)
+    {
+        PX4Header header{};
+        header.marker[0] = '>';
+        header.marker[1] = '>';
+        header.marker[2] = '>';
 
-    uint16_t crc = crc16((uint8_t *)&buffer[header_len], length);
+        // [>,>,>,topic_ID,seq,payload_length,CRCHigh,CRCLow,payload_start, ... ,payload_end]
 
-    header.topic_ID = topic_ID;
-    header.seq = seq++;
-    header.payload_len_h = (length >> 8) & 0xff;
-    header.payload_len_l = length & 0xff;
-    header.crc_h = (crc >> 8) & 0xff;
-    header.crc_l = crc & 0xff;
+        uint16_t crc = crc16((uint8_t *)&buffer[header_len], length);
 
-    // Headroom for header is created in client
-    // Fill in the header in the same payload buffer to call a single node_write
-    ::memcpy(buffer, &header, header_len);
+        header.topic_ID = topic_ID;
+        header.seq = seq++;
+        header.payload_len_h = (length >> 8) & 0xff;
+        header.payload_len_l = length & 0xff;
+        header.crc_h = (crc >> 8) & 0xff;
+        header.crc_l = crc & 0xff;
+
+        // Headroom for header is created in client
+        // Fill in the header in the same payload buffer to call a single node_write
+        ::memcpy(buffer, &header, header_len);
+    }
+    else
+    {
+        throw std::runtime_error("Unknown protocol");
+    }
 
     return node_write(buffer, length + header_len);
 }
