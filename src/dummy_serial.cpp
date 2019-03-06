@@ -58,7 +58,7 @@ void read_thread_func(ros2_to_serial_bridge::transport::Transporter * transporte
     while (running != 0)
     {
         // Process data coming over serial
-        while ((length = transporter->read(&topic_ID, data_buffer.get(), BUFFER_SIZE)) > 0)
+        if ((length = transporter->read(&topic_ID, data_buffer.get(), BUFFER_SIZE)) > 0)
         {
             ::fprintf(stderr, "Topic ID: %d, data: ", topic_ID);
             for (ssize_t i = 0; i < length; ++i)

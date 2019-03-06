@@ -163,7 +163,7 @@ void read_thread_func(ros2_to_serial_bridge::transport::Transporter * transporte
     while (rclcpp::ok() && running != 0)
     {
         // Process serial -> ROS 2 data
-        while ((length = transporter->read(&topic_ID, data_buffer.get(), BUFFER_SIZE)) > 0)
+        if ((length = transporter->read(&topic_ID, data_buffer.get(), BUFFER_SIZE)) > 0)
         {
             ros2_topics->dispatch(topic_ID, data_buffer.get(), length);
             topic_ID = std::numeric_limits<topic_id_size_t>::max();
