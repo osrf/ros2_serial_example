@@ -92,7 +92,7 @@ private:
     ssize_t find_and_copy_message(topic_id_size_t *topic_ID, char out_buffer[], size_t buffer_len);
 
     uint8_t seq{0};
-    struct __attribute__((packed)) Header {
+    struct __attribute__((packed)) PX4Header {
         uint8_t marker[3];
         topic_id_size_t topic_ID;
         uint8_t seq;
