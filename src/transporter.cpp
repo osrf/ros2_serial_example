@@ -132,14 +132,16 @@ ssize_t Transporter::find_and_copy_message(topic_id_size_t *topic_ID, char out_b
     if (offset < 0)
     {
         // We didn't find the sequence; if the ring buffer is full, throw away one
-        // bytes to make room for new bytes.
+        // byte to make room.
         if (ringbuf.is_full())
         {
             uint8_t dummy;
-            // TODO(clalancette): check return value here
-            ringbuf.memcpy_from(&dummy, 1);
-            return 0;
+            if (ringbuf.memcpy_from(&dummy, 1) < 0)
+            {
+                throw std::runtime_error("Failed to clear out single byte from ring buffer");
+            }
         }
+        return 0;
     }
 
     if (offset > 0)
@@ -247,8 +249,10 @@ ssize_t Transporter::read(topic_id_size_t *topic_ID, char out_buffer[], size_t b
     if (ringbuf.is_full())
     {
         uint8_t dummy;
-        // TODO(clalancette): check return value here
-        ringbuf.memcpy_from(&dummy, 1);
+        if (ringbuf.memcpy_from(&dummy, 1) < 0)
+        {
+            throw std::runtime_error("Failed to clear out single byte to read into");
+        }
     }
 
     ssize_t len = node_read();
