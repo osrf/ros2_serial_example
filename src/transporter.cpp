@@ -127,15 +127,16 @@ ssize_t Transporter::find_and_copy_message(topic_id_size_t *topic_ID, char out_b
     }
 
     std::array<uint8_t, 3> headerseq{'>', '>', '>'};
-    size_t offset = ringbuf.findseq(&headerseq[0], headerseq.size());
+    ssize_t offset = ringbuf.findseq(&headerseq[0], headerseq.size());
 
-    if (offset == ringbuf.bytes_used())
+    if (offset < 0)
     {
         // We didn't find the sequence; if the ring buffer is full, throw away one
         // bytes to make room for new bytes.
         if (ringbuf.is_full())
         {
             uint8_t dummy;
+            // TODO(clalancette): check return value here
             ringbuf.memcpy_from(&dummy, 1);
             return 0;
         }
@@ -145,7 +146,7 @@ ssize_t Transporter::find_and_copy_message(topic_id_size_t *topic_ID, char out_b
     {
         // There is some garbage at the front, so just throw it away.
         std::vector<uint8_t> garbage(offset);
-        if (ringbuf.memcpy_from(&garbage[0], offset) == nullptr)
+        if (ringbuf.memcpy_from(&garbage[0], offset) < 0)
         {
             throw std::runtime_error("Failed getting garbage data from ring buffer");
         }
@@ -165,9 +166,9 @@ ssize_t Transporter::find_and_copy_message(topic_id_size_t *topic_ID, char out_b
     // a peek/copy (rather than just mapping to the array) because the
     // header might be non-contiguous in memory in the ring.
 
-    if (ringbuf.peek(headerbuf, header_len) == nullptr)
+    if (ringbuf.peek(headerbuf, header_len) < 0)
     {
-        // ringbuf.peek returns nullptr if there isn't enough data in the
+        // ringbuf.peek returns negative if there isn't enough data in the
         // ring buffer for the requested length
         return 0;
     }
@@ -193,13 +194,13 @@ ssize_t Transporter::find_and_copy_message(topic_id_size_t *topic_ID, char out_b
     // ring.
 
     // Header
-    if (ringbuf.memcpy_from(headerbuf, header_len) == nullptr)
+    if (ringbuf.memcpy_from(headerbuf, header_len) < 0)
     {
         // We already checked above, so this should never happen.
         throw std::runtime_error("Unexpected ring buffer failure");
     }
 
-    if (ringbuf.memcpy_from(out_buffer, payload_len) == nullptr)
+    if (ringbuf.memcpy_from(out_buffer, payload_len) < 0)
     {
         // We already checked above, so this should never happen.
         throw std::runtime_error("Unexpected ring buffer failure");
@@ -246,6 +247,7 @@ ssize_t Transporter::read(topic_id_size_t *topic_ID, char out_buffer[], size_t b
     if (ringbuf.is_full())
     {
         uint8_t dummy;
+        // TODO(clalancette): check return value here
         ringbuf.memcpy_from(&dummy, 1);
     }
 

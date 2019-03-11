@@ -115,4 +115,11 @@ install(TARGETS
   DESTINATION lib/${PROJECT_NAME}
 )
 
+if(BUILD_TESTING)
+  find_package(ament_cmake_gtest REQUIRED)
+
+  ament_add_gtest(test_ring_buffer test/test_ring_buffer.cpp)
+  target_link_libraries(test_ring_buffer ring_buffer)
+endif()
+
 ament_package()
