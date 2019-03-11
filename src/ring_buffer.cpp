@@ -15,6 +15,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <cstring>
+#include <memory>
 
 #include <unistd.h>
 
@@ -29,65 +30,48 @@ namespace transport
 namespace impl
 {
 
-RingBuffer::RingBuffer(size_t capacity)
+RingBuffer::RingBuffer(size_t capacity) : buf(std::unique_ptr<uint8_t[]>(new uint8_t[capacity])), size(capacity)
 {
-    size = capacity + 1;
-    buf = new uint8_t[size];
-    // TODO(clalancette): check for nullptr
-    head = tail = buf;
+    head = tail = buf.get();
 }
 
 RingBuffer::~RingBuffer()
 {
-    delete [] buf;
-}
-
-size_t RingBuffer::buffer_size() const
-{
-    return size;
-}
-
-size_t RingBuffer::capacity() const
-{
-    return size - 1;
 }
 
 uint8_t *RingBuffer::end() const
 {
-    return buf + size;
+    return buf.get() + size;
 }
 
 size_t RingBuffer::bytes_free() const
 {
-    if (head >= tail)
-    {
-        return capacity() - (head - tail);
-    }
-
-    return tail - head - 1;
+    return size - bytes_used();
 }
 
 size_t RingBuffer::bytes_used() const
 {
-    return capacity() - bytes_free();
+    if (full)
+    {
+        return size;
+    }
+
+    if (head >= tail)
+    {
+        return head - tail;
+    }
+
+    return size + head - tail;
 }
 
 bool RingBuffer::is_full() const
 {
-    return bytes_free() == 0;
+    return full;
 }
 
 bool RingBuffer::is_empty() const
 {
-    return bytes_free() == capacity();
-}
-
-uint8_t *RingBuffer::nextp(uint8_t *p)
-{
-    // Given a ring buffer rb and a pointer to a location within its
-    // contiguous buffer, return the a pointer to the next logical
-    // location in the ring buffer.
-    return buf + ((++p - buf) % buffer_size());
+    return (!full && (head == tail));
 }
 
 ssize_t RingBuffer::read(int fd)
@@ -104,24 +88,25 @@ ssize_t RingBuffer::read(int fd)
         // wrap?
         if (head == bufend)
         {
-            head = buf;
+            head = buf.get();
         }
 
         // fix up the tail pointer if an overflow occurred
-        if (static_cast<size_t>(n) > nfree)
+        if (static_cast<size_t>(n) >= nfree)
         {
-            tail = nextp(head);
+            full = true;
+            tail = head;
         }
     }
 
     return n;
 }
 
-void *RingBuffer::peek(void *dst, size_t count)
+ssize_t RingBuffer::peek(void *dst, size_t count) const
 {
     if (count > bytes_used())
     {
-        return nullptr;
+        return -1;
     }
 
     uint8_t *u8dst = static_cast<uint8_t *>(dst);
@@ -138,18 +123,18 @@ void *RingBuffer::peek(void *dst, size_t count)
         // wrap?
         if (tmptail == bufend)
         {
-            tmptail = buf;
+            tmptail = buf.get();
         }
     }
 
-    return tmptail;
+    return nwritten;
 }
 
-void *RingBuffer::memcpy_from(void *dst, size_t count)
+ssize_t RingBuffer::memcpy_from(void *dst, size_t count)
 {
-    if (count > bytes_used())
+    if (dst == nullptr || count == 0 || count > bytes_used())
     {
-        return nullptr;
+        return -1;
     }
 
     uint8_t *u8dst = static_cast<uint8_t *>(dst);
@@ -165,59 +150,65 @@ void *RingBuffer::memcpy_from(void *dst, size_t count)
         // wrap?
         if (tail == bufend)
         {
-          tail = buf;
+            tail = buf.get();
         }
     }
 
-    return tail;
+    full = false;
+
+    return nwritten;
 }
 
-size_t RingBuffer::findseq(uint8_t *seq, size_t seqlen)
+// This returns the number of bytes from tail to the found sequence, or -1 if the sequence can't be found
+ssize_t RingBuffer::findseq(const uint8_t *seq, size_t seqlen) const
 {
     size_t used = bytes_used();
     if (used < seqlen)
     {
         // There aren't enough bytes in the ring for this sequence, so it
         // can't possibly contain the entire sequence.
-        return used;
+        return -1;
     }
 
-    if (seqlen > capacity())
+    if (seqlen > size)
     {
         // The sequence to look for is larger than we can possibly hold;
         // this can't work.
-        return used;
+        return -1;
     }
 
     uint8_t *ringp = tail;
-    uint8_t *seqp = seq;
-    uint8_t *found = nullptr;
-    uint8_t *start = buf + ((tail - buf) % buffer_size());
+    uint32_t tail_offset{0};
+    const uint8_t *seqp = seq;
+    uint8_t *bufend = end();
 
-    while (ringp != head)
+    while (used > 0)
     {
         if (*ringp == *seqp)
         {
-            if (found != nullptr && seqp == (seq + seqlen - 1))
+            if (seqp == (seq + seqlen - 1))
             {
-                // Found it!  Return the start of the sequence
-                return found - start;
+                // Found it!  Return the offset from tail to the start of the sequence
+                return tail_offset - (seqlen - 1);
             }
 
-            if (found == nullptr)
-            {
-                found = ringp;
-            }
             seqp++;
         }
         else
         {
-            found = nullptr;
+            seqp = seq;
         }
-        ringp = nextp(ringp);
+
+        ringp = ringp + 1;
+        if (ringp == bufend)
+        {
+            ringp = buf.get();
+        }
+        used--;
+        tail_offset++;
     }
 
-    return used;
+    return -1;
 }
 
 }  // namespace impl
