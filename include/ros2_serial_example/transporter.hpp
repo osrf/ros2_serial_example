@@ -39,6 +39,8 @@
 
 #include <cstdint>
 
+#include "ros2_serial_example/ring_buffer.hpp"
+
 // If you want to allow > 255 topic name/topic types on the serial wire,
 // increase the size of this typedef.  Note that it will break on-wire
 // serial compatibility.
@@ -49,44 +51,6 @@ namespace ros2_to_serial_bridge
 
 namespace transport
 {
-
-namespace impl
-{
-
-class RingBuffer final
-{
-public:
-    explicit RingBuffer(size_t capacity);
-
-    virtual ~RingBuffer();
-
-    ssize_t read(int fd);
-
-    void *peek(void *dst, size_t count);
-
-    void *memcpy_from(void *dst, size_t count);
-
-    size_t findseq(uint8_t *seq, size_t seqlen);
-
-    size_t bytes_used() const;
-
-    bool is_full() const;
-
-private:
-    size_t buffer_size() const;
-    size_t capacity() const;
-    uint8_t *end() const;
-    size_t bytes_free() const;
-    bool is_empty() const;
-    uint8_t *nextp(uint8_t *p);
-
-    uint8_t *buf;
-    uint8_t *head;
-    uint8_t *tail;
-    size_t size;
-};
-
-}  // namespace impl
 
 class Transporter
 {

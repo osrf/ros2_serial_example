@@ -69,6 +69,10 @@ foreach(msg ${_msgs})
 endforeach()
 list(REMOVE_DUPLICATES _deps)
 
+add_library(ring_buffer
+  src/ring_buffer.cpp
+)
+
 add_executable(ros2_to_serial_bridge
   src/ros2_to_serial_bridge.cpp
   src/transporter.cpp
@@ -82,6 +86,7 @@ ament_target_dependencies(ros2_to_serial_bridge
 )
 target_link_libraries(ros2_to_serial_bridge
   fastcdr
+  ring_buffer
 )
 
 add_executable(dummy_serial
@@ -94,7 +99,14 @@ ament_target_dependencies(dummy_serial
 )
 target_link_libraries(dummy_serial
   fastcdr
+  ring_buffer
   ${CMAKE_THREAD_LIBS_INIT}
+)
+
+install(TARGETS ring_buffer
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
 )
 
 install(TARGETS
