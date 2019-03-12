@@ -51,16 +51,14 @@ public:
         auto callback = [node, mapping, transporter, get_size, serialize, headlen](const typename T::SharedPtr msg) -> void
         {
             size_t serialized_size = get_size(*(msg.get()), 0);
-            char *data_buffer = new char[headlen + serialized_size];
-            eprosima::fastcdr::FastBuffer cdrbuffer(&data_buffer[headlen], serialized_size);
+            std::unique_ptr<char[]> data_buffer = std::unique_ptr<char[]>(new char[headlen + serialized_size]);
+            eprosima::fastcdr::FastBuffer cdrbuffer(data_buffer.get() + headlen, serialized_size);
             eprosima::fastcdr::Cdr scdr(cdrbuffer);
             serialize(*(msg.get()), scdr);
-            if (transporter->write(mapping, data_buffer, scdr.getSerializedDataLength()) < 0)
+            if (transporter->write(mapping, data_buffer.get(), scdr.getSerializedDataLength()) < 0)
             {
                 RCLCPP_WARN(node->get_logger(), "Failed to write data: %s", ::strerror(errno));
             }
-
-            delete [] data_buffer;
         };
         sub = node->create_subscription<T>(name, callback, rmw_qos_profile_default);
     }
