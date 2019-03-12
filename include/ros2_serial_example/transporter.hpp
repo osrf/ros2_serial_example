@@ -61,7 +61,7 @@ public:
 
     virtual int init() {return 0;}
     virtual uint8_t close() {return 0;}
-    ssize_t read(topic_id_size_t *topic_ID, char out_buffer[], size_t buffer_len);
+    ssize_t read(topic_id_size_t *topic_ID, uint8_t *out_buffer, size_t buffer_len);
 
     /**
      * write a buffer
@@ -75,7 +75,7 @@ public:
      * @param length buffer length excluding header length
      * @return length on success, <0 on error
      */
-    ssize_t write(const topic_id_size_t topic_ID, char buffer[], size_t length);
+    ssize_t write(const topic_id_size_t topic_ID, uint8_t *buffer, size_t length);
 
     /** Get the Length of struct Header to make headroom for the size of struct Header along with payload */
     size_t get_header_length();
@@ -96,7 +96,7 @@ private:
         COBS,
     };
 
-    ssize_t find_and_copy_message(topic_id_size_t *topic_ID, char out_buffer[], size_t buffer_len);
+    ssize_t find_and_copy_message(topic_id_size_t *topic_ID, uint8_t *out_buffer, size_t buffer_len);
 
     SerialProtocol serial_protocol;
     uint8_t seq{0};

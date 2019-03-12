@@ -25,7 +25,7 @@ namespace pubsub
 class Publisher
 {
 public:
-  virtual void dispatch(char data_buffer[], ssize_t length) = 0;
+    virtual void dispatch(uint8_t *data_buffer, ssize_t length) = 0;
 };
 
 }  // namespace pubsub

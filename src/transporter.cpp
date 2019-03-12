@@ -166,7 +166,7 @@ size_t cobs_unstuff_data(const uint8_t *ptr, size_t length, uint8_t *dst)
     return dst - start;
 }
 
-ssize_t Transporter::find_and_copy_message(topic_id_size_t *topic_ID, char out_buffer[], size_t buffer_len)
+ssize_t Transporter::find_and_copy_message(topic_id_size_t *topic_ID, uint8_t *out_buffer, size_t buffer_len)
 {
     size_t header_len = get_header_length();
     if (ringbuf.bytes_used() < header_len)
@@ -377,7 +377,7 @@ ssize_t Transporter::find_and_copy_message(topic_id_size_t *topic_ID, char out_b
     }
 }
 
-ssize_t Transporter::read(topic_id_size_t *topic_ID, char out_buffer[], size_t buffer_len)
+ssize_t Transporter::read(topic_id_size_t *topic_ID, uint8_t *out_buffer, size_t buffer_len)
 {
     if (nullptr == out_buffer || nullptr == topic_ID || !fds_OK())
     {
@@ -486,7 +486,7 @@ size_t cobs_stuff_data(const uint8_t *input, size_t length, uint8_t *output)
     return write_index;
 }
 
-ssize_t Transporter::write(const topic_id_size_t topic_ID, char buffer[], size_t data_length)
+ssize_t Transporter::write(const topic_id_size_t topic_ID, uint8_t *buffer, size_t data_length)
 {
     if (!fds_OK())
     {
@@ -495,11 +495,11 @@ ssize_t Transporter::write(const topic_id_size_t topic_ID, char buffer[], size_t
 
     size_t header_len = get_header_length();
 
-    std::unique_ptr<char[]> outbuf;  // Only used if we can't fit the output buffer into the input buffer
+    std::unique_ptr<uint8_t[]> outbuf;  // Only used if we can't fit the output buffer into the input buffer
 
     uint16_t crc = crc16(reinterpret_cast<uint8_t *>(&buffer[header_len]), data_length);
 
-    char *write_ptr;
+    uint8_t *write_ptr;
     size_t write_length;
 
     if (serial_protocol == SerialProtocol::PX4)
@@ -553,13 +553,10 @@ ssize_t Transporter::write(const topic_id_size_t topic_ID, char buffer[], size_t
         // TODO(clalancette): if we know that all runs of non-zero bytes in the
         // data are shorter than 254 bytes, we can actually just encode into
         // the input buffer.
-        outbuf = std::unique_ptr<char[]>(new char[needed_length]);
+        outbuf = std::unique_ptr<uint8_t[]>(new uint8_t[needed_length]);
 
         // OK, now stuff it
-        // TODO(clalancette): Yuck; these reinterpret_casts are nasty.  I'd
-        // much prefer to do uint8_t * everywhere, but we can't do that because
-        // Fast-CDR only takes in char *.  I'll have to think about this.
-        size_t stuffed_length = cobs_stuff_data(reinterpret_cast<uint8_t *>(buffer), data_plus_header, reinterpret_cast<uint8_t *>(outbuf.get()));
+        size_t stuffed_length = cobs_stuff_data(buffer, data_plus_header, outbuf.get());
         // Force the last byte to be 0 to mark the end-of-packet
         *(outbuf.get() + stuffed_length) = '\0';
 
