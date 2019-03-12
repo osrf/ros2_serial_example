@@ -51,7 +51,7 @@ void read_thread_func(ros2_to_serial_bridge::transport::Transporter * transporte
 {
     // We use a unique_ptr here both to make this a heap allocation and to quiet
     // non-owning pointer warnings from clang-tidy
-    std::unique_ptr<char[]> data_buffer(new char[BUFFER_SIZE]);
+    std::unique_ptr<uint8_t[]> data_buffer(new uint8_t[BUFFER_SIZE]);
     ssize_t length = 0;
     topic_id_size_t topic_ID;
 
@@ -141,13 +141,13 @@ int main(int argc, char *argv[])
 
     // We use a unique_ptr here both to make this a heap allocation and to quiet
     // non-owning pointer warnings from clang-tidy
-    std::unique_ptr<char[]> data_buffer(new char[BUFFER_SIZE]);
-    std::unique_ptr<char[]> data_buffer2(new char[BUFFER_SIZE]);
+    std::unique_ptr<uint8_t[]> data_buffer(new uint8_t[BUFFER_SIZE]);
+    std::unique_ptr<uint8_t[]> data_buffer2(new uint8_t[BUFFER_SIZE]);
 
     while (running != 0)
     {
         // With the current configuration, topic 9 is a std_msgs/String topic.
-        eprosima::fastcdr::FastBuffer cdrbuffer(data_buffer.get() + headlen, BUFFER_SIZE - headlen);
+        eprosima::fastcdr::FastBuffer cdrbuffer(reinterpret_cast<char *>(data_buffer.get()) + headlen, BUFFER_SIZE - headlen);
         eprosima::fastcdr::Cdr scdr(cdrbuffer);
         scdr << "aa";
         if (transporter->write(9, data_buffer.get(), scdr.getSerializedDataLength()) < 0)
@@ -156,7 +156,7 @@ int main(int argc, char *argv[])
         }
 
         // With the current configuration, topic 12 is a std_msgs/UInt16 topic.
-        eprosima::fastcdr::FastBuffer cdrbuffer2(data_buffer2.get() + headlen, BUFFER_SIZE - headlen);
+        eprosima::fastcdr::FastBuffer cdrbuffer2(reinterpret_cast<char *>(data_buffer2.get()) + headlen, BUFFER_SIZE - headlen);
         eprosima::fastcdr::Cdr scdr2(cdrbuffer2);
         scdr2 << 256;
         if (transporter->write(12, data_buffer2.get(), scdr2.getSerializedDataLength()) < 0)

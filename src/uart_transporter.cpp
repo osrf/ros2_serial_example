@@ -232,7 +232,7 @@ ssize_t UARTTransporter::node_write(void *buffer, size_t len)
 
     // Ensure that the entire buffer gets out to the file descriptor (unless a
     // fatal error occurs)
-    char *b = static_cast<char *>(buffer);
+    uint8_t *b = static_cast<uint8_t *>(buffer);
     size_t n = len;
     while (n > 0)
     {

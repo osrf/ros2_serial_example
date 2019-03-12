@@ -42,9 +42,9 @@ public:
         pub = node->create_publisher<T>(name);
     }
 
-    void dispatch(char data_buffer[], ssize_t length) override
+    void dispatch(uint8_t *data_buffer, ssize_t length) override
     {
-        eprosima::fastcdr::FastBuffer cdrbuffer(data_buffer, length);
+        eprosima::fastcdr::FastBuffer cdrbuffer(reinterpret_cast<char *>(data_buffer), length);
         eprosima::fastcdr::Cdr cdrdes(cdrbuffer);
         auto msg = std::make_shared<T>();
         deserialize(cdrdes, *(msg.get()));

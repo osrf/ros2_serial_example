@@ -124,7 +124,7 @@ public:
         }
     }
 
-    void dispatch(topic_id_size_t topic_ID, char data_buffer[], ssize_t length)
+    void dispatch(topic_id_size_t topic_ID, uint8_t *data_buffer, ssize_t length)
     {
         if (serial_to_pub.count(topic_ID) > 0)
         {

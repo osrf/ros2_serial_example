@@ -156,7 +156,7 @@ void read_thread_func(ros2_to_serial_bridge::transport::Transporter * transporte
 {
     // We use a unique_ptr here both to make this a heap allocation and to quiet
     // non-owning pointer warnings from clang-tidy
-    std::unique_ptr<char[]> data_buffer(new char[BUFFER_SIZE]);
+    std::unique_ptr<uint8_t[]> data_buffer(new uint8_t[BUFFER_SIZE]);
     ssize_t length = 0;
     topic_id_size_t topic_ID;
 
