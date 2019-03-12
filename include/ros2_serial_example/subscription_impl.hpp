@@ -46,10 +46,10 @@ public:
                                std::function<size_t(const T &, size_t)> get_size,
                                std::function<bool(const T &, eprosima::fastcdr::Cdr &)> serialize)
     {
+        size_t headlen = transporter->get_header_length();
         serial_mapping = mapping;
-        auto callback = [node, mapping, transporter, get_size, serialize](const typename T::SharedPtr msg) -> void
+        auto callback = [node, mapping, transporter, get_size, serialize, headlen](const typename T::SharedPtr msg) -> void
         {
-            size_t headlen = transporter->get_header_length();
             size_t serialized_size = get_size(*(msg.get()), 0);
             char *data_buffer = new char[headlen + serialized_size];
             eprosima::fastcdr::FastBuffer cdrbuffer(&data_buffer[headlen], serialized_size);
