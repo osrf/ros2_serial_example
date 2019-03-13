@@ -12,7 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#pragma once
+#ifndef ROS2_SERIAL_EXAMPLE__RING_BUFFER_HPP_
+#define ROS2_SERIAL_EXAMPLE__RING_BUFFER_HPP_
 
 #include <cstddef>
 #include <cstdint>
@@ -53,6 +54,11 @@ public:
     explicit RingBuffer(size_t capacity);
 
     virtual ~RingBuffer();
+
+    RingBuffer(RingBuffer const &) = delete;
+    RingBuffer& operator=(RingBuffer const &) = delete;
+    RingBuffer(RingBuffer &&) = delete;
+    RingBuffer& operator=(RingBuffer &&) = delete;
 
     /**
      * Read data from a file descriptor directly into the ring buffer.
@@ -162,7 +168,7 @@ protected:
 };
 
 }  // namespace impl
-
 }  // namespace transport
-
 }  // namespace ros2_to_serial_bridge
+
+#endif

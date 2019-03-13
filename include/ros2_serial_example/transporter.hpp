@@ -35,7 +35,8 @@
 // but modified to switch to a ring buffer and to split the UART implementation
 // into a separate file.
 
-#pragma once
+#ifndef ROS2_SERIAL_EXAMPLE__TRANSPORTER_HPP_
+#define ROS2_SERIAL_EXAMPLE__TRANSPORTER_HPP_
 
 #include <cstdint>
 #include <string>
@@ -59,6 +60,11 @@ public:
     explicit Transporter(const std::string & _protocol, size_t ring_buffer_size);
     virtual ~Transporter();
 
+    Transporter(Transporter const &) = delete;
+    Transporter& operator=(Transporter const &) = delete;
+    Transporter(Transporter &&) = delete;
+    Transporter& operator=(Transporter &&) = delete;
+
     virtual int init() {return 0;}
     virtual uint8_t close() {return 0;}
     ssize_t read(topic_id_size_t *topic_ID, uint8_t *out_buffer, size_t buffer_len);
@@ -75,7 +81,7 @@ public:
      * @param length buffer length excluding header length
      * @return length on success, <0 on error
      */
-    ssize_t write(const topic_id_size_t topic_ID, uint8_t *buffer, size_t length);
+    ssize_t write(topic_id_size_t topic_ID, uint8_t *buffer, size_t data_length);
 
     /** Get the Length of struct Header to make headroom for the size of struct Header along with payload */
     size_t get_header_length();
@@ -84,7 +90,7 @@ protected:
     virtual ssize_t node_read() = 0;
     virtual ssize_t node_write(void *buffer, size_t len) = 0;
     virtual bool fds_OK() = 0;
-    uint16_t crc16_byte(uint16_t crc, const uint8_t data);
+    uint16_t crc16_byte(uint16_t crc, uint8_t data);
     uint16_t crc16(uint8_t const *buffer, size_t len);
 
     impl::RingBuffer ringbuf;
@@ -100,7 +106,8 @@ private:
 
     SerialProtocol serial_protocol;
     uint8_t seq{0};
-    struct __attribute__((packed)) PX4Header {
+    struct __attribute__((packed)) PX4Header
+    {
         uint8_t marker[3];
         topic_id_size_t topic_ID;
         uint8_t seq;
@@ -110,7 +117,8 @@ private:
         uint8_t crc_l;
     };
 
-    struct __attribute__((packed)) COBSHeader {
+    struct __attribute__((packed)) COBSHeader
+    {
         topic_id_size_t topic_ID;
         uint8_t payload_len_h;
         uint8_t payload_len_l;
@@ -118,5 +126,8 @@ private:
         uint8_t crc_l;
     };
 };
+
 }  // namespace transport
 }  // namespace ros2_to_serial_bridge
+
+#endif
