@@ -215,7 +215,7 @@ ssize_t UARTTransporter::node_read()
     }
 
     ssize_t ret = 0;
-    int r = ::poll(poll_fd, 1, read_poll_ms);
+    int r = ::poll(reinterpret_cast<struct pollfd *>(poll_fd), 1, read_poll_ms);
 
     if (r == 1 && (poll_fd[0].revents & POLLIN) != 0)
     {
