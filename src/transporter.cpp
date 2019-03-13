@@ -212,20 +212,20 @@ ssize_t Transporter::find_and_copy_message(topic_id_size_t *topic_ID, uint8_t *o
         // Looking for a header of the form:
         // [>,>,>,topic_ID,seq,payload_length_H,payload_length_L,CRCHigh,CRCLow,payloadStart, ... ,payloadEnd]
 
-        uint8_t headerbuf[sizeof(PX4Header)];
+        std::unique_ptr<uint8_t[]> headerbuf = std::make_unique<uint8_t[]>(sizeof(PX4Header));
 
         // Peek at the header out of the buffer.  Note that we need to do
         // a peek/copy (rather than just mapping to the array) because the
         // header might be non-contiguous in memory in the ring.
 
-        if (ringbuf.peek(headerbuf, header_len) < 0)
+        if (ringbuf.peek(headerbuf.get(), header_len) < 0)
         {
             // ringbuf.peek returns nullptr if there isn't enough data in the
             // ring buffer for the requested length
             return 0;
         }
 
-        PX4Header *header = reinterpret_cast<PX4Header *>(headerbuf);
+        PX4Header *header = reinterpret_cast<PX4Header *>(headerbuf.get());
 
         uint32_t payload_len = (static_cast<uint32_t>(header->payload_len_h) << 8) | header->payload_len_l;
 
@@ -246,7 +246,7 @@ ssize_t Transporter::find_and_copy_message(topic_id_size_t *topic_ID, uint8_t *o
         // ring.
 
         // Header
-        if (ringbuf.memcpy_from(headerbuf, header_len) < 0)
+        if (ringbuf.memcpy_from(headerbuf.get(), header_len) < 0)
         {
             // We already checked above, so this should never happen.
             throw std::runtime_error("Unexpected ring buffer failure");
