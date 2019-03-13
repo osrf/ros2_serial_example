@@ -56,7 +56,7 @@ namespace transport
 class Transporter
 {
 public:
-    explicit Transporter(const std::string & _protocol);
+    explicit Transporter(const std::string & _protocol, size_t ring_buffer_size);
     virtual ~Transporter();
 
     virtual int init() {return 0;}
