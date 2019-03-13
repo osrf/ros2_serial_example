@@ -42,7 +42,7 @@ public:
     explicit Subscription_impl(const std::shared_ptr<rclcpp::Node> & node,
                                topic_id_size_t mapping,
                                const std::string & name,
-                               const std::shared_ptr<transport::Transporter> & transporter,
+                               transport::Transporter * transporter,
                                std::function<size_t(const T &, size_t)> get_size,
                                std::function<bool(const T &, eprosima::fastcdr::Cdr &)> serialize) : Subscription()
     {

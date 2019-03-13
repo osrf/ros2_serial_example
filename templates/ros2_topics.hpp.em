@@ -18,6 +18,7 @@
 // C++ includes
 #include <algorithm>
 #include <cstdint>
+#include <functional>
 #include <map>
 #include <memory>
 #include <stdexcept>
@@ -39,18 +40,6 @@ namespace ros2_to_serial_bridge
 namespace pubsub
 {
 
-std::map<std::string, std::function<std::unique_ptr<Publisher>(const std::shared_ptr<rclcpp::Node>, const std::string &)>> pub_type_to_factory{
-@[for t in ros2_types]@
-    {"@(t.ns)/@(t.ros_type)", @(t.ns)_@(t.lower_type)_pub_factory},
-@[end for]@
-};
-
-std::map<std::string, std::function<std::unique_ptr<Subscription>(const std::shared_ptr<rclcpp::Node>, topic_id_size_t, const std::string &, std::shared_ptr<ros2_to_serial_bridge::transport::Transporter>)>> sub_type_to_factory{
-@[for t in ros2_types]@
-    {"@(t.ns)/@(t.ros_type)", @(t.ns)_@(t.lower_type)_sub_factory},
-@[end for]@
-};
-
 struct TopicMapping final
 {
     std::string type{""};
@@ -69,14 +58,24 @@ class ROS2Topics final
 public:
     explicit ROS2Topics(const std::shared_ptr<rclcpp::Node> & node,
                         const std::map<std::string, TopicMapping> & topic_names_and_serialization,
-                        std::shared_ptr<ros2_to_serial_bridge::transport::Transporter> transporter)
+                        ros2_to_serial_bridge::transport::Transporter * transporter)
     {
+        // Setup the pub_type_to_factory map for all types
+@[for t in ros2_types]@
+        pub_type_to_factory["@(t.ns)/@(t.ros_type)"] = @(t.ns)_@(t.lower_type)_pub_factory;
+@[end for]@
+
+        // Setup the sub_type_to_factory map for all types
+@[for t in ros2_types]@
+        sub_type_to_factory["@(t.ns)/@(t.ros_type)"] = @(t.ns)_@(t.lower_type)_sub_factory;
+@[end for]@
+
         // Now go through every topic and ensure that it has a valid type
         // (not ""), a valid serial mapping (not 0), and a valid direction
         // (not UNKNOWN).
         for (const auto & t : topic_names_and_serialization)
         {
-            if (t.second.type == "" || t.second.serial_mapping == 0 || t.second.direction == TopicMapping::Direction::UNKNOWN)
+            if (t.second.type.empty() || t.second.serial_mapping == 0 || t.second.direction == TopicMapping::Direction::UNKNOWN)
             {
                 fprintf(stderr, "Topic '%s' missing type, serial_mapping, or direction; skipping\n", t.first.c_str());
                 continue;
@@ -135,6 +134,8 @@ public:
 private:
     std::map<topic_id_size_t, std::unique_ptr<Publisher>> serial_to_pub;
     std::vector<std::unique_ptr<Subscription>> serial_subs;
+    std::map<std::string, std::function<std::unique_ptr<Publisher>(const std::shared_ptr<rclcpp::Node>, const std::string &)>> pub_type_to_factory;
+    std::map<std::string, std::function<std::unique_ptr<Subscription>(const std::shared_ptr<rclcpp::Node>, topic_id_size_t, const std::string &, ros2_to_serial_bridge::transport::Transporter *)>> sub_type_to_factory;
 };
 
 }  // namespace pubsub

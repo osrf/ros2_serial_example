@@ -59,7 +59,7 @@ static void params_usage()
 }
 
 static std::unique_ptr<ros2_to_serial_bridge::pubsub::ROS2Topics> parse_node_parameters_for_topics(const std::shared_ptr<rclcpp::Node> & node,
-                                                                    std::shared_ptr<ros2_to_serial_bridge::transport::Transporter> transporter)
+                                                                                                   ros2_to_serial_bridge::transport::Transporter * transporter)
 {
     // Now we go through the YAML file containing our parameters, looking for
     // parameters of the form:
@@ -140,8 +140,8 @@ static std::unique_ptr<ros2_to_serial_bridge::pubsub::ROS2Topics> parse_node_par
     try
     {
         ros2_topics = std::make_unique<ros2_to_serial_bridge::pubsub::ROS2Topics>(node,
-                                                   topic_names_and_serialization,
-                                                   transporter);
+                                                                                  topic_names_and_serialization,
+                                                                                  transporter);
     }
     catch (const std::runtime_error & err)
     {
@@ -203,14 +203,14 @@ int main(int argc, char *argv[])
         baudrate = 0;
     }
 
-    std::shared_ptr<ros2_to_serial_bridge::transport::Transporter> transporter = std::make_shared<ros2_to_serial_bridge::transport::UARTTransporter>(device, serial_protocol, baudrate, 100, 8192);
+    std::unique_ptr<ros2_to_serial_bridge::transport::Transporter> transporter = std::make_unique<ros2_to_serial_bridge::transport::UARTTransporter>(device, serial_protocol, baudrate, 100, 8192);
 
     if (transporter->init() < 0)
     {
         return 1;
     }
 
-    std::shared_ptr<ros2_to_serial_bridge::pubsub::ROS2Topics> ros2_topics = parse_node_parameters_for_topics(node, transporter);
+    std::shared_ptr<ros2_to_serial_bridge::pubsub::ROS2Topics> ros2_topics = parse_node_parameters_for_topics(node, transporter.get());
     if (ros2_topics == nullptr)
     {
         return 2;

@@ -43,7 +43,7 @@ std::unique_ptr<Publisher> @(ros2_type.ns)_@(ros2_type.lower_type)_pub_factory(c
   return std::make_unique<Publisher_impl<@(ros2_type.ns)::msg::@(ros2_type.ros_type)>>(node, topic, des);
 }
 
-std::unique_ptr<Subscription> @(ros2_type.ns)_@(ros2_type.lower_type)_sub_factory(const std::shared_ptr<rclcpp::Node> node, topic_id_size_t serial_mapping, const std::string & topic, std::shared_ptr<ros2_to_serial_bridge::transport::Transporter> transporter)
+std::unique_ptr<Subscription> @(ros2_type.ns)_@(ros2_type.lower_type)_sub_factory(const std::shared_ptr<rclcpp::Node> node, topic_id_size_t serial_mapping, const std::string & topic, ros2_to_serial_bridge::transport::Transporter * transporter)
 {
   typedef size_t (*getsize_t)(const @(ros2_type.ns)::msg::@(ros2_type.ros_type) &, size_t);
   getsize_t getsize = @(ros2_type.ns)::msg::typesupport_fastrtps_cpp::get_serialized_size;

@@ -31,7 +31,7 @@ namespace pubsub
 {
 
 std::unique_ptr<Publisher> @(ros2_type.ns)_@(ros2_type.lower_type)_pub_factory(const std::shared_ptr<rclcpp::Node> node, const std::string & topic);
-std::unique_ptr<Subscription> @(ros2_type.ns)_@(ros2_type.lower_type)_sub_factory(const std::shared_ptr<rclcpp::Node> node, topic_id_size_t serial_mapping, const std::string & topic, std::shared_ptr<ros2_to_serial_bridge::transport::Transporter> transporter);
+std::unique_ptr<Subscription> @(ros2_type.ns)_@(ros2_type.lower_type)_sub_factory(const std::shared_ptr<rclcpp::Node> node, topic_id_size_t serial_mapping, const std::string & topic, ros2_to_serial_bridge::transport::Transporter * transporter);
 
 }  // namespace pubsub
 }  // namespace ros2_to_serial_bridge
