@@ -203,7 +203,7 @@ int main(int argc, char *argv[])
         baudrate = 0;
     }
 
-    std::shared_ptr<ros2_to_serial_bridge::transport::Transporter> transporter = std::make_shared<ros2_to_serial_bridge::transport::UARTTransporter>(device, serial_protocol, baudrate, 100);
+    std::shared_ptr<ros2_to_serial_bridge::transport::Transporter> transporter = std::make_shared<ros2_to_serial_bridge::transport::UARTTransporter>(device, serial_protocol, baudrate, 100, 8192);
 
     if (transporter->init() < 0)
     {

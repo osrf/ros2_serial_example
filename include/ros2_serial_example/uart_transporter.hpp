@@ -54,7 +54,11 @@ namespace transport
 class UARTTransporter final : public Transporter
 {
 public:
-    UARTTransporter(const std::string & _uart_name, const std::string & _protocol, uint32_t _baudrate, uint32_t _poll_ms);
+    UARTTransporter(const std::string & _uart_name,
+                    const std::string & _protocol,
+                    uint32_t _baudrate,
+                    uint32_t _poll_ms,
+                    size_t _ring_buffer_size);
     virtual ~UARTTransporter();
 
     int init() override;
@@ -67,7 +71,7 @@ private:
 
     std::string uart_name{};
     uint32_t baudrate;
-    uint32_t poll_ms;
+    uint32_t read_poll_ms;
     int uart_fd{-1};
     uint32_t write_timeout_us{20};
     struct pollfd poll_fd[1] = {};

@@ -101,11 +101,15 @@ uint32_t baud_number_to_rate(uint32_t baud)
     return BaudNumberToRate[baud];
 }
 
-UARTTransporter::UARTTransporter(const std::string & _uart_name, const std::string & _protocol, uint32_t _baudrate, uint32_t _poll_ms):
-    Transporter(_protocol),
+UARTTransporter::UARTTransporter(const std::string & _uart_name,
+                                 const std::string & _protocol,
+                                 uint32_t _baudrate,
+                                 uint32_t _read_poll_ms,
+                                 size_t _ring_buffer_size):
+    Transporter(_protocol, _ring_buffer_size),
     uart_name(_uart_name),
     baudrate(_baudrate),
-    poll_ms(_poll_ms)
+    read_poll_ms(_read_poll_ms)
 {
     baudrate = baud_number_to_rate(_baudrate);
 }
@@ -211,7 +215,7 @@ ssize_t UARTTransporter::node_read()
     }
 
     ssize_t ret = 0;
-    int r = ::poll(poll_fd, 1, poll_ms);
+    int r = ::poll(poll_fd, 1, read_poll_ms);
 
     if (r == 1 && (poll_fd[0].revents & POLLIN) != 0)
     {
@@ -239,30 +243,30 @@ ssize_t UARTTransporter::node_write(void *buffer, size_t len)
         ssize_t ret = ::write(uart_fd, b, n);
         if (ret == -1)
         {
-          if (errno == EINTR || errno == EAGAIN)
-          {
-              // We can get an EINTR/EAGAIN for a temporary failure (for
-              // instance, the remote end of a pipe is temporarily busy and not
-              // draining the data fast enough), or for a more permanent one
-              // (for instance, nothing is draining the remote end of a pipe).
-              // Just doing "continue" here in the latter case means that we'll
-              // be stuck in this loop forever, burning CPU.  Thus, we add a
-              // small delay and a counter in here.  If we get into here
-              // `write_timeout_us` times in a row (with no data being
-              // transferred in between), we presume this is a permanent failure
-              // and return an error to the application.
-              intr_times++;
-              if (intr_times > write_timeout_us)
-              {
-                  // Too many failures, set an errno and get out.
-                  errno = EBUSY;
-                  break;
-              }
-              ::usleep(1);
-              continue;
-          }
+            if (errno == EINTR || errno == EAGAIN)
+            {
+                // We can get an EINTR/EAGAIN for a temporary failure (for
+                // instance, the remote end of a pipe is temporarily busy and not
+                // draining the data fast enough), or for a more permanent one
+                // (for instance, nothing is draining the remote end of a pipe).
+                // Just doing "continue" here in the latter case means that we'll
+                // be stuck in this loop forever, burning CPU.  Thus, we add a
+                // small delay and a counter in here.  If we get into here
+                // `write_timeout_us` times in a row (with no data being
+                // transferred in between), we presume this is a permanent failure
+                // and return an error to the application.
+                intr_times++;
+                if (intr_times > write_timeout_us)
+                {
+                    // Too many failures, set an errno and get out.
+                    errno = EBUSY;
+                    break;
+                }
+                ::usleep(1);
+                continue;
+            }
 
-          break;
+            break;
         }
         intr_times = 0;
         n -= ret;

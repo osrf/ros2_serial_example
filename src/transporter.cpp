@@ -94,7 +94,7 @@ uint16_t const crc16_table[256] = {
     0x8201, 0x42C0, 0x4380, 0x8341, 0x4100, 0x81C1, 0x8081, 0x4040
 };
 
-Transporter::Transporter(const std::string & _protocol) : ringbuf(1024)
+Transporter::Transporter(const std::string & _protocol, size_t ring_buffer_size) : ringbuf(ring_buffer_size)
 {
     if (_protocol == "px4")
     {
