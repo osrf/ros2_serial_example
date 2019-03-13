@@ -36,15 +36,15 @@ namespace pubsub
 {
 
 template<typename T>
-class Subscription_impl final : public Subscription
+class SubscriptionImpl final : public Subscription
 {
 public:
-    explicit Subscription_impl(const std::shared_ptr<rclcpp::Node> & node,
-                               topic_id_size_t mapping,
-                               const std::string & name,
-                               transport::Transporter * transporter,
-                               std::function<size_t(const T &, size_t)> get_size,
-                               std::function<bool(const T &, eprosima::fastcdr::Cdr &)> serialize) : Subscription()
+    explicit SubscriptionImpl(const std::shared_ptr<rclcpp::Node> & node,
+                              topic_id_size_t mapping,
+                              const std::string & name,
+                              transport::Transporter * transporter,
+                              std::function<size_t(const T &, size_t)> get_size,
+                              std::function<bool(const T &, eprosima::fastcdr::Cdr &)> serialize) : Subscription()
     {
         size_t headlen = transporter->get_header_length();
         serial_mapping = mapping;
