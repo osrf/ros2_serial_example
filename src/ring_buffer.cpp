@@ -30,9 +30,9 @@ namespace transport
 namespace impl
 {
 
-RingBuffer::RingBuffer(size_t capacity) : buf(std::unique_ptr<uint8_t[]>(new uint8_t[capacity])), size(capacity)
+RingBuffer::RingBuffer(size_t capacity) : buf_(std::unique_ptr<uint8_t[]>(new uint8_t[capacity])), size_(capacity)
 {
-    head = tail = buf.get();
+    head_ = tail_ = buf_.get();
 }
 
 RingBuffer::~RingBuffer()
@@ -41,37 +41,37 @@ RingBuffer::~RingBuffer()
 
 uint8_t *RingBuffer::end() const
 {
-    return buf.get() + size;
+    return buf_.get() + size_;
 }
 
 size_t RingBuffer::bytes_free() const
 {
-    return size - bytes_used();
+    return size_ - bytes_used();
 }
 
 size_t RingBuffer::bytes_used() const
 {
-    if (full)
+    if (full_)
     {
-        return size;
+        return size_;
     }
 
-    if (head >= tail)
+    if (head_ >= tail_)
     {
-        return head - tail;
+        return head_ - tail_;
     }
 
-    return size + head - tail;
+    return size_ + head_ - tail_;
 }
 
 bool RingBuffer::is_full() const
 {
-    return full;
+    return full_;
 }
 
 bool RingBuffer::is_empty() const
 {
-    return (!full && (head == tail));
+    return (!full_ && (head_ == tail_));
 }
 
 ssize_t RingBuffer::read(int fd)
@@ -79,23 +79,23 @@ ssize_t RingBuffer::read(int fd)
     uint8_t *bufend = end();
     size_t nfree = bytes_free();
 
-    size_t count = bufend - head;
-    ssize_t n = ::read(fd, head, count);
+    size_t count = bufend - head_;
+    ssize_t n = ::read(fd, head_, count);
     if (n > 0)
     {
-        head += n;
+        head_ += n;
 
         // wrap?
-        if (head == bufend)
+        if (head_ == bufend)
         {
-            head = buf.get();
+            head_ = buf_.get();
         }
 
         // fix up the tail pointer if an overflow occurred
         if (static_cast<size_t>(n) >= nfree)
         {
-            full = true;
-            tail = head;
+            full_ = true;
+            tail_ = head_;
         }
     }
 
@@ -112,7 +112,7 @@ ssize_t RingBuffer::peek(void *dst, size_t count) const
     uint8_t *u8dst = static_cast<uint8_t *>(dst);
     uint8_t *bufend = end();
     size_t nwritten = 0;
-    uint8_t *tmptail = tail;
+    uint8_t *tmptail = tail_;
     while (nwritten != count)
     {
         size_t n = std::min(static_cast<size_t>(bufend - tmptail), count - nwritten);
@@ -123,7 +123,7 @@ ssize_t RingBuffer::peek(void *dst, size_t count) const
         // wrap?
         if (tmptail == bufend)
         {
-            tmptail = buf.get();
+            tmptail = buf_.get();
         }
     }
 
@@ -142,19 +142,19 @@ ssize_t RingBuffer::memcpy_from(void *dst, size_t count)
     size_t nwritten = 0;
     while (nwritten != count)
     {
-        size_t n = std::min(static_cast<size_t>(bufend - tail), count - nwritten);
-        ::memcpy(u8dst + nwritten, tail, n);
-        tail += n;
+        size_t n = std::min(static_cast<size_t>(bufend - tail_), count - nwritten);
+        ::memcpy(u8dst + nwritten, tail_, n);
+        tail_ += n;
         nwritten += n;
 
         // wrap?
-        if (tail == bufend)
+        if (tail_ == bufend)
         {
-            tail = buf.get();
+            tail_ = buf_.get();
         }
     }
 
-    full = false;
+    full_ = false;
 
     return nwritten;
 }
@@ -170,14 +170,14 @@ ssize_t RingBuffer::findseq(const uint8_t *seq, size_t seqlen) const
         return -1;
     }
 
-    if (seqlen > size)
+    if (seqlen > size_)
     {
         // The sequence to look for is larger than we can possibly hold;
         // this can't work.
         return -1;
     }
 
-    uint8_t *ringp = tail;
+    uint8_t *ringp = tail_;
     uint32_t tail_offset{0};
     const uint8_t *seqp = seq;
     uint8_t *bufend = end();
@@ -202,7 +202,7 @@ ssize_t RingBuffer::findseq(const uint8_t *seq, size_t seqlen) const
         ringp = ringp + 1;
         if (ringp == bufend)
         {
-            ringp = buf.get();
+            ringp = buf_.get();
         }
         used--;
         tail_offset++;

@@ -94,15 +94,15 @@ uint16_t const crc16_table[256] = {
     0x8201, 0x42C0, 0x4380, 0x8341, 0x4100, 0x81C1, 0x8081, 0x4040
 };
 
-Transporter::Transporter(const std::string & _protocol, size_t ring_buffer_size) : ringbuf(ring_buffer_size)
+Transporter::Transporter(const std::string & _protocol, size_t ring_buffer_size) : ringbuf_(ring_buffer_size)
 {
     if (_protocol == "px4")
     {
-        serial_protocol = SerialProtocol::PX4;
+        serial_protocol_ = SerialProtocol::PX4;
     }
     else if (_protocol == "cobs")
     {
-        serial_protocol = SerialProtocol::COBS;
+        serial_protocol_ = SerialProtocol::COBS;
     }
     else
     {
@@ -169,24 +169,24 @@ size_t cobs_unstuff_data(const uint8_t *ptr, size_t length, uint8_t *dst)
 ssize_t Transporter::find_and_copy_message(topic_id_size_t *topic_ID, uint8_t *out_buffer, size_t buffer_len)
 {
     size_t header_len = get_header_length();
-    if (ringbuf.bytes_used() < header_len)
+    if (ringbuf_.bytes_used() < header_len)
     {
         throw std::runtime_error("Bad size");
     }
 
-    if (serial_protocol == SerialProtocol::PX4)
+    if (serial_protocol_ == SerialProtocol::PX4)
     {
         std::array<uint8_t, 3> headerseq{'>', '>', '>'};
-        ssize_t offset = ringbuf.findseq(&headerseq[0], headerseq.size());
+        ssize_t offset = ringbuf_.findseq(&headerseq[0], headerseq.size());
 
         if (offset < 0)
         {
             // We didn't find the sequence; if the ring buffer is full, throw away one
             // byte to make room.
-            if (ringbuf.is_full())
+            if (ringbuf_.is_full())
             {
                 uint8_t dummy;
-                if (ringbuf.memcpy_from(&dummy, 1) < 0)
+                if (ringbuf_.memcpy_from(&dummy, 1) < 0)
                 {
                     throw std::runtime_error("Failed to clear out single PX4 byte from ring buffer");
                 }
@@ -198,11 +198,11 @@ ssize_t Transporter::find_and_copy_message(topic_id_size_t *topic_ID, uint8_t *o
         {
             // There is some garbage at the front, so just throw it away.
             std::vector<uint8_t> garbage(offset);
-            if (ringbuf.memcpy_from(&garbage[0], offset) < 0)
+            if (ringbuf_.memcpy_from(&garbage[0], offset) < 0)
             {
                 throw std::runtime_error("Failed getting garbage data from ring buffer");
             }
-            if (ringbuf.bytes_used() < header_len)
+            if (ringbuf_.bytes_used() < header_len)
             {
                 // Not enough bytes now.
                 return 0;
@@ -218,9 +218,9 @@ ssize_t Transporter::find_and_copy_message(topic_id_size_t *topic_ID, uint8_t *o
         // a peek/copy (rather than just mapping to the array) because the
         // header might be non-contiguous in memory in the ring.
 
-        if (ringbuf.peek(headerbuf.get(), header_len) < 0)
+        if (ringbuf_.peek(headerbuf.get(), header_len) < 0)
         {
-            // ringbuf.peek returns nullptr if there isn't enough data in the
+            // ringbuf_.peek returns nullptr if there isn't enough data in the
             // ring buffer for the requested length
             return 0;
         }
@@ -235,7 +235,7 @@ ssize_t Transporter::find_and_copy_message(topic_id_size_t *topic_ID, uint8_t *o
             return -EMSGSIZE;
         }
 
-        if (ringbuf.bytes_used() < (header_len + payload_len))
+        if (ringbuf_.bytes_used() < (header_len + payload_len))
         {
             // We do not have a complete message yet
             return 0;
@@ -246,13 +246,13 @@ ssize_t Transporter::find_and_copy_message(topic_id_size_t *topic_ID, uint8_t *o
         // ring.
 
         // Header
-        if (ringbuf.memcpy_from(headerbuf.get(), header_len) < 0)
+        if (ringbuf_.memcpy_from(headerbuf.get(), header_len) < 0)
         {
             // We already checked above, so this should never happen.
             throw std::runtime_error("Unexpected ring buffer failure");
         }
 
-        if (ringbuf.memcpy_from(out_buffer, payload_len) < 0)
+        if (ringbuf_.memcpy_from(out_buffer, payload_len) < 0)
         {
             // We already checked above, so this should never happen.
             throw std::runtime_error("Unexpected ring buffer failure");
@@ -276,23 +276,23 @@ ssize_t Transporter::find_and_copy_message(topic_id_size_t *topic_ID, uint8_t *o
         return len;
     }
 
-    if (serial_protocol == SerialProtocol::COBS)
+    if (serial_protocol_ == SerialProtocol::COBS)
     {
         // For COBS, we search for a tail sequence consisting just of 0x0.  If
         // we find it, we find out how many bytes there are from the start of
         // the ring until that sequence; if there are enough bytes, we can try
         // to unstuff.
         std::array<uint8_t, 1> tailseq{0x0};
-        ssize_t offset = ringbuf.findseq(&tailseq[0], tailseq.size());
+        ssize_t offset = ringbuf_.findseq(&tailseq[0], tailseq.size());
 
         if (offset < 0)
         {
             // We didn't find the sequence; if the ring buffer is full, throw away one
             // byte to make room for new bytes.
-            if (ringbuf.is_full())
+            if (ringbuf_.is_full())
             {
                 uint8_t dummy;
-                if (ringbuf.memcpy_from(&dummy, 1) < 0)
+                if (ringbuf_.memcpy_from(&dummy, 1) < 0)
                 {
                     throw std::runtime_error("Failed to clear out single COBS byte from ring buffer");
                 }
@@ -311,7 +311,7 @@ ssize_t Transporter::find_and_copy_message(topic_id_size_t *topic_ID, uint8_t *o
         // isn't large enough for our needs.  This is so we get the data out of
         // the ring buffer; if it is bogus, we'll throw it away below.
         // Otherwise we'll COBS unstuff it, do a CRC and see if it is valid.
-        if (ringbuf.memcpy_from(stuffed_buffer.get(), needed) < 0)
+        if (ringbuf_.memcpy_from(stuffed_buffer.get(), needed) < 0)
         {
             throw std::runtime_error("Unexpected ring buffer failure");
         }
@@ -387,7 +387,7 @@ ssize_t Transporter::read(topic_id_size_t *topic_ID, uint8_t *out_buffer, size_t
 
     *topic_ID = std::numeric_limits<topic_id_size_t>::max();
 
-    if (ringbuf.bytes_used() >= header_len)
+    if (ringbuf_.bytes_used() >= header_len)
     {
         ssize_t len = find_and_copy_message(topic_ID, out_buffer, buffer_len);
         if (len > 0)
@@ -396,10 +396,10 @@ ssize_t Transporter::read(topic_id_size_t *topic_ID, uint8_t *out_buffer, size_t
         }
     }
 
-    if (ringbuf.is_full())
+    if (ringbuf_.is_full())
     {
         uint8_t dummy;
-        if (ringbuf.memcpy_from(&dummy, 1) < 0)
+        if (ringbuf_.memcpy_from(&dummy, 1) < 0)
         {
             throw std::runtime_error("Failed to clear out single byte to read into");
         }
@@ -418,7 +418,7 @@ ssize_t Transporter::read(topic_id_size_t *topic_ID, uint8_t *out_buffer, size_t
         return len;
     }
 
-    if (ringbuf.bytes_used() >= header_len)
+    if (ringbuf_.bytes_used() >= header_len)
     {
         ssize_t len = find_and_copy_message(topic_ID, out_buffer, buffer_len);
         if (len > 0)
@@ -432,11 +432,11 @@ ssize_t Transporter::read(topic_id_size_t *topic_ID, uint8_t *out_buffer, size_t
 
 size_t Transporter::get_header_length()
 {
-    if (serial_protocol == SerialProtocol::PX4)
+    if (serial_protocol_ == SerialProtocol::PX4)
     {
         return sizeof(PX4Header);
     }
-    if (serial_protocol == SerialProtocol::COBS)
+    if (serial_protocol_ == SerialProtocol::COBS)
     {
         return sizeof(COBSHeader);
     }
@@ -501,7 +501,7 @@ ssize_t Transporter::write(topic_id_size_t topic_ID, uint8_t *buffer, size_t dat
     uint8_t *write_ptr;
     size_t write_length;
 
-    if (serial_protocol == SerialProtocol::PX4)
+    if (serial_protocol_ == SerialProtocol::PX4)
     {
         PX4Header header{};
         header.marker[0] = '>';
@@ -511,7 +511,7 @@ ssize_t Transporter::write(topic_id_size_t topic_ID, uint8_t *buffer, size_t dat
         // [>,>,>,topic_ID,seq,payload_length,CRCHigh,CRCLow,payload_start, ... ,payload_end]
 
         header.topic_ID = topic_ID;
-        header.seq = seq++;
+        header.seq = seq_++;
         header.payload_len_h = (data_length >> 8) & 0xff;
         header.payload_len_l = data_length & 0xff;
         header.crc_h = (crc >> 8) & 0xff;
@@ -524,7 +524,7 @@ ssize_t Transporter::write(topic_id_size_t topic_ID, uint8_t *buffer, size_t dat
         write_ptr = buffer;
         write_length = data_length + header_len;
     }
-    else if (serial_protocol == SerialProtocol::COBS)
+    else if (serial_protocol_ == SerialProtocol::COBS)
     {
         COBSHeader header{};
 

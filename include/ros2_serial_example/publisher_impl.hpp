@@ -38,9 +38,9 @@ class PublisherImpl final : public Publisher
 {
 public:
     explicit PublisherImpl(const std::shared_ptr<rclcpp::Node> & node, const std::string & name,
-                           std::function<bool(eprosima::fastcdr::Cdr &, T &)> des) : deserialize(des)
+                           std::function<bool(eprosima::fastcdr::Cdr &, T &)> des) : deserialize_(des)
     {
-        pub = node->create_publisher<T>(name);
+        pub_ = node->create_publisher<T>(name);
     }
 
     void dispatch(uint8_t *data_buffer, ssize_t length) override
@@ -48,13 +48,13 @@ public:
         eprosima::fastcdr::FastBuffer cdrbuffer(reinterpret_cast<char *>(data_buffer), length);
         eprosima::fastcdr::Cdr cdrdes(cdrbuffer);
         auto msg = std::make_shared<T>();
-        deserialize(cdrdes, *(msg.get()));
-        pub->publish(msg);
+        deserialize_(cdrdes, *(msg.get()));
+        pub_->publish(msg);
     }
 
 private:
-    std::function<bool(eprosima::fastcdr::Cdr &, T &)> deserialize;
-    std::shared_ptr<rclcpp::Publisher<T>> pub;
+    std::function<bool(eprosima::fastcdr::Cdr &, T &)> deserialize_;
+    std::shared_ptr<rclcpp::Publisher<T>> pub_;
 };
 
 }  // namespace pubsub
