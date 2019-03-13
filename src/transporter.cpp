@@ -212,7 +212,7 @@ ssize_t Transporter::find_and_copy_message(topic_id_size_t *topic_ID, uint8_t *o
         // Looking for a header of the form:
         // [>,>,>,topic_ID,seq,payload_length_H,payload_length_L,CRCHigh,CRCLow,payloadStart, ... ,payloadEnd]
 
-        std::unique_ptr<uint8_t[]> headerbuf = std::make_unique<uint8_t[]>(sizeof(PX4Header));
+        std::unique_ptr<uint8_t[]> headerbuf = std::unique_ptr<uint8_t[]>(new uint8_t[sizeof(PX4Header)]);
 
         // Peek at the header out of the buffer.  Note that we need to do
         // a peek/copy (rather than just mapping to the array) because the
@@ -304,7 +304,7 @@ ssize_t Transporter::find_and_copy_message(topic_id_size_t *topic_ID, uint8_t *o
         // need to add one so we actually copy the 0 out as well.  This should
         // always succeed since we found it above.
         size_t needed = offset + 1;
-        std::unique_ptr<uint8_t[]> stuffed_buffer = std::make_unique<uint8_t[]>(needed);
+        std::unique_ptr<uint8_t[]> stuffed_buffer = std::unique_ptr<uint8_t[]>(new uint8_t[needed]);
 
         // Since we saw a 0 in the stream, copy all bytes out of the ring buffer
         // up until the 0.  Note that we *always* copy the data out, even if it
@@ -549,14 +549,13 @@ ssize_t Transporter::write(topic_id_size_t topic_ID, uint8_t *buffer, size_t dat
         header.crc_h = (crc >> 8) & 0xff;
         header.crc_l = crc & 0xff;
 
-        // Headroom for header is created in client
-        // Fill in the header in the same payload buffer to call a single node_write
-        ::memcpy(buffer, &header, header_len);
+        std::unique_ptr<uint8_t[]> intermediate_buf = std::unique_ptr<uint8_t[]>(new uint8_t[data_plus_header]);
+        ::memcpy(intermediate_buf.get(), &header, header_len);
+        ::memcpy(intermediate_buf.get() + header_len, buffer, data_length);
 
         write_buf = std::unique_ptr<uint8_t[]>(new uint8_t[needed_length]);
-
         // OK, now stuff it
-        size_t stuffed_length = cobs_stuff_data(buffer, data_plus_header, write_buf.get());
+        size_t stuffed_length = cobs_stuff_data(intermediate_buf.get(), data_plus_header, write_buf.get());
         // Force the last byte to be 0 to mark the end-of-packet
         *(write_buf.get() + stuffed_length) = '\0';
 
