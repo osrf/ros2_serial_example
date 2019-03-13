@@ -68,7 +68,7 @@ public:
     UARTTransporter& operator=(UARTTransporter &&) = delete;
 
     int init() override;
-    uint8_t close() override;
+    int close() override;
 
 private:
     ssize_t node_read() override;

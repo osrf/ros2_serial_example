@@ -66,7 +66,7 @@ public:
     Transporter& operator=(Transporter &&) = delete;
 
     virtual int init() {return 0;}
-    virtual uint8_t close() {return 0;}
+    virtual int close() {return 0;}
     ssize_t read(topic_id_size_t *topic_ID, uint8_t *out_buffer, size_t buffer_len);
 
     /**

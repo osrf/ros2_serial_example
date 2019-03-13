@@ -194,7 +194,7 @@ bool UARTTransporter::fds_OK()
     return (-1 != uart_fd_);
 }
 
-uint8_t UARTTransporter::close()
+int UARTTransporter::close()
 {
     if (-1 != uart_fd_)
     {
