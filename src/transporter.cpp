@@ -114,7 +114,7 @@ Transporter::~Transporter()
 {
 }
 
-uint16_t Transporter::crc16_byte(uint16_t crc, const uint8_t data)
+uint16_t Transporter::crc16_byte(uint16_t crc, uint8_t data)
 {
     return (crc >> 8) ^ crc16_table[(crc ^ data) & 0xff];
 }
@@ -275,7 +275,8 @@ ssize_t Transporter::find_and_copy_message(topic_id_size_t *topic_ID, uint8_t *o
 
         return len;
     }
-    else if (serial_protocol == SerialProtocol::COBS)
+
+    if (serial_protocol == SerialProtocol::COBS)
     {
         // For COBS, we search for a tail sequence consisting just of 0x0.  If
         // we find it, we find out how many bytes there are from the start of
@@ -371,10 +372,8 @@ ssize_t Transporter::find_and_copy_message(topic_id_size_t *topic_ID, uint8_t *o
 
         return len;
     }
-    else
-    {
-        throw std::runtime_error("Bad protocol");
-    }
+
+    throw std::runtime_error("Bad protocol");
 }
 
 ssize_t Transporter::read(topic_id_size_t *topic_ID, uint8_t *out_buffer, size_t buffer_len)
@@ -437,7 +436,7 @@ size_t Transporter::get_header_length()
     {
         return sizeof(PX4Header);
     }
-    else if (serial_protocol == SerialProtocol::COBS)
+    if (serial_protocol == SerialProtocol::COBS)
     {
         return sizeof(COBSHeader);
     }
@@ -486,7 +485,7 @@ size_t cobs_stuff_data(const uint8_t *input, size_t length, uint8_t *output)
     return write_index;
 }
 
-ssize_t Transporter::write(const topic_id_size_t topic_ID, uint8_t *buffer, size_t data_length)
+ssize_t Transporter::write(topic_id_size_t topic_ID, uint8_t *buffer, size_t data_length)
 {
     if (!fds_OK())
     {

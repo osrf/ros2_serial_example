@@ -12,7 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#pragma once
+#ifndef ROS2_SERIAL_EXAMPLE__ROS2_TOPICS_HPP_
+#define ROS2_SERIAL_EXAMPLE__ROS2_TOPICS_HPP_
 
 // C++ includes
 #include <algorithm>
@@ -138,3 +139,5 @@ private:
 
 }  // namespace pubsub
 }  // namespace ros2_to_serial_bridge
+
+#endif

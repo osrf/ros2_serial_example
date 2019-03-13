@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#pragma once
+#ifndef ROS2_SERIAL_EXAMPLE__SUBSCRIPTION_IMPL_HPP_
+#define ROS2_SERIAL_EXAMPLE__SUBSCRIPTION_IMPL_HPP_
 
+#include <cerrno>
 #include <cstring>
 #include <functional>
 #include <memory>
 #include <string>
-
-#include <errno.h>
 
 #include <rclcpp/rclcpp.hpp>
 
@@ -42,9 +42,9 @@ public:
     explicit Subscription_impl(const std::shared_ptr<rclcpp::Node> & node,
                                topic_id_size_t mapping,
                                const std::string & name,
-                               std::shared_ptr<transport::Transporter> transporter,
+                               const std::shared_ptr<transport::Transporter> & transporter,
                                std::function<size_t(const T &, size_t)> get_size,
-                               std::function<bool(const T &, eprosima::fastcdr::Cdr &)> serialize)
+                               std::function<bool(const T &, eprosima::fastcdr::Cdr &)> serialize) : Subscription()
     {
         size_t headlen = transporter->get_header_length();
         serial_mapping = mapping;
@@ -69,3 +69,5 @@ private:
 
 }  // namespace pubsub
 }  // namespace ros2_to_serial_bridge
+
+#endif

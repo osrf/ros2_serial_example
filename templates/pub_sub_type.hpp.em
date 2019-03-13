@@ -12,7 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#pragma once
+#ifndef ROS2_SERIAL_EXAMPLE__@(ros2_type.ns.upper())_@(ros2_type.lower_type.upper())_HPP_
+#define ROS2_SERIAL_EXAMPLE__@(ros2_type.ns.upper())_@(ros2_type.lower_type.upper())_HPP_
 
 #include <memory>
 #include <string>
@@ -34,3 +35,5 @@ std::unique_ptr<Subscription> @(ros2_type.ns)_@(ros2_type.lower_type)_sub_factor
 
 }  // namespace pubsub
 }  // namespace ros2_to_serial_bridge
+
+#endif

@@ -12,9 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#pragma once
+#ifndef ROS2_SERIAL_EXAMPLE__PUBLISHER_HPP_
+#define ROS2_SERIAL_EXAMPLE__PUBLISHER_HPP_
 
 #include <cstdint>
+
+#include <sys/types.h>
 
 namespace ros2_to_serial_bridge
 {
@@ -30,3 +33,5 @@ public:
 
 }  // namespace pubsub
 }  // namespace ros2_to_serial_bridge
+
+#endif

@@ -34,7 +34,8 @@
 // https://github.com/PX4/px4_ros_com/blob/69bdf6e70f3832ff00f2e9e7f17d9394532787d6/templates/microRTPS_transport.h
 // but split out of there.
 
-#pragma once
+#ifndef ROS2_SERIAL_EXAMPLE__UART_TRANSPORTER_HPP_
+#define ROS2_SERIAL_EXAMPLE__UART_TRANSPORTER_HPP_
 
 // C++ includes
 #include <cstdint>
@@ -57,9 +58,14 @@ public:
     UARTTransporter(const std::string & _uart_name,
                     const std::string & _protocol,
                     uint32_t _baudrate,
-                    uint32_t _poll_ms,
+                    uint32_t _read_poll_ms,
                     size_t _ring_buffer_size);
-    virtual ~UARTTransporter();
+    ~UARTTransporter() override;
+
+    UARTTransporter(UARTTransporter const &) = delete;
+    UARTTransporter& operator=(UARTTransporter const &) = delete;
+    UARTTransporter(UARTTransporter &&) = delete;
+    UARTTransporter& operator=(UARTTransporter &&) = delete;
 
     int init() override;
     uint8_t close() override;
@@ -79,3 +85,5 @@ private:
 
 }  // namespace transport
 }  // namespace ros2_to_serial_bridge
+
+#endif

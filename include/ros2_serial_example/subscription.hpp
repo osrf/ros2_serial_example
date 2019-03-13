@@ -12,7 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#pragma once
+#ifndef ROS2_SERIAL_EXAMPLE__SUBSCRIPTION_HPP_
+#define ROS2_SERIAL_EXAMPLE__SUBSCRIPTION_HPP_
 
 #include "ros2_serial_example/transporter.hpp"
 
@@ -31,8 +32,10 @@ public:
     }
 
 protected:
-    topic_id_size_t serial_mapping;
+    topic_id_size_t serial_mapping{0};
 };
 
 }  // namespace pubsub
 }  // namespace ros2_to_serial_bridge
+
+#endif
