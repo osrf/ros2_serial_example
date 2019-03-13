@@ -28,6 +28,14 @@ namespace pubsub
 class Publisher
 {
 public:
+    Publisher() {};
+    virtual ~Publisher() {};
+
+    Publisher(Publisher const &) = delete;
+    Publisher& operator=(Publisher const &) = delete;
+    Publisher(Publisher &&) = delete;
+    Publisher& operator=(Publisher &&) = delete;
+
     virtual void dispatch(uint8_t *data_buffer, ssize_t length) = 0;
 };
 
