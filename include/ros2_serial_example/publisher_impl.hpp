@@ -34,11 +34,11 @@ namespace pubsub
 {
 
 template<typename T>
-class Publisher_impl final : public Publisher
+class PublisherImpl final : public Publisher
 {
 public:
-    explicit Publisher_impl(const std::shared_ptr<rclcpp::Node> & node, const std::string & name,
-                            std::function<bool(eprosima::fastcdr::Cdr &, T &)> des) : deserialize(des)
+    explicit PublisherImpl(const std::shared_ptr<rclcpp::Node> & node, const std::string & name,
+                           std::function<bool(eprosima::fastcdr::Cdr &, T &)> des) : deserialize(des)
     {
         pub = node->create_publisher<T>(name);
     }
