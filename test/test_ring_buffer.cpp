@@ -83,11 +83,11 @@ TEST_F(RingBufferFixture, empty)
 {
     ASSERT_EQ(bytes_used(), 0U);
     ASSERT_FALSE(is_full());
-    ASSERT_EQ(size, 240U);
-    ASSERT_EQ(bytes_free(), size);
+    ASSERT_EQ(size_, 240U);
+    ASSERT_EQ(bytes_free(), size_);
     ASSERT_TRUE(is_empty());
-    ASSERT_EQ(head, buf.get());
-    ASSERT_EQ(tail, buf.get());
+    ASSERT_EQ(head_, buf_.get());
+    ASSERT_EQ(tail_, buf_.get());
 }
 
 TEST_F(RingBufferFixture, read)
@@ -102,13 +102,13 @@ TEST_F(RingBufferFixture, read)
 
     ASSERT_EQ(bytes_used(), sizeof(data));
     ASSERT_FALSE(is_full());
-    ASSERT_EQ(size, 240U);
-    ASSERT_EQ(bytes_free(), size - sizeof(data));
+    ASSERT_EQ(size_, 240U);
+    ASSERT_EQ(bytes_free(), size_ - sizeof(data));
     ASSERT_FALSE(is_empty());
-    ASSERT_EQ(head, buf.get() + sizeof(data));
-    ASSERT_EQ(tail, buf.get());
-    ASSERT_FALSE(full);
-    uint8_t *bufp = buf.get();
+    ASSERT_EQ(head_, buf_.get() + sizeof(data));
+    ASSERT_EQ(tail_, buf_.get());
+    ASSERT_FALSE(full_);
+    uint8_t *bufp = buf_.get();
     ASSERT_EQ(*bufp++, 0x0);
     ASSERT_EQ(*bufp++, 0x1);
     ASSERT_EQ(*bufp++, 0x2);
@@ -133,12 +133,12 @@ TEST_F(RingBufferFixture, read_fill)
 
     ASSERT_EQ(bytes_used(), sizeof(initialbuf));
     ASSERT_FALSE(is_full());
-    ASSERT_EQ(size, 240U);
-    ASSERT_EQ(bytes_free(), size - sizeof(initialbuf));
+    ASSERT_EQ(size_, 240U);
+    ASSERT_EQ(bytes_free(), size_ - sizeof(initialbuf));
     ASSERT_FALSE(is_empty());
-    ASSERT_EQ(head, buf.get() + sizeof(initialbuf));
-    ASSERT_EQ(tail, buf.get());
-    ASSERT_FALSE(full);
+    ASSERT_EQ(head_, buf_.get() + sizeof(initialbuf));
+    ASSERT_EQ(tail_, buf_.get());
+    ASSERT_FALSE(full_);
 
     // Now exactly fill it
     uint8_t smallbuf[2]{238, 239};
@@ -148,13 +148,13 @@ TEST_F(RingBufferFixture, read_fill)
 
     ASSERT_EQ(bytes_used(), sizeof(initialbuf) + sizeof(smallbuf));
     ASSERT_TRUE(is_full());
-    ASSERT_EQ(size, 240U);
-    ASSERT_EQ(bytes_free(), size - sizeof(initialbuf) - sizeof(smallbuf));
+    ASSERT_EQ(size_, 240U);
+    ASSERT_EQ(bytes_free(), size_ - sizeof(initialbuf) - sizeof(smallbuf));
     ASSERT_FALSE(is_empty());
-    ASSERT_TRUE(full);
+    ASSERT_TRUE(full_);
 
-    uint8_t *bufp = buf.get();
-    for (uint8_t i = 0; i < size; ++i)
+    uint8_t *bufp = buf_.get();
+    for (uint8_t i = 0; i < size_; ++i)
     {
         ASSERT_EQ(*bufp, i);
         bufp++;
@@ -180,15 +180,15 @@ TEST_F(RingBufferFixture, read_wrap)
 
     ASSERT_EQ(bytes_used(), sizeof(initialbuf));
     ASSERT_TRUE(is_full());
-    ASSERT_EQ(size, 240U);
-    ASSERT_EQ(bytes_free(), size - sizeof(initialbuf));
+    ASSERT_EQ(size_, 240U);
+    ASSERT_EQ(bytes_free(), size_ - sizeof(initialbuf));
     ASSERT_FALSE(is_empty());
-    ASSERT_EQ(head, buf.get());
-    ASSERT_EQ(tail, buf.get());
-    ASSERT_TRUE(full);
+    ASSERT_EQ(head_, buf_.get());
+    ASSERT_EQ(tail_, buf_.get());
+    ASSERT_TRUE(full_);
 
-    uint8_t *bufp = buf.get();
-    for (uint8_t i = 0; i < size; ++i)
+    uint8_t *bufp = buf_.get();
+    for (uint8_t i = 0; i < size_; ++i)
     {
         ASSERT_EQ(*bufp, i);
         bufp++;
@@ -200,19 +200,19 @@ TEST_F(RingBufferFixture, read_wrap)
 
     ASSERT_EQ(read(fd), static_cast<ssize_t>(sizeof(smallbuf)));
 
-    ASSERT_EQ(bytes_used(), size);
+    ASSERT_EQ(bytes_used(), size_);
     ASSERT_TRUE(is_full());
-    ASSERT_EQ(size, 240U);
+    ASSERT_EQ(size_, 240U);
     ASSERT_EQ(bytes_free(), 0U);
     ASSERT_FALSE(is_empty());
-    ASSERT_EQ(head, buf.get() + sizeof(smallbuf));
-    ASSERT_EQ(tail, buf.get() + sizeof(smallbuf));
-    ASSERT_TRUE(full);
+    ASSERT_EQ(head_, buf_.get() + sizeof(smallbuf));
+    ASSERT_EQ(tail_, buf_.get() + sizeof(smallbuf));
+    ASSERT_TRUE(full_);
 
-    bufp = buf.get();
+    bufp = buf_.get();
     ASSERT_EQ(*bufp++, 240);
     ASSERT_EQ(*bufp++, 241);
-    for (uint8_t i = 2; i < size; ++i)
+    for (uint8_t i = 2; i < size_; ++i)
     {
         ASSERT_EQ(*bufp, i);
         bufp++;
@@ -251,12 +251,12 @@ TEST_F(RingBufferFixture, memcpy_from_start_buffer)
 
     ASSERT_EQ(bytes_used(), sizeof(data));
     ASSERT_FALSE(is_full());
-    ASSERT_EQ(size, 240U);
-    ASSERT_EQ(bytes_free(), size - sizeof(data));
+    ASSERT_EQ(size_, 240U);
+    ASSERT_EQ(bytes_free(), size_ - sizeof(data));
     ASSERT_FALSE(is_empty());
-    ASSERT_EQ(head, buf.get() + sizeof(data));
-    ASSERT_EQ(tail, buf.get());
-    ASSERT_FALSE(full);
+    ASSERT_EQ(head_, buf_.get() + sizeof(data));
+    ASSERT_EQ(tail_, buf_.get());
+    ASSERT_FALSE(full_);
 
     uint8_t cpybuf[3]{};
     ASSERT_EQ(memcpy_from(cpybuf, sizeof(cpybuf)), static_cast<ssize_t>(sizeof(cpybuf)));
@@ -266,12 +266,12 @@ TEST_F(RingBufferFixture, memcpy_from_start_buffer)
 
     ASSERT_EQ(bytes_used(), 0U);
     ASSERT_FALSE(is_full());
-    ASSERT_EQ(size, 240U);
-    ASSERT_EQ(bytes_free(), size);
+    ASSERT_EQ(size_, 240U);
+    ASSERT_EQ(bytes_free(), size_);
     ASSERT_TRUE(is_empty());
-    ASSERT_EQ(head, buf.get() + sizeof(data));
-    ASSERT_EQ(tail, buf.get() + sizeof(data));
-    ASSERT_FALSE(full);
+    ASSERT_EQ(head_, buf_.get() + sizeof(data));
+    ASSERT_EQ(tail_, buf_.get() + sizeof(data));
+    ASSERT_FALSE(full_);
 
     ::close(fd);
 }
@@ -293,16 +293,16 @@ TEST_F(RingBufferFixture, memcpy_from_full_buffer)
 
     ASSERT_EQ(bytes_used(), sizeof(initialbuf));
     ASSERT_TRUE(is_full());
-    ASSERT_EQ(size, 240U);
-    ASSERT_EQ(bytes_free(), size - sizeof(initialbuf));
+    ASSERT_EQ(size_, 240U);
+    ASSERT_EQ(bytes_free(), size_ - sizeof(initialbuf));
     ASSERT_FALSE(is_empty());
-    ASSERT_EQ(head, buf.get());
-    ASSERT_EQ(tail, buf.get());
-    ASSERT_TRUE(full);
+    ASSERT_EQ(head_, buf_.get());
+    ASSERT_EQ(tail_, buf_.get());
+    ASSERT_TRUE(full_);
 
-    for (uint8_t i = 0; i < size; ++i)
+    for (uint8_t i = 0; i < size_; ++i)
     {
-        ASSERT_EQ(buf[i], i);
+        ASSERT_EQ(buf_[i], i);
     }
 
     // Now copy a bit of data out
@@ -314,12 +314,12 @@ TEST_F(RingBufferFixture, memcpy_from_full_buffer)
 
     ASSERT_EQ(bytes_used(), sizeof(initialbuf) - sizeof(cpybuf));
     ASSERT_FALSE(is_full());
-    ASSERT_EQ(size, 240U);
+    ASSERT_EQ(size_, 240U);
     ASSERT_EQ(bytes_free(), sizeof(cpybuf));
     ASSERT_FALSE(is_empty());
-    ASSERT_EQ(head, buf.get());
-    ASSERT_EQ(tail, buf.get() + sizeof(cpybuf));
-    ASSERT_FALSE(full);
+    ASSERT_EQ(head_, buf_.get());
+    ASSERT_EQ(tail_, buf_.get() + sizeof(cpybuf));
+    ASSERT_FALSE(full_);
 
     // Now add in some more data; this should go by the tail pointer now,
     // causing the loss of some data
@@ -332,14 +332,14 @@ TEST_F(RingBufferFixture, memcpy_from_full_buffer)
 
     ASSERT_EQ(read(fd), static_cast<ssize_t>(sizeof(buf2)));
 
-    ASSERT_EQ(bytes_used(), size);
+    ASSERT_EQ(bytes_used(), size_);
     ASSERT_TRUE(is_full());
-    ASSERT_EQ(size, 240U);
+    ASSERT_EQ(size_, 240U);
     ASSERT_EQ(bytes_free(), 0U);
     ASSERT_FALSE(is_empty());
-    ASSERT_EQ(head, buf.get() + sizeof(buf2));
-    ASSERT_EQ(tail, buf.get() + sizeof(buf2));
-    ASSERT_TRUE(full);
+    ASSERT_EQ(head_, buf_.get() + sizeof(buf2));
+    ASSERT_EQ(tail_, buf_.get() + sizeof(buf2));
+    ASSERT_TRUE(full_);
 
     // Now look at some data again.  This should be the oldest data available,
     // which in this case is 0xa (we overwrote older data above).
@@ -349,14 +349,14 @@ TEST_F(RingBufferFixture, memcpy_from_full_buffer)
     ASSERT_EQ(cpybuf2[1], 0xb);
     ASSERT_EQ(cpybuf2[2], 0xc);
 
-    ASSERT_EQ(bytes_used(), size - sizeof(cpybuf2));
+    ASSERT_EQ(bytes_used(), size_ - sizeof(cpybuf2));
     ASSERT_FALSE(is_full());
-    ASSERT_EQ(size, 240U);
+    ASSERT_EQ(size_, 240U);
     ASSERT_EQ(bytes_free(), sizeof(cpybuf2));
     ASSERT_FALSE(is_empty());
-    ASSERT_EQ(head, buf.get() + sizeof(buf2));
-    ASSERT_EQ(tail, buf.get() + sizeof(buf2) + sizeof(cpybuf2));
-    ASSERT_FALSE(full);
+    ASSERT_EQ(head_, buf_.get() + sizeof(buf2));
+    ASSERT_EQ(tail_, buf_.get() + sizeof(buf2) + sizeof(cpybuf2));
+    ASSERT_FALSE(full_);
 
     ::close(fd);
 }
@@ -378,16 +378,16 @@ TEST_F(RingBufferFixture, memcpy_wrap)
 
     ASSERT_EQ(bytes_used(), sizeof(initialbuf));
     ASSERT_TRUE(is_full());
-    ASSERT_EQ(size, 240U);
-    ASSERT_EQ(bytes_free(), size - sizeof(initialbuf));
+    ASSERT_EQ(size_, 240U);
+    ASSERT_EQ(bytes_free(), size_ - sizeof(initialbuf));
     ASSERT_FALSE(is_empty());
-    ASSERT_EQ(head, buf.get());
-    ASSERT_EQ(tail, buf.get());
-    ASSERT_TRUE(full);
+    ASSERT_EQ(head_, buf_.get());
+    ASSERT_EQ(tail_, buf_.get());
+    ASSERT_TRUE(full_);
 
-    for (uint8_t i = 0; i < size; ++i)
+    for (uint8_t i = 0; i < size_; ++i)
     {
-        ASSERT_EQ(buf[i], i);
+        ASSERT_EQ(buf_[i], i);
     }
 
     // Now copy most of the data out
@@ -410,12 +410,12 @@ TEST_F(RingBufferFixture, memcpy_wrap)
 
     ASSERT_EQ(bytes_used(), 12U);
     ASSERT_FALSE(is_full());
-    ASSERT_EQ(size, 240U);
+    ASSERT_EQ(size_, 240U);
     ASSERT_EQ(bytes_free(), 228U);
     ASSERT_FALSE(is_empty());
-    ASSERT_EQ(head, buf.get() + 10);
-    ASSERT_EQ(tail, buf.get() + 238);
-    ASSERT_FALSE(full);
+    ASSERT_EQ(head_, buf_.get() + 10);
+    ASSERT_EQ(tail_, buf_.get() + 238);
+    ASSERT_FALSE(full_);
 
     // Now look at some data again.  This should be the oldest data available
     // and wraparound to the beginning.
@@ -434,12 +434,12 @@ TEST_F(RingBufferFixture, memcpy_wrap)
 
     ASSERT_EQ(bytes_used(), 2U);
     ASSERT_FALSE(is_full());
-    ASSERT_EQ(size, 240U);
-    ASSERT_EQ(bytes_free(), size - 2);
+    ASSERT_EQ(size_, 240U);
+    ASSERT_EQ(bytes_free(), size_ - 2);
     ASSERT_FALSE(is_empty());
-    ASSERT_EQ(head, buf.get() + 10);
-    ASSERT_EQ(tail, buf.get() + 8);
-    ASSERT_FALSE(full);
+    ASSERT_EQ(head_, buf_.get() + 10);
+    ASSERT_EQ(tail_, buf_.get() + 8);
+    ASSERT_FALSE(full_);
 
     ::close(fd);
 }

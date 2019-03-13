@@ -93,7 +93,7 @@ protected:
     uint16_t crc16_byte(uint16_t crc, uint8_t data);
     uint16_t crc16(uint8_t const *buffer, size_t len);
 
-    impl::RingBuffer ringbuf;
+    impl::RingBuffer ringbuf_;
 
 private:
     enum class SerialProtocol
@@ -104,8 +104,8 @@ private:
 
     ssize_t find_and_copy_message(topic_id_size_t *topic_ID, uint8_t *out_buffer, size_t buffer_len);
 
-    SerialProtocol serial_protocol;
-    uint8_t seq{0};
+    SerialProtocol serial_protocol_;
+    uint8_t seq_{0};
     struct __attribute__((packed)) PX4Header
     {
         uint8_t marker[3];

@@ -62,12 +62,12 @@ public:
     {
         // Setup the pub_type_to_factory map for all types
 @[for t in ros2_types]@
-        pub_type_to_factory["@(t.ns)/@(t.ros_type)"] = @(t.ns)_@(t.lower_type)_pub_factory;
+        pub_type_to_factory_["@(t.ns)/@(t.ros_type)"] = @(t.ns)_@(t.lower_type)_pub_factory;
 @[end for]@
 
         // Setup the sub_type_to_factory map for all types
 @[for t in ros2_types]@
-        sub_type_to_factory["@(t.ns)/@(t.ros_type)"] = @(t.ns)_@(t.lower_type)_sub_factory;
+        sub_type_to_factory_["@(t.ns)/@(t.ros_type)"] = @(t.ns)_@(t.lower_type)_sub_factory;
 @[end for]@
 
         // Now go through every topic and ensure that it has a valid type
@@ -82,16 +82,16 @@ public:
             }
 
             // Check to make sure this isn't a duplicate publication ID.
-            if (serial_to_pub.count(t.second.serial_mapping) != 0)
+            if (serial_to_pub_.count(t.second.serial_mapping) != 0)
             {
                 throw std::runtime_error("Topic '" + t.first + "' has duplicate pub serial_mapping; this is not allowed");
             }
 
             // Check to make sure this isn't a duplicate subscription ID.
-            if (std::find_if(serial_subs.begin(), serial_subs.end(),
+            if (std::find_if(serial_subs_.begin(), serial_subs_.end(),
                              [t](std::unique_ptr<Subscription> & e) {
                                  return t.second.serial_mapping == e->get_serial_mapping();
-                             }) != serial_subs.end())
+                             }) != serial_subs_.end())
             {
                 throw std::runtime_error("Topic '" + t.first + "' has duplicate sub serial_mapping; this is not allowed");
             }
@@ -106,36 +106,36 @@ public:
 
             if (t.second.direction == TopicMapping::Direction::SERIAL_TO_ROS2)
             {
-                if (pub_type_to_factory.count(t.second.type) == 0)
+                if (pub_type_to_factory_.count(t.second.type) == 0)
                 {
                     fprintf(stderr, "Topic '%s' has unsupported pub type '%s'; skipping\n", t.first.c_str(), t.second.type.c_str());
                     continue;
                 }
-                serial_to_pub[t.second.serial_mapping] = pub_type_to_factory[t.second.type](node, t.first);
+                serial_to_pub_[t.second.serial_mapping] = pub_type_to_factory_[t.second.type](node, t.first);
             }
             else
             {
-                if (sub_type_to_factory.count(t.second.type) == 0)
+                if (sub_type_to_factory_.count(t.second.type) == 0)
                 {
                     fprintf(stderr, "Topic '%s' has unsupported sub type '%s'; skipping\n", t.first.c_str(), t.second.type.c_str());
                 }
-                serial_subs.push_back(sub_type_to_factory[t.second.type](node, t.second.serial_mapping, t.first, transporter));
+                serial_subs_.push_back(sub_type_to_factory_[t.second.type](node, t.second.serial_mapping, t.first, transporter));
             }
         }
     }
 
     void dispatch(topic_id_size_t topic_ID, uint8_t *data_buffer, ssize_t length)
     {
-        if (serial_to_pub.count(topic_ID) > 0)
+        if (serial_to_pub_.count(topic_ID) > 0)
         {
-            serial_to_pub[topic_ID]->dispatch(data_buffer, length);
+            serial_to_pub_[topic_ID]->dispatch(data_buffer, length);
         }
     }
 private:
-    std::map<topic_id_size_t, std::unique_ptr<Publisher>> serial_to_pub;
-    std::vector<std::unique_ptr<Subscription>> serial_subs;
-    std::map<std::string, std::function<std::unique_ptr<Publisher>(const std::shared_ptr<rclcpp::Node>, const std::string &)>> pub_type_to_factory;
-    std::map<std::string, std::function<std::unique_ptr<Subscription>(const std::shared_ptr<rclcpp::Node>, topic_id_size_t, const std::string &, ros2_to_serial_bridge::transport::Transporter *)>> sub_type_to_factory;
+    std::map<topic_id_size_t, std::unique_ptr<Publisher>> serial_to_pub_;
+    std::vector<std::unique_ptr<Subscription>> serial_subs_;
+    std::map<std::string, std::function<std::unique_ptr<Publisher>(const std::shared_ptr<rclcpp::Node>, const std::string &)>> pub_type_to_factory_;
+    std::map<std::string, std::function<std::unique_ptr<Subscription>(const std::shared_ptr<rclcpp::Node>, topic_id_size_t, const std::string &, ros2_to_serial_bridge::transport::Transporter *)>> sub_type_to_factory_;
 };
 
 }  // namespace pubsub

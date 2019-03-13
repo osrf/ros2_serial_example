@@ -101,17 +101,16 @@ uint32_t baud_number_to_rate(uint32_t baud)
     return BaudNumberToRate[baud];
 }
 
-UARTTransporter::UARTTransporter(const std::string & _uart_name,
-                                 const std::string & _protocol,
-                                 uint32_t _baudrate,
-                                 uint32_t _read_poll_ms,
-                                 size_t _ring_buffer_size):
-    Transporter(_protocol, _ring_buffer_size),
-    uart_name(_uart_name),
-    baudrate(_baudrate),
-    read_poll_ms(_read_poll_ms)
+UARTTransporter::UARTTransporter(const std::string & uart_name,
+                                 const std::string & protocol,
+                                 uint32_t baudrate,
+                                 uint32_t read_poll_ms,
+                                 size_t ring_buffer_size):
+    Transporter(protocol, ring_buffer_size),
+    uart_name_(uart_name),
+    read_poll_ms_(read_poll_ms)
 {
-    baudrate = baud_number_to_rate(_baudrate);
+    baudrate_ = baud_number_to_rate(baudrate);
 }
 
 UARTTransporter::~UARTTransporter()
@@ -122,26 +121,26 @@ UARTTransporter::~UARTTransporter()
 int UARTTransporter::init()
 {
     // Open a serial port
-    uart_fd = ::open(uart_name.c_str(), O_RDWR | O_NOCTTY | O_NONBLOCK | O_CLOEXEC);
+    uart_fd_ = ::open(uart_name_.c_str(), O_RDWR | O_NOCTTY | O_NONBLOCK | O_CLOEXEC);
 
-    if (uart_fd < 0)
+    if (uart_fd_ < 0)
     {
-        ::fprintf(stderr, "failed to open device: %s (%d)\n", uart_name.c_str(), errno);
+        ::fprintf(stderr, "failed to open device: %s (%d)\n", uart_name_.c_str(), errno);
         return -errno;
     }
 
     // If a baudrate > 0 is specified, we setup the UART with that rate.
-    if (baudrate != B0)
+    if (baudrate_ != B0)
     {
         // Try to set baud rate
         struct termios uart_config{};
         int termios_state;
 
         // Back up the original uart configuration to restore it after exit
-        if ((termios_state = tcgetattr(uart_fd, &uart_config)) < 0)
+        if ((termios_state = tcgetattr(uart_fd_, &uart_config)) < 0)
         {
             int errno_bkp = errno;
-            ::fprintf(stderr, "ERR GET CONF %s: %d (%d)\n", uart_name.c_str(), termios_state, errno);
+            ::fprintf(stderr, "ERR GET CONF %s: %d (%d)\n", uart_name_.c_str(), termios_state, errno);
             close();
             return -errno_bkp;
         }
@@ -160,18 +159,18 @@ int UARTTransporter::init()
         uart_config.c_lflag &= !(ISIG | ICANON | ECHO | TOSTOP | IEXTEN);
 
         // Set baud rate
-        if (::cfsetispeed(&uart_config, baudrate) < 0 || ::cfsetospeed(&uart_config, baudrate) < 0)
+        if (::cfsetispeed(&uart_config, baudrate_) < 0 || ::cfsetospeed(&uart_config, baudrate_) < 0)
         {
             int errno_bkp = errno;
-            ::fprintf(stderr, "ERR SET BAUD %s: %d (%d)\n", uart_name.c_str(), termios_state, errno);
+            ::fprintf(stderr, "ERR SET BAUD %s: %d (%d)\n", uart_name_.c_str(), termios_state, errno);
             close();
             return -errno_bkp;
         }
 
-        if ((termios_state = ::tcsetattr(uart_fd, TCSANOW, &uart_config)) < 0)
+        if ((termios_state = ::tcsetattr(uart_fd_, TCSANOW, &uart_config)) < 0)
         {
             int errno_bkp = errno;
-            ::fprintf(stderr, "ERR SET CONF %s (%d)\n", uart_name.c_str(), errno);
+            ::fprintf(stderr, "ERR SET CONF %s (%d)\n", uart_name_.c_str(), errno);
             close();
             return -errno_bkp;
         }
@@ -179,29 +178,29 @@ int UARTTransporter::init()
 
     // Flush out any pending data in the file descriptor.
     uint8_t aux[64];
-    while (0 < ::read(uart_fd, &aux, 64))
+    while (0 < ::read(uart_fd_, &aux, 64))
     {
         ::usleep(1000);
     }
 
-    poll_fd[0].fd = uart_fd;
-    poll_fd[0].events = POLLIN;
+    poll_fd_[0].fd = uart_fd_;
+    poll_fd_[0].events = POLLIN;
 
-    return uart_fd;
+    return uart_fd_;
 }
 
 bool UARTTransporter::fds_OK()
 {
-    return (-1 != uart_fd);
+    return (-1 != uart_fd_);
 }
 
 uint8_t UARTTransporter::close()
 {
-    if (-1 != uart_fd)
+    if (-1 != uart_fd_)
     {
-        ::close(uart_fd);
-        uart_fd = -1;
-        ::memset(&poll_fd, 0, sizeof(poll_fd));
+        ::close(uart_fd_);
+        uart_fd_ = -1;
+        ::memset(&poll_fd_, 0, sizeof(poll_fd_));
     }
 
     return 0;
@@ -215,11 +214,11 @@ ssize_t UARTTransporter::node_read()
     }
 
     ssize_t ret = 0;
-    int r = ::poll(reinterpret_cast<struct pollfd *>(poll_fd), 1, read_poll_ms);
+    int r = ::poll(reinterpret_cast<struct pollfd *>(poll_fd_), 1, read_poll_ms_);
 
-    if (r == 1 && (poll_fd[0].revents & POLLIN) != 0)
+    if (r == 1 && (poll_fd_[0].revents & POLLIN) != 0)
     {
-        ret = ringbuf.read(uart_fd);
+        ret = ringbuf_.read(uart_fd_);
     }
 
     return ret;
@@ -240,7 +239,7 @@ ssize_t UARTTransporter::node_write(void *buffer, size_t len)
     size_t n = len;
     while (n > 0)
     {
-        ssize_t ret = ::write(uart_fd, b, n);
+        ssize_t ret = ::write(uart_fd_, b, n);
         if (ret == -1)
         {
             if (errno == EINTR || errno == EAGAIN)
@@ -256,7 +255,7 @@ ssize_t UARTTransporter::node_write(void *buffer, size_t len)
                 // transferred in between), we presume this is a permanent failure
                 // and return an error to the application.
                 intr_times++;
-                if (intr_times > write_timeout_us)
+                if (intr_times > write_timeout_us_)
                 {
                     // Too many failures, set an errno and get out.
                     errno = EBUSY;

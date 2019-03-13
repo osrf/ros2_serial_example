@@ -55,11 +55,11 @@ namespace transport
 class UARTTransporter final : public Transporter
 {
 public:
-    UARTTransporter(const std::string & _uart_name,
-                    const std::string & _protocol,
-                    uint32_t _baudrate,
-                    uint32_t _read_poll_ms,
-                    size_t _ring_buffer_size);
+    UARTTransporter(const std::string & uart_name,
+                    const std::string & protocol,
+                    uint32_t baudrate,
+                    uint32_t read_poll_ms,
+                    size_t ring_buffer_size);
     ~UARTTransporter() override;
 
     UARTTransporter(UARTTransporter const &) = delete;
@@ -75,12 +75,12 @@ private:
     ssize_t node_write(void *buffer, size_t len) override;
     bool fds_OK() override;
 
-    std::string uart_name{};
-    uint32_t baudrate;
-    uint32_t read_poll_ms;
-    int uart_fd{-1};
-    uint32_t write_timeout_us{20};
-    struct pollfd poll_fd[1] = {};
+    std::string uart_name_{};
+    uint32_t baudrate_{0};
+    uint32_t read_poll_ms_{0};
+    int uart_fd_{-1};
+    uint32_t write_timeout_us_{20};
+    struct pollfd poll_fd_[1] = {};
 };
 
 }  // namespace transport

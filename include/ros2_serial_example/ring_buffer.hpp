@@ -160,11 +160,11 @@ protected:
      */
     bool is_empty() const;
 
-    std::unique_ptr<uint8_t[]> buf;
-    uint8_t *head;
-    uint8_t *tail;
-    bool full{false};
-    size_t size;
+    std::unique_ptr<uint8_t[]> buf_;
+    uint8_t *head_;
+    uint8_t *tail_;
+    bool full_{false};
+    size_t size_;
 };
 
 }  // namespace impl

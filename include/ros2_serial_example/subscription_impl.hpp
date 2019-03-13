@@ -47,7 +47,7 @@ public:
                               std::function<bool(const T &, eprosima::fastcdr::Cdr &)> serialize) : Subscription()
     {
         size_t headlen = transporter->get_header_length();
-        serial_mapping = mapping;
+        serial_mapping_ = mapping;
         auto callback = [node, mapping, transporter, get_size, serialize, headlen](const typename T::SharedPtr msg) -> void
         {
             size_t serialized_size = get_size(*(msg.get()), 0);
@@ -60,11 +60,11 @@ public:
                 RCLCPP_WARN(node->get_logger(), "Failed to write data: %s", ::strerror(errno));  // NOLINT(cppcoreguidelines-pro-bounds-array-to-pointer-decay,hicpp-no-array-decay)
             }
         };
-        sub = node->create_subscription<T>(name, callback, rmw_qos_profile_default);
+        sub_ = node->create_subscription<T>(name, callback, rmw_qos_profile_default);
     }
 
 private:
-    std::shared_ptr<rclcpp::Subscription<T>> sub;
+    std::shared_ptr<rclcpp::Subscription<T>> sub_;
 };
 
 }  // namespace pubsub

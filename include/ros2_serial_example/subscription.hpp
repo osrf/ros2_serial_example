@@ -28,11 +28,11 @@ class Subscription
 public:
     topic_id_size_t get_serial_mapping() const
     {
-        return serial_mapping;
+        return serial_mapping_;
     }
 
 protected:
-    topic_id_size_t serial_mapping{0};
+    topic_id_size_t serial_mapping_{0};
 };
 
 }  // namespace pubsub
