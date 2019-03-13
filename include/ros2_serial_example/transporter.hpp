@@ -57,7 +57,7 @@ namespace transport
 class Transporter
 {
 public:
-    explicit Transporter(const std::string & _protocol, size_t ring_buffer_size);
+    explicit Transporter(const std::string & protocol, size_t ring_buffer_size);
     virtual ~Transporter();
 
     Transporter(Transporter const &) = delete;
@@ -83,9 +83,6 @@ public:
      */
     ssize_t write(topic_id_size_t topic_ID, uint8_t *buffer, size_t data_length);
 
-    /** Get the Length of struct Header to make headroom for the size of struct Header along with payload */
-    size_t get_header_length();
-
 protected:
     virtual ssize_t node_read() = 0;
     virtual ssize_t node_write(void *buffer, size_t len) = 0;
@@ -101,6 +98,9 @@ private:
         PX4,
         COBS,
     };
+
+    /** Get the Length of struct Header */
+    size_t get_header_length();
 
     ssize_t find_and_copy_message(topic_id_size_t *topic_ID, uint8_t *out_buffer, size_t buffer_len);
 

@@ -94,13 +94,13 @@ uint16_t const crc16_table[256] = {
     0x8201, 0x42C0, 0x4380, 0x8341, 0x4100, 0x81C1, 0x8081, 0x4040
 };
 
-Transporter::Transporter(const std::string & _protocol, size_t ring_buffer_size) : ringbuf_(ring_buffer_size)
+Transporter::Transporter(const std::string & protocol, size_t ring_buffer_size) : ringbuf_(ring_buffer_size)
 {
-    if (_protocol == "px4")
+    if (protocol == "px4")
     {
         serial_protocol_ = SerialProtocol::PX4;
     }
-    else if (_protocol == "cobs")
+    else if (protocol == "cobs")
     {
         serial_protocol_ = SerialProtocol::COBS;
     }
@@ -259,7 +259,7 @@ ssize_t Transporter::find_and_copy_message(topic_id_size_t *topic_ID, uint8_t *o
         }
 
         uint16_t read_crc = (static_cast<uint16_t>(header->crc_h) << 8) | header->crc_l;
-        uint16_t calc_crc = crc16(reinterpret_cast<uint8_t *>(out_buffer), payload_len);
+        uint16_t calc_crc = crc16(out_buffer, payload_len);
 
         ssize_t len;
         if (read_crc != calc_crc)
@@ -492,13 +492,17 @@ ssize_t Transporter::write(topic_id_size_t topic_ID, uint8_t *buffer, size_t dat
         return -1;
     }
 
+    if (buffer == nullptr || data_length == 0)
+    {
+        return -1;
+    }
+
     size_t header_len = get_header_length();
 
-    std::unique_ptr<uint8_t[]> outbuf;  // Only used if we can't fit the output buffer into the input buffer
+    std::unique_ptr<uint8_t[]> write_buf;
 
-    uint16_t crc = crc16(reinterpret_cast<uint8_t *>(&buffer[header_len]), data_length);
+    uint16_t crc = crc16(buffer, data_length);
 
-    uint8_t *write_ptr;
     size_t write_length;
 
     if (serial_protocol_ == SerialProtocol::PX4)
@@ -517,12 +521,12 @@ ssize_t Transporter::write(topic_id_size_t topic_ID, uint8_t *buffer, size_t dat
         header.crc_h = (crc >> 8) & 0xff;
         header.crc_l = crc & 0xff;
 
-        // Headroom for header is created in client
-        // Fill in the header in the same payload buffer to call a single node_write
-        ::memcpy(buffer, &header, header_len);
+        write_length = header_len + data_length;
+        write_buf = std::unique_ptr<uint8_t[]>(new uint8_t[write_length]);
 
-        write_ptr = buffer;
-        write_length = data_length + header_len;
+        // Assemble the packet
+        ::memcpy(write_buf.get(), &header, header_len);
+        ::memcpy(write_buf.get() + header_len, buffer, data_length);
     }
     else if (serial_protocol_ == SerialProtocol::COBS)
     {
@@ -549,17 +553,13 @@ ssize_t Transporter::write(topic_id_size_t topic_ID, uint8_t *buffer, size_t dat
         // Fill in the header in the same payload buffer to call a single node_write
         ::memcpy(buffer, &header, header_len);
 
-        // TODO(clalancette): if we know that all runs of non-zero bytes in the
-        // data are shorter than 254 bytes, we can actually just encode into
-        // the input buffer.
-        outbuf = std::unique_ptr<uint8_t[]>(new uint8_t[needed_length]);
+        write_buf = std::unique_ptr<uint8_t[]>(new uint8_t[needed_length]);
 
         // OK, now stuff it
-        size_t stuffed_length = cobs_stuff_data(buffer, data_plus_header, outbuf.get());
+        size_t stuffed_length = cobs_stuff_data(buffer, data_plus_header, write_buf.get());
         // Force the last byte to be 0 to mark the end-of-packet
-        *(outbuf.get() + stuffed_length) = '\0';
+        *(write_buf.get() + stuffed_length) = '\0';
 
-        write_ptr = outbuf.get();
         write_length = stuffed_length + 1;
     }
     else
@@ -567,7 +567,7 @@ ssize_t Transporter::write(topic_id_size_t topic_ID, uint8_t *buffer, size_t dat
         throw std::runtime_error("Unknown protocol");
     }
 
-    return node_write(write_ptr, write_length);
+    return node_write(write_buf.get(), write_length);
 }
 
 }  // namespace transport
