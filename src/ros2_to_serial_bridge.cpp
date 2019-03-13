@@ -236,5 +236,7 @@ int main(int argc, char *argv[])
 
     transporter->close();
 
+    rclcpp::shutdown();
+
     return 0;
 }

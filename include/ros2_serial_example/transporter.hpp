@@ -92,7 +92,7 @@ protected:
 
     impl::RingBuffer ringbuf_;
 
-private:
+protected:
     enum class SerialProtocol
     {
         PX4,
