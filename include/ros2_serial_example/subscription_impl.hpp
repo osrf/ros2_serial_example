@@ -57,7 +57,7 @@ public:
             serialize(*(msg.get()), scdr);
             if (transporter->write(mapping, data_buffer.get(), scdr.getSerializedDataLength()) < 0)
             {
-                RCLCPP_WARN(node->get_logger(), "Failed to write data: %s", ::strerror(errno));
+                RCLCPP_WARN(node->get_logger(), "Failed to write data: %s", ::strerror(errno));  // NOLINT(cppcoreguidelines-pro-bounds-array-to-pointer-decay,hicpp-no-array-decay)
             }
         };
         sub = node->create_subscription<T>(name, callback, rmw_qos_profile_default);
