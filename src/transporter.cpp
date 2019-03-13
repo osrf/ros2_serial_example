@@ -328,7 +328,7 @@ ssize_t Transporter::find_and_copy_message(topic_id_size_t *topic_ID, uint8_t *o
         // require.  Thus we might fail unnecessarily.  For now we take the
         // performance hit, but we might want to re-examine this decision.
 
-        std::unique_ptr<uint8_t[]> unstuffed_buffer = std::make_unique<uint8_t[]>(needed);
+        std::unique_ptr<uint8_t[]> unstuffed_buffer = std::unique_ptr<uint8_t[]>(new uint8_t[needed]);
         size_t unstuffed_size = cobs_unstuff_data(stuffed_buffer.get(), offset, unstuffed_buffer.get());
 
         if (unstuffed_size < header_len)

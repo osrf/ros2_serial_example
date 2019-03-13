@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
 
+#include <string>
+
 #include <linux/memfd.h>
 
 #include <fcntl.h>
@@ -75,6 +77,7 @@ public:
     // We pick a size of 240 bytes for the ring buffer to ensure that we can fill
     // uint8_t into the buffer for the tests
     RingBufferFixture() : RingBuffer(240) {}
+    // TODO(clalancette): Make the fixture have the memfd
 };
 
 /// TESTS
