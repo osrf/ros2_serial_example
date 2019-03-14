@@ -131,13 +131,6 @@ public:
      */
     size_t bytes_used() const;
 
-    /**
-     * Returns whether the ring buffer is currently full.
-     *
-     * @returns true if the ring buffer is full, false otherwise.
-     */
-    bool is_full() const;
-
 protected:
     /**
      * Get a pointer to the end of the ring buffer.
