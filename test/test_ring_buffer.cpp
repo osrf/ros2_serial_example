@@ -89,12 +89,12 @@ protected:
 TEST_F(RingBufferFixture, empty)
 {
     ASSERT_EQ(bytes_used(), 0U);
-    ASSERT_FALSE(is_full());
     ASSERT_EQ(size_, 240U);
     ASSERT_EQ(bytes_free(), size_);
     ASSERT_TRUE(is_empty());
     ASSERT_EQ(head_, buf_.get());
     ASSERT_EQ(tail_, buf_.get());
+    ASSERT_FALSE(full_);
 }
 
 TEST_F(RingBufferFixture, read)
@@ -105,7 +105,6 @@ TEST_F(RingBufferFixture, read)
     ASSERT_EQ(read(memfd_), static_cast<ssize_t>(sizeof(data)));
 
     ASSERT_EQ(bytes_used(), sizeof(data));
-    ASSERT_FALSE(is_full());
     ASSERT_EQ(size_, 240U);
     ASSERT_EQ(bytes_free(), size_ - sizeof(data));
     ASSERT_FALSE(is_empty());
@@ -131,7 +130,6 @@ TEST_F(RingBufferFixture, read_fill)
     ASSERT_EQ(read(memfd_), static_cast<ssize_t>(sizeof(initialbuf)));
 
     ASSERT_EQ(bytes_used(), sizeof(initialbuf));
-    ASSERT_FALSE(is_full());
     ASSERT_EQ(size_, 240U);
     ASSERT_EQ(bytes_free(), size_ - sizeof(initialbuf));
     ASSERT_FALSE(is_empty());
@@ -146,7 +144,6 @@ TEST_F(RingBufferFixture, read_fill)
     ASSERT_EQ(read(memfd_), static_cast<ssize_t>(sizeof(smallbuf)));
 
     ASSERT_EQ(bytes_used(), sizeof(initialbuf) + sizeof(smallbuf));
-    ASSERT_TRUE(is_full());
     ASSERT_EQ(size_, 240U);
     ASSERT_EQ(bytes_free(), size_ - sizeof(initialbuf) - sizeof(smallbuf));
     ASSERT_FALSE(is_empty());
@@ -173,7 +170,6 @@ TEST_F(RingBufferFixture, read_wrap)
     ASSERT_EQ(read(memfd_), static_cast<ssize_t>(sizeof(initialbuf)));
 
     ASSERT_EQ(bytes_used(), sizeof(initialbuf));
-    ASSERT_TRUE(is_full());
     ASSERT_EQ(size_, 240U);
     ASSERT_EQ(bytes_free(), size_ - sizeof(initialbuf));
     ASSERT_FALSE(is_empty());
@@ -195,7 +191,6 @@ TEST_F(RingBufferFixture, read_wrap)
     ASSERT_EQ(read(memfd_), static_cast<ssize_t>(sizeof(smallbuf)));
 
     ASSERT_EQ(bytes_used(), size_);
-    ASSERT_TRUE(is_full());
     ASSERT_EQ(size_, 240U);
     ASSERT_EQ(bytes_free(), 0U);
     ASSERT_FALSE(is_empty());
@@ -239,7 +234,6 @@ TEST_F(RingBufferFixture, memcpy_from_start_buffer)
     ASSERT_EQ(read(memfd_), static_cast<ssize_t>(sizeof(data)));
 
     ASSERT_EQ(bytes_used(), sizeof(data));
-    ASSERT_FALSE(is_full());
     ASSERT_EQ(size_, 240U);
     ASSERT_EQ(bytes_free(), size_ - sizeof(data));
     ASSERT_FALSE(is_empty());
@@ -254,7 +248,6 @@ TEST_F(RingBufferFixture, memcpy_from_start_buffer)
     ASSERT_EQ(cpybuf[2], 0x2);
 
     ASSERT_EQ(bytes_used(), 0U);
-    ASSERT_FALSE(is_full());
     ASSERT_EQ(size_, 240U);
     ASSERT_EQ(bytes_free(), size_);
     ASSERT_TRUE(is_empty());
@@ -276,7 +269,6 @@ TEST_F(RingBufferFixture, memcpy_from_full_buffer)
     ASSERT_EQ(read(memfd_), static_cast<ssize_t>(sizeof(initialbuf)));
 
     ASSERT_EQ(bytes_used(), sizeof(initialbuf));
-    ASSERT_TRUE(is_full());
     ASSERT_EQ(size_, 240U);
     ASSERT_EQ(bytes_free(), size_ - sizeof(initialbuf));
     ASSERT_FALSE(is_empty());
@@ -297,7 +289,6 @@ TEST_F(RingBufferFixture, memcpy_from_full_buffer)
     ASSERT_EQ(cpybuf[2], 0x2);
 
     ASSERT_EQ(bytes_used(), sizeof(initialbuf) - sizeof(cpybuf));
-    ASSERT_FALSE(is_full());
     ASSERT_EQ(size_, 240U);
     ASSERT_EQ(bytes_free(), sizeof(cpybuf));
     ASSERT_FALSE(is_empty());
@@ -317,7 +308,6 @@ TEST_F(RingBufferFixture, memcpy_from_full_buffer)
     ASSERT_EQ(read(memfd_), static_cast<ssize_t>(sizeof(buf2)));
 
     ASSERT_EQ(bytes_used(), size_);
-    ASSERT_TRUE(is_full());
     ASSERT_EQ(size_, 240U);
     ASSERT_EQ(bytes_free(), 0U);
     ASSERT_FALSE(is_empty());
@@ -334,7 +324,6 @@ TEST_F(RingBufferFixture, memcpy_from_full_buffer)
     ASSERT_EQ(cpybuf2[2], 0xc);
 
     ASSERT_EQ(bytes_used(), size_ - sizeof(cpybuf2));
-    ASSERT_FALSE(is_full());
     ASSERT_EQ(size_, 240U);
     ASSERT_EQ(bytes_free(), sizeof(cpybuf2));
     ASSERT_FALSE(is_empty());
@@ -356,7 +345,6 @@ TEST_F(RingBufferFixture, memcpy_wrap)
     ASSERT_EQ(read(memfd_), static_cast<ssize_t>(sizeof(initialbuf)));
 
     ASSERT_EQ(bytes_used(), sizeof(initialbuf));
-    ASSERT_TRUE(is_full());
     ASSERT_EQ(size_, 240U);
     ASSERT_EQ(bytes_free(), size_ - sizeof(initialbuf));
     ASSERT_FALSE(is_empty());
@@ -388,7 +376,6 @@ TEST_F(RingBufferFixture, memcpy_wrap)
     ASSERT_EQ(read(memfd_), static_cast<ssize_t>(sizeof(buf2)));
 
     ASSERT_EQ(bytes_used(), 12U);
-    ASSERT_FALSE(is_full());
     ASSERT_EQ(size_, 240U);
     ASSERT_EQ(bytes_free(), 228U);
     ASSERT_FALSE(is_empty());
@@ -412,7 +399,6 @@ TEST_F(RingBufferFixture, memcpy_wrap)
     ASSERT_EQ(cpybuf2[9], 0x11);
 
     ASSERT_EQ(bytes_used(), 2U);
-    ASSERT_FALSE(is_full());
     ASSERT_EQ(size_, 240U);
     ASSERT_EQ(bytes_free(), size_ - 2);
     ASSERT_FALSE(is_empty());

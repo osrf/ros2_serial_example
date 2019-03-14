@@ -64,11 +64,6 @@ size_t RingBuffer::bytes_used() const
     return size_ + head_ - tail_;
 }
 
-bool RingBuffer::is_full() const
-{
-    return full_;
-}
-
 bool RingBuffer::is_empty() const
 {
     return (!full_ && (head_ == tail_));

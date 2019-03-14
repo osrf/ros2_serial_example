@@ -181,16 +181,7 @@ ssize_t Transporter::find_and_copy_message(topic_id_size_t *topic_ID, uint8_t *o
 
         if (offset < 0)
         {
-            // We didn't find the sequence; if the ring buffer is full, throw away one
-            // byte to make room.
-            if (ringbuf_.is_full())
-            {
-                uint8_t dummy;
-                if (ringbuf_.memcpy_from(&dummy, 1) < 0)
-                {
-                    throw std::runtime_error("Failed to clear out single PX4 byte from ring buffer");
-                }
-            }
+            // We didn't find the sequence, so just return
             return 0;
         }
 
@@ -287,16 +278,7 @@ ssize_t Transporter::find_and_copy_message(topic_id_size_t *topic_ID, uint8_t *o
 
         if (offset < 0)
         {
-            // We didn't find the sequence; if the ring buffer is full, throw away one
-            // byte to make room for new bytes.
-            if (ringbuf_.is_full())
-            {
-                uint8_t dummy;
-                if (ringbuf_.memcpy_from(&dummy, 1) < 0)
-                {
-                    throw std::runtime_error("Failed to clear out single COBS byte from ring buffer");
-                }
-            }
+            // We didn't find the sequence, so just return
             return 0;
         }
 
@@ -393,15 +375,6 @@ ssize_t Transporter::read(topic_id_size_t *topic_ID, uint8_t *out_buffer, size_t
         if (len > 0)
         {
             return len;
-        }
-    }
-
-    if (ringbuf_.is_full())
-    {
-        uint8_t dummy;
-        if (ringbuf_.memcpy_from(&dummy, 1) < 0)
-        {
-            throw std::runtime_error("Failed to clear out single byte to read into");
         }
     }
 
