@@ -26,6 +26,14 @@ namespace pubsub
 class Subscription
 {
 public:
+    Subscription() {}
+    virtual ~Subscription() {}
+
+    Subscription(Subscription const &) = delete;
+    Subscription& operator=(Subscription const &) = delete;
+    Subscription(Subscription &&) = delete;
+    Subscription& operator=(Subscription &&) = delete;
+
     topic_id_size_t get_serial_mapping() const
     {
         return serial_mapping_;
