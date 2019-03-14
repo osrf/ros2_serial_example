@@ -268,14 +268,14 @@ TEST_F(PX4TransporterFixture, read_null_topic_id)
 
 TEST_F(PX4TransporterFixture, read_null_buffer)
 {
-    uint8_t topic_id;
+    topic_id_size_t topic_id;
     ASSERT_EQ(read(&topic_id, nullptr, 4), -1);
 }
 
 TEST_F(PX4TransporterFixture, read_fds_not_ok)
 {
     std::unique_ptr<uint8_t[]> buf = std::unique_ptr<uint8_t[]>(new uint8_t[4]{});
-    uint8_t topic_id;
+    topic_id_size_t topic_id;
 
     test_fds_ok_ = false;
     ASSERT_EQ(read(&topic_id, buf.get(), 4), -1);
@@ -298,7 +298,7 @@ TEST_F(PX4TransporterFixture, read_message)
 
     add_to_memfd(read_data, sizeof(read_data));
 
-    uint8_t topic_id;
+    topic_id_size_t topic_id;
     ASSERT_EQ(read(&topic_id, buf.get(), 4), 4);
     ASSERT_EQ(topic_id, 0xa);
     ASSERT_EQ(buf.get()[0], 0x05);
@@ -325,7 +325,7 @@ TEST_F(PX4TransporterFixture, read_message_already_available)
     add_to_memfd(read_data, sizeof(read_data));
     ASSERT_EQ(node_read(), static_cast<ssize_t>(sizeof(read_data)));
 
-    uint8_t topic_id;
+    topic_id_size_t topic_id;
     ASSERT_EQ(read(&topic_id, buf.get(), 4), 4);
     ASSERT_EQ(topic_id, 0xa);
     ASSERT_EQ(buf.get()[0], 0x05);
@@ -402,7 +402,7 @@ TEST_F(COBSTransporterFixture, read_message)
 
     add_to_memfd(read_data, sizeof(read_data));
 
-    uint8_t topic_id;
+    topic_id_size_t topic_id;
     ASSERT_EQ(read(&topic_id, buf.get(), 4), 4);
     ASSERT_EQ(topic_id, 0xa);
     ASSERT_EQ(buf.get()[0], 0x05);
@@ -422,7 +422,7 @@ TEST_F(COBSTransporterFixture, read_message_already_available)
     add_to_memfd(read_data, sizeof(read_data));
     ASSERT_EQ(node_read(), static_cast<ssize_t>(sizeof(read_data)));
 
-    uint8_t topic_id;
+    topic_id_size_t topic_id;
     ASSERT_EQ(read(&topic_id, buf.get(), 4), 4);
     ASSERT_EQ(topic_id, 0xa);
     ASSERT_EQ(buf.get()[0], 0x05);
