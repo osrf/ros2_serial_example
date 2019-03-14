@@ -295,7 +295,7 @@ TEST_F(PX4TransporterFixture, write)
     buf.get()[2] = 0x2;
     buf.get()[3] = 0x3;
 
-    ASSERT_EQ(write(0xa, buf.get(), 4), 4 + static_cast<ssize_t>(get_header_length()));
+    ASSERT_EQ(write(0xa, buf.get(), 4), 4);
 
     std::vector<uint8_t> expected = setup_px4_test_data();
 
@@ -374,7 +374,7 @@ TEST_F(COBSTransporterFixture, write)
     buf.get()[2] = 0x2;
     buf.get()[3] = 0x3;
 
-    ASSERT_EQ(write(0xa, buf.get(), 4), 4 + static_cast<ssize_t>(get_header_length()) + 1 + 1);
+    ASSERT_EQ(write(0xa, buf.get(), 4), 4);
 
     std::vector<uint8_t> expected = setup_cobs_test_data();
 
@@ -439,7 +439,7 @@ TEST_F(COBSTransporterFixture, write_long_sequence)
         buf[i] = 0x1;
     }
 
-    ASSERT_EQ(write(0xa, buf.get(), 300), 300 + static_cast<ssize_t>(get_header_length()) + 1 + 1 + 1);
+    ASSERT_EQ(write(0xa, buf.get(), 300), 300);
 
     std::vector<uint8_t> expected = setup_cobs_long_data();
 
