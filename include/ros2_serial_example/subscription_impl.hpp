@@ -71,7 +71,7 @@ public:
         auto callback = [node, mapping, transporter, get_size, serialize](const typename T::SharedPtr msg) -> void
         {
             size_t serialized_size = get_size(*(msg.get()), 0);
-            std::unique_ptr<uint8_t[]> data_buffer = std::unique_ptr<uint8_t[]>(new uint8_t[serialized_size]);
+            std::unique_ptr<uint8_t[]> data_buffer = std::unique_ptr<uint8_t[]>(new uint8_t[serialized_size]{});
             eprosima::fastcdr::FastBuffer cdrbuffer(reinterpret_cast<char *>(data_buffer.get()), serialized_size);
             eprosima::fastcdr::Cdr scdr(cdrbuffer);
             serialize(*(msg.get()), scdr);
