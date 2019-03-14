@@ -18,66 +18,70 @@ static inline int memfd_create(const char *name, unsigned int flags)
     return syscall(__NR_memfd_create, name, flags);
 }
 
-int setup_memfd(const std::string & name)
-{
-    int fd = memfd_create(name.c_str(), MFD_CLOEXEC);
-    if (fd < 0)
-    {
-        return -1;
-    }
-
-    // The RingBuffer class essentially assumes that this file descriptor
-    // is non-blocking
-    if (::fcntl(fd, F_SETFL, O_NONBLOCK) != 0)
-    {
-        ::close(fd);
-        return -1;
-    }
-
-    return fd;
-}
-
-// Add some additional data to the memfd.  After this call the file pointer will
-// be at the start of the new memory.
-int add_to_memfd(int fd, uint8_t *buf, size_t bufsize)
-{
-    off_t offset = ::lseek(fd, 0, SEEK_CUR);
-    if (offset < 0)
-    {
-        return -1;
-    }
-
-    if (::ftruncate(fd, offset + bufsize) != 0)
-    {
-        return -1;
-    }
-
-    if (::lseek(fd, offset, SEEK_SET) != offset)
-    {
-        return -1;
-    }
-
-    if (::write(fd, buf, bufsize) != static_cast<int>(bufsize))
-    {
-        return -1;
-    }
-
-    if (::lseek(fd, offset, SEEK_SET) != offset)
-    {
-        return -1;
-    }
-
-    return bufsize;
-}
-
 // This fixture allows us access to the protected methods of RingBuffer
 class RingBufferFixture : public ros2_to_serial_bridge::transport::impl::RingBuffer, public testing::Test
 {
 public:
     // We pick a size of 240 bytes for the ring buffer to ensure that we can fill
     // uint8_t into the buffer for the tests
-    RingBufferFixture() : RingBuffer(240) {}
-    // TODO(clalancette): Make the fixture have the memfd
+    RingBufferFixture() : RingBuffer(240)
+    {
+        // Setup the memory fd
+        memfd_ = memfd_create("ringbuffer", MFD_CLOEXEC);
+        if (memfd_ < 0)
+        {
+            throw std::runtime_error("Failed to create memfd");
+        }
+
+        // The RingBuffer class essentially assumes that this file descriptor
+        // is non-blocking
+        if (::fcntl(memfd_, F_SETFL, O_NONBLOCK) != 0)
+        {
+            ::close(memfd_);
+            throw std::runtime_error("Failed to set memfd nonblocking");
+        }
+    }
+
+    ~RingBufferFixture() override
+    {
+        ::close(memfd_);
+    }
+
+    // Add some additional data to the memfd.  After this call the file pointer
+    // will be at the start of the new memory.
+    int add_to_memfd(uint8_t *buf, size_t bufsize)
+    {
+        off_t offset = ::lseek(memfd_, 0, SEEK_CUR);
+        if (offset < 0)
+        {
+            return -1;
+        }
+
+        if (::ftruncate(memfd_, offset + bufsize) != 0)
+        {
+            return -1;
+        }
+
+        if (::lseek(memfd_, offset, SEEK_SET) != offset)
+        {
+            return -1;
+        }
+
+        if (::write(memfd_, buf, bufsize) != static_cast<int>(bufsize))
+        {
+            return -1;
+        }
+
+        if (::lseek(memfd_, offset, SEEK_SET) != offset)
+        {
+            return -1;
+        }
+
+        return bufsize;
+    }
+
+protected:
+    int memfd_;
 };
 
 /// TESTS
@@ -95,13 +99,10 @@ TEST_F(RingBufferFixture, empty)
 
 TEST_F(RingBufferFixture, read)
 {
-    int fd = setup_memfd("ringbuffer_read_test");
-    ASSERT_GE(fd, 0);
-
     uint8_t data[3]{0x0, 0x1, 0x2};
-    ASSERT_EQ(add_to_memfd(fd, data, sizeof(data)), static_cast<int>(sizeof(data)));
+    ASSERT_EQ(add_to_memfd(data, sizeof(data)), static_cast<int>(sizeof(data)));
 
-    ASSERT_EQ(read(fd), static_cast<ssize_t>(sizeof(data)));
+    ASSERT_EQ(read(memfd_), static_cast<ssize_t>(sizeof(data)));
 
     ASSERT_EQ(bytes_used(), sizeof(data));
     ASSERT_FALSE(is_full());
@@ -115,24 +116,19 @@ TEST_F(RingBufferFixture, read)
     ASSERT_EQ(*bufp++, 0x0);
     ASSERT_EQ(*bufp++, 0x1);
     ASSERT_EQ(*bufp++, 0x2);
-
-    ::close(fd);
 }
 
 TEST_F(RingBufferFixture, read_fill)
 {
-    int fd = setup_memfd("ringbuffer_readwrap_test");
-    ASSERT_GE(fd, 0);
-
     // Start by filling up *most* of the buffer
     uint8_t initialbuf[238];
     for (uint8_t i = 0; i < sizeof(initialbuf); ++i)
     {
         initialbuf[i] = i;
     }
-    ASSERT_EQ(add_to_memfd(fd, initialbuf, sizeof(initialbuf)), static_cast<int>(sizeof(initialbuf)));
+    ASSERT_EQ(add_to_memfd(initialbuf, sizeof(initialbuf)), static_cast<int>(sizeof(initialbuf)));
 
-    ASSERT_EQ(read(fd), static_cast<ssize_t>(sizeof(initialbuf)));
+    ASSERT_EQ(read(memfd_), static_cast<ssize_t>(sizeof(initialbuf)));
 
     ASSERT_EQ(bytes_used(), sizeof(initialbuf));
     ASSERT_FALSE(is_full());
@@ -145,9 +141,9 @@ TEST_F(RingBufferFixture, read_fill)
 
     // Now exactly fill it
     uint8_t smallbuf[2]{238, 239};
-    ASSERT_EQ(add_to_memfd(fd, smallbuf, sizeof(smallbuf)), static_cast<int>(sizeof(smallbuf)));
+    ASSERT_EQ(add_to_memfd(smallbuf, sizeof(smallbuf)), static_cast<int>(sizeof(smallbuf)));
 
-    ASSERT_EQ(read(fd), static_cast<ssize_t>(sizeof(smallbuf)));
+    ASSERT_EQ(read(memfd_), static_cast<ssize_t>(sizeof(smallbuf)));
 
     ASSERT_EQ(bytes_used(), sizeof(initialbuf) + sizeof(smallbuf));
     ASSERT_TRUE(is_full());
@@ -162,24 +158,19 @@ TEST_F(RingBufferFixture, read_fill)
         ASSERT_EQ(*bufp, i);
         bufp++;
     }
-
-    ::close(fd);
 }
 
 TEST_F(RingBufferFixture, read_wrap)
 {
-    int fd = setup_memfd("ringbuffer_readwrap_test");
-    ASSERT_GE(fd, 0);
-
     // Start by filling up the entire buffer
     uint8_t initialbuf[240];
     for (uint8_t i = 0; i < sizeof(initialbuf); ++i)
     {
         initialbuf[i] = i;
     }
-    ASSERT_EQ(add_to_memfd(fd, initialbuf, sizeof(initialbuf)), static_cast<int>(sizeof(initialbuf)));
+    ASSERT_EQ(add_to_memfd(initialbuf, sizeof(initialbuf)), static_cast<int>(sizeof(initialbuf)));
 
-    ASSERT_EQ(read(fd), static_cast<ssize_t>(sizeof(initialbuf)));
+    ASSERT_EQ(read(memfd_), static_cast<ssize_t>(sizeof(initialbuf)));
 
     ASSERT_EQ(bytes_used(), sizeof(initialbuf));
     ASSERT_TRUE(is_full());
@@ -199,9 +190,9 @@ TEST_F(RingBufferFixture, read_wrap)
 
     // Now overflow
     uint8_t smallbuf[2]{240, 241};
-    ASSERT_EQ(add_to_memfd(fd, smallbuf, sizeof(smallbuf)), static_cast<int>(sizeof(smallbuf)));
+    ASSERT_EQ(add_to_memfd(smallbuf, sizeof(smallbuf)), static_cast<int>(sizeof(smallbuf)));
 
-    ASSERT_EQ(read(fd), static_cast<ssize_t>(sizeof(smallbuf)));
+    ASSERT_EQ(read(memfd_), static_cast<ssize_t>(sizeof(smallbuf)));
 
     ASSERT_EQ(bytes_used(), size_);
     ASSERT_TRUE(is_full());
@@ -220,8 +211,6 @@ TEST_F(RingBufferFixture, read_wrap)
         ASSERT_EQ(*bufp, i);
         bufp++;
     }
-
-    ::close(fd);
 }
 
 TEST_F(RingBufferFixture, memcpy_from_nullptr)
@@ -244,13 +233,10 @@ TEST_F(RingBufferFixture, memcpy_from_not_enough_bytes)
 
 TEST_F(RingBufferFixture, memcpy_from_start_buffer)
 {
-    int fd = setup_memfd("ringbuffer_read_test");
-    ASSERT_GE(fd, 0);
-
     uint8_t data[3]{0x0, 0x1, 0x2};
-    ASSERT_EQ(add_to_memfd(fd, data, sizeof(data)), static_cast<int>(sizeof(data)));
+    ASSERT_EQ(add_to_memfd(data, sizeof(data)), static_cast<int>(sizeof(data)));
 
-    ASSERT_EQ(read(fd), static_cast<ssize_t>(sizeof(data)));
+    ASSERT_EQ(read(memfd_), static_cast<ssize_t>(sizeof(data)));
 
     ASSERT_EQ(bytes_used(), sizeof(data));
     ASSERT_FALSE(is_full());
@@ -275,24 +261,19 @@ TEST_F(RingBufferFixture, memcpy_from_start_buffer)
     ASSERT_EQ(head_, buf_.get() + sizeof(data));
     ASSERT_EQ(tail_, buf_.get() + sizeof(data));
     ASSERT_FALSE(full_);
-
-    ::close(fd);
 }
 
 TEST_F(RingBufferFixture, memcpy_from_full_buffer)
 {
-    int fd = setup_memfd("ringbuffer_read_test");
-    ASSERT_GE(fd, 0);
-
     // Start by filling up the entire buffer
     uint8_t initialbuf[240];
     for (uint8_t i = 0; i < sizeof(initialbuf); ++i)
     {
         initialbuf[i] = i;
     }
-    ASSERT_EQ(add_to_memfd(fd, initialbuf, sizeof(initialbuf)), static_cast<int>(sizeof(initialbuf)));
+    ASSERT_EQ(add_to_memfd(initialbuf, sizeof(initialbuf)), static_cast<int>(sizeof(initialbuf)));
 
-    ASSERT_EQ(read(fd), static_cast<ssize_t>(sizeof(initialbuf)));
+    ASSERT_EQ(read(memfd_), static_cast<ssize_t>(sizeof(initialbuf)));
 
     ASSERT_EQ(bytes_used(), sizeof(initialbuf));
     ASSERT_TRUE(is_full());
@@ -331,9 +312,9 @@ TEST_F(RingBufferFixture, memcpy_from_full_buffer)
     {
         buf2[i] = i + 10;
     }
-    ASSERT_EQ(add_to_memfd(fd, buf2, sizeof(buf2)), static_cast<int>(sizeof(buf2)));
+    ASSERT_EQ(add_to_memfd(buf2, sizeof(buf2)), static_cast<int>(sizeof(buf2)));
 
-    ASSERT_EQ(read(fd), static_cast<ssize_t>(sizeof(buf2)));
+    ASSERT_EQ(read(memfd_), static_cast<ssize_t>(sizeof(buf2)));
 
     ASSERT_EQ(bytes_used(), size_);
     ASSERT_TRUE(is_full());
@@ -360,24 +341,19 @@ TEST_F(RingBufferFixture, memcpy_from_full_buffer)
     ASSERT_EQ(head_, buf_.get() + sizeof(buf2));
     ASSERT_EQ(tail_, buf_.get() + sizeof(buf2) + sizeof(cpybuf2));
     ASSERT_FALSE(full_);
-
-    ::close(fd);
 }
 
 TEST_F(RingBufferFixture, memcpy_wrap)
 {
-    int fd = setup_memfd("ringbuffer_read_test");
-    ASSERT_GE(fd, 0);
-
     // Start by filling up the entire buffer
     uint8_t initialbuf[240];
     for (uint8_t i = 0; i < sizeof(initialbuf); ++i)
     {
         initialbuf[i] = i;
     }
-    ASSERT_EQ(add_to_memfd(fd, initialbuf, sizeof(initialbuf)), static_cast<int>(sizeof(initialbuf)));
+    ASSERT_EQ(add_to_memfd(initialbuf, sizeof(initialbuf)), static_cast<int>(sizeof(initialbuf)));
 
-    ASSERT_EQ(read(fd), static_cast<ssize_t>(sizeof(initialbuf)));
+    ASSERT_EQ(read(memfd_), static_cast<ssize_t>(sizeof(initialbuf)));
 
     ASSERT_EQ(bytes_used(), sizeof(initialbuf));
     ASSERT_TRUE(is_full());
@@ -407,9 +383,9 @@ TEST_F(RingBufferFixture, memcpy_wrap)
     {
         buf2[i] = i + 10;
     }
-    ASSERT_EQ(add_to_memfd(fd, buf2, sizeof(buf2)), static_cast<int>(sizeof(buf2)));
+    ASSERT_EQ(add_to_memfd(buf2, sizeof(buf2)), static_cast<int>(sizeof(buf2)));
 
-    ASSERT_EQ(read(fd), static_cast<ssize_t>(sizeof(buf2)));
+    ASSERT_EQ(read(memfd_), static_cast<ssize_t>(sizeof(buf2)));
 
     ASSERT_EQ(bytes_used(), 12U);
     ASSERT_FALSE(is_full());
@@ -443,8 +419,6 @@ TEST_F(RingBufferFixture, memcpy_wrap)
     ASSERT_EQ(head_, buf_.get() + 10);
     ASSERT_EQ(tail_, buf_.get() + 8);
     ASSERT_FALSE(full_);
-
-    ::close(fd);
 }
 
 TEST_F(RingBufferFixture, findseq_no_bytes)
@@ -461,166 +435,136 @@ TEST_F(RingBufferFixture, findseq_seq_too_large)
 
 TEST_F(RingBufferFixture, findseq_simple)
 {
-    int fd = setup_memfd("ringbuffer_read_test");
-    ASSERT_GE(fd, 0);
-
     // Start by adding a known sequence to the buffer.
     uint8_t initialbuf[]{'>', '>', '>'};
-    ASSERT_EQ(add_to_memfd(fd, initialbuf, sizeof(initialbuf)), static_cast<int>(sizeof(initialbuf)));
+    ASSERT_EQ(add_to_memfd(initialbuf, sizeof(initialbuf)), static_cast<int>(sizeof(initialbuf)));
 
-    ASSERT_EQ(read(fd), static_cast<ssize_t>(sizeof(initialbuf)));
+    ASSERT_EQ(read(memfd_), static_cast<ssize_t>(sizeof(initialbuf)));
 
     uint8_t seq[]{'>', '>', '>'};
     ASSERT_EQ(findseq(seq, sizeof(seq)), 0);
-
-    ::close(fd);
 }
 
 TEST_F(RingBufferFixture, findseq_wrap)
 {
-    int fd = setup_memfd("ringbuffer_read_test");
-    ASSERT_GE(fd, 0);
-
     // Start by filling most of the buffer.
     uint8_t initialbuf[238]{};
-    ASSERT_EQ(add_to_memfd(fd, initialbuf, sizeof(initialbuf)), static_cast<int>(sizeof(initialbuf)));
+    ASSERT_EQ(add_to_memfd(initialbuf, sizeof(initialbuf)), static_cast<int>(sizeof(initialbuf)));
 
-    ASSERT_EQ(read(fd), static_cast<ssize_t>(sizeof(initialbuf)));
+    ASSERT_EQ(read(memfd_), static_cast<ssize_t>(sizeof(initialbuf)));
 
     // Now add in the known sequence, which should span 2 bytes at the end
     // and one byte at the beginning.
     uint8_t buf2[]{'>', '>', '>'};
-    ASSERT_EQ(add_to_memfd(fd, buf2, sizeof(buf2)), static_cast<int>(sizeof(buf2)));
+    ASSERT_EQ(add_to_memfd(buf2, sizeof(buf2)), static_cast<int>(sizeof(buf2)));
 
     // This first read will return short because we reach the end of the
     // buffer, so call it again to get the rest.
-    ASSERT_EQ(read(fd), 2);
-    ASSERT_EQ(read(fd), 1);
+    ASSERT_EQ(read(memfd_), 2);
+    ASSERT_EQ(read(memfd_), 1);
 
     uint8_t seq[]{'>', '>', '>'};
     ASSERT_EQ(findseq(seq, sizeof(seq)), 237);
-
-    ::close(fd);
 }
 
 TEST_F(RingBufferFixture, findseq_wrap2)
 {
-    int fd = setup_memfd("ringbuffer_read_test");
-    ASSERT_GE(fd, 0);
-
     // Start by filling most of the buffer.
     uint8_t initialbuf[239]{};
-    ASSERT_EQ(add_to_memfd(fd, initialbuf, sizeof(initialbuf)), static_cast<int>(sizeof(initialbuf)));
+    ASSERT_EQ(add_to_memfd(initialbuf, sizeof(initialbuf)), static_cast<int>(sizeof(initialbuf)));
 
-    ASSERT_EQ(read(fd), static_cast<ssize_t>(sizeof(initialbuf)));
+    ASSERT_EQ(read(memfd_), static_cast<ssize_t>(sizeof(initialbuf)));
 
     // Now add in the known sequence, which should span 2 bytes at the end
     // and one byte at the beginning.
     uint8_t buf2[]{'>', '>', '>'};
-    ASSERT_EQ(add_to_memfd(fd, buf2, sizeof(buf2)), static_cast<int>(sizeof(buf2)));
+    ASSERT_EQ(add_to_memfd(buf2, sizeof(buf2)), static_cast<int>(sizeof(buf2)));
 
     // This first read will return short because we reach the end of the
     // buffer, so call it again to get the rest.
-    ASSERT_EQ(read(fd), 1);
-    ASSERT_EQ(read(fd), 2);
+    ASSERT_EQ(read(memfd_), 1);
+    ASSERT_EQ(read(memfd_), 2);
 
     uint8_t seq[]{'>', '>', '>'};
     ASSERT_EQ(findseq(seq, sizeof(seq)), 237);
-
-    ::close(fd);
 }
 
 TEST_F(RingBufferFixture, findseq_single_byte)
 {
-    int fd = setup_memfd("ringbuffer_read_test");
-    ASSERT_GE(fd, 0);
-
     // Start by filling most of the buffer.
     uint8_t initialbuf[239];
     for (uint8_t i = 0; i < sizeof(initialbuf); ++i)
     {
         initialbuf[i] = 0x1;
     }
-    ASSERT_EQ(add_to_memfd(fd, initialbuf, sizeof(initialbuf)), static_cast<int>(sizeof(initialbuf)));
+    ASSERT_EQ(add_to_memfd(initialbuf, sizeof(initialbuf)), static_cast<int>(sizeof(initialbuf)));
 
-    ASSERT_EQ(read(fd), static_cast<ssize_t>(sizeof(initialbuf)));
+    ASSERT_EQ(read(memfd_), static_cast<ssize_t>(sizeof(initialbuf)));
 
     // Now add in the known sequence, which should span 2 bytes at the end
     // and one byte at the beginning.
     uint8_t buf2[1]{};
-    ASSERT_EQ(add_to_memfd(fd, buf2, sizeof(buf2)), static_cast<int>(sizeof(buf2)));
+    ASSERT_EQ(add_to_memfd(buf2, sizeof(buf2)), static_cast<int>(sizeof(buf2)));
 
-    ASSERT_EQ(read(fd), 1);
+    ASSERT_EQ(read(memfd_), 1);
 
     uint8_t seq[]{0x0};
     ASSERT_EQ(findseq(seq, sizeof(seq)), 239);
-
-    ::close(fd);
 }
 
 TEST_F(RingBufferFixture, findseq_partial)
 {
-    int fd = setup_memfd("ringbuffer_read_test");
-    ASSERT_GE(fd, 0);
-
     // Start by filling most of the buffer.
     uint8_t initialbuf[12]{};
     initialbuf[0] = '>';
     initialbuf[1] = '>';
-    ASSERT_EQ(add_to_memfd(fd, initialbuf, sizeof(initialbuf)), static_cast<int>(sizeof(initialbuf)));
+    ASSERT_EQ(add_to_memfd(initialbuf, sizeof(initialbuf)), static_cast<int>(sizeof(initialbuf)));
 
-    ASSERT_EQ(read(fd), static_cast<ssize_t>(sizeof(initialbuf)));
+    ASSERT_EQ(read(memfd_), static_cast<ssize_t>(sizeof(initialbuf)));
 
     // Now add in the known sequence, which should span 2 bytes at the end
     // and one byte at the beginning.
     uint8_t buf2[]{'>', '>', '>'};
-    ASSERT_EQ(add_to_memfd(fd, buf2, sizeof(buf2)), static_cast<int>(sizeof(buf2)));
+    ASSERT_EQ(add_to_memfd(buf2, sizeof(buf2)), static_cast<int>(sizeof(buf2)));
 
     // This first read will return short because we reach the end of the
     // buffer, so call it again to get the rest.
-    ASSERT_EQ(read(fd), 3);
+    ASSERT_EQ(read(memfd_), 3);
 
     uint8_t seq[]{'>', '>', '>'};
     ASSERT_EQ(findseq(seq, sizeof(seq)), 12);
-
-    ::close(fd);
 }
 
 // A test for when the *partial* match is wrapped
 TEST_F(RingBufferFixture, findseq_partial_wrap)
 {
-    int fd = setup_memfd("ringbuffer_read_test");
-    ASSERT_GE(fd, 0);
-
     // Start by filling most of the buffer.
     uint8_t initialbuf[240]{};
     initialbuf[239] = '>';
-    ASSERT_EQ(add_to_memfd(fd, initialbuf, sizeof(initialbuf)), static_cast<int>(sizeof(initialbuf)));
+    ASSERT_EQ(add_to_memfd(initialbuf, sizeof(initialbuf)), static_cast<int>(sizeof(initialbuf)));
 
-    ASSERT_EQ(read(fd), static_cast<ssize_t>(sizeof(initialbuf)));
+    ASSERT_EQ(read(memfd_), static_cast<ssize_t>(sizeof(initialbuf)));
 
     // Now add in the rest of the partial sequence, which should wrap to the
     // beginning.
     uint8_t buf2[11]{};
     buf2[0] = '>';
-    ASSERT_EQ(add_to_memfd(fd, buf2, sizeof(buf2)), static_cast<int>(sizeof(buf2)));
+    ASSERT_EQ(add_to_memfd(buf2, sizeof(buf2)), static_cast<int>(sizeof(buf2)));
 
     // This first read will return short because we reach the end of the
     // buffer, so call it again to get the rest.
-    ASSERT_EQ(read(fd), 11);
+    ASSERT_EQ(read(memfd_), 11);
 
     // Now add in the real sequence we want to find.
     uint8_t buf3[]{'>', '>', '>'};
-    ASSERT_EQ(add_to_memfd(fd, buf3, sizeof(buf3)), static_cast<int>(sizeof(buf3)));
+    ASSERT_EQ(add_to_memfd(buf3, sizeof(buf3)), static_cast<int>(sizeof(buf3)));
 
     // This first read will return short because we reach the end of the
     // buffer, so call it again to get the rest.
-    ASSERT_EQ(read(fd), 3);
+    ASSERT_EQ(read(memfd_), 3);
 
     uint8_t seq[]{'>', '>', '>'};
     ASSERT_EQ(findseq(seq, sizeof(seq)), 237);
-
-    ::close(fd);
 }
 
 TEST_F(RingBufferFixture, peek_not_enough_bytes)
