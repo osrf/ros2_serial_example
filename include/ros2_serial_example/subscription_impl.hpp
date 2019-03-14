@@ -35,10 +35,31 @@ namespace ros2_to_serial_bridge
 namespace pubsub
 {
 
+/**
+ * The SubscriptionImpl class is an implementation of the base Subscription class.
+ * As such, it arranges to subscribe to a particular topic on the ROS 2 network.
+ * When data arrives on that topic, the callback serializes the data to CDR and
+ * then delivers it to the transport for send on the serial port.
+ */
 template<typename T>
 class SubscriptionImpl final : public Subscription
 {
 public:
+    /**
+     * Construct a SubscriptionImpl object with the given serialization parameters.
+     *
+     * @param[in] node The rclcpp::Node to use to create a publisher.
+     * @param[in] mapping The number mapping this ROS 2 topic to the serial
+     *                    topic ID.
+     * @param[in] name The name of the topic to subscribe to.
+     * @param[in] transporter A pointer to the transporter object to use to send
+     *                        the serialized data to the underlying serial
+     *                        transport.
+     * @param[in] get_size A function pointer to the function to determine the
+     *                     size of the serialization for the CDR type.
+     * @param[in] serialize A function pointer to the function to serialize the
+     *                      data into CDR.
+     */
     explicit SubscriptionImpl(const std::shared_ptr<rclcpp::Node> & node,
                               topic_id_size_t mapping,
                               const std::string & name,

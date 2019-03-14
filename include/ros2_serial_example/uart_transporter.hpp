@@ -52,9 +52,33 @@ namespace ros2_to_serial_bridge
 namespace transport
 {
 
+/**
+ * The UARTTransporter class is an implementation of the abstract Transporter
+ * class specifically for talking to UART devices.
+ */
 class UARTTransporter final : public Transporter
 {
 public:
+    /**
+     * Construct a UARTTransporter object with the given UART parameters.
+     *
+     * @param[in] uart_name The full path to the device to connect to.
+     * @param[in] protocol The serial protocol to use; see Transporter docs for
+     *                     more information about supported protocols.
+     * @param[in] baudrate The baudrate to set the UART to.  This must be a
+     *                     number in bits-per-second.
+     * @param[in] read_poll_ms The amount of time to wait for the read file
+     *                         descriptor to become ready before timing out.
+     *                         Larger numbers mean less CPU time is spent, but
+     *                         also mean that the calls to read block longer.
+     *                         It is recommended to start with 100 milliseconds.
+     * @param[in] ring_buffer_size The number of bytes to allocate to the
+     *                             underlying ring buffer that is used to
+     *                             accept data from the UART.  Larger numbers
+     *                             will allow the transport to accept larger
+     *                             packets (or more of them), at the expense of
+     *                             memory.  It is recommended to start with 8192.
+     */
     UARTTransporter(const std::string & uart_name,
                     const std::string & protocol,
                     uint32_t baudrate,
@@ -67,12 +91,59 @@ public:
     UARTTransporter(UARTTransporter &&) = delete;
     UARTTransporter& operator=(UARTTransporter &&) = delete;
 
+    /**
+     * Do UART specific initialization.
+     *
+     * This method is an override of the one provided by the Transporter class
+     * and does the setup of the underlying UART to the correct mode and
+     * baudrate (as specified in the constructor).
+     *
+     * @returns 0 on success, -1 on error.
+     */
     int init() override;
+
+    /**
+     * Do UART specific de-initialization.
+     *
+     * This method is an override of the one provided by the Transporter class
+     * and undoes the steps that the init() method does.
+     *
+     * @returns 0 on success, -1 on error.
+     */
     int close() override;
 
 private:
+    /**
+     * Read data from the underlying UART and store it in the ring buffer.
+     *
+     * This method is an override of the abstract one in the Transporter class
+     * and attempts to read data from the underlying UART.  If no data becomes
+     * available before the read_timeout_ms set in the constructor, it returns 0
+     * with no action taken.  If data is available on the UART, it is read into
+     * the ring buffer and the method returns the number of bytes read.
+     */
     ssize_t node_read() override;
+
+    /**
+     * Write data to the underlying UART.
+     *
+     * This method is an override of the abstract one in the Transporter class
+     * and attempts to write data to the underlying UART.  This method will
+     * block until all of the data is sent, or until an error occurs.
+     *
+     * @params[in] buffer The buffer containing the data to write.
+     * @params[in] len The number of bytes in the buffer to write.
+     * @returns The number of bytes written on success (which must be equal to
+     *          len), or -1 on error.
+     */
     ssize_t node_write(void *buffer, size_t len) override;
+
+    /**
+     * Detect whether the UART is ready to send and receive data.
+     *
+     * @returns true if the underlying UART is configured and ready, false
+     *          otherwise.
+     */
     bool fds_OK() override;
 
     std::string uart_name_{};
