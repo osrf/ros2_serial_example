@@ -131,6 +131,7 @@ public:
             serial_to_pub_[topic_ID]->dispatch(data_buffer, length);
         }
     }
+
 private:
     std::map<topic_id_size_t, std::unique_ptr<Publisher>> serial_to_pub_;
     std::vector<std::unique_ptr<Subscription>> serial_subs_;
