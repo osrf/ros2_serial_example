@@ -2,15 +2,16 @@ ros2_to_serial_bridge:
     ros__parameters:
         device: /dev/pts/25
         serial_protocol: px4
-        chatter:
-            serial_mapping: 9
-            type: std_msgs/String
-            direction: SerialToROS2
-        uint16topic:
-            serial_mapping: 12
-            type: std_msgs/UInt16
-            direction: SerialToROS2
-        another:
-            serial_mapping: 13
-            type: std_msgs/String
-            direction: ROS2ToSerial
+        topics:
+            chatter:
+                serial_mapping: 9
+                type: std_msgs/String
+                direction: SerialToROS2
+            uint16topic:
+                serial_mapping: 12
+                type: std_msgs/UInt16
+                direction: SerialToROS2
+            another:
+                serial_mapping: 13
+                type: std_msgs/String
+                direction: ROS2ToSerial

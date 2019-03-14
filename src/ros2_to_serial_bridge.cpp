@@ -51,10 +51,11 @@ static void signal_handler(int signum)
 static void params_usage()
 {
     ::printf("Invalid topic parameter.  Topic parameters must be in the form:\n"
-             "    topic_name:\n"
-             "        serial_mapping: <uint8_t>\n"
-             "        type: <string>\n"
-             "        direction: [SerialToROS2|ROS2ToSerial]\n"
+             "    topics:\n"
+             "        topic_name:\n"
+             "            serial_mapping: <uint8_t>\n"
+             "            type: <string>\n"
+             "            direction: [SerialToROS2|ROS2ToSerial]\n"
              );
 }
 
@@ -63,31 +64,64 @@ static std::unique_ptr<ros2_to_serial_bridge::pubsub::ROS2Topics> parse_node_par
 {
     // Now we go through the YAML file containing our parameters, looking for
     // parameters of the form:
-    //     topic_name:
-    //         serial_mapping: <uint8_t>
-    //         type: <string>
-    //         direction: [SerialToROS2|ROS2ToSerial]
+    //     topics:
+    //         <topic_name>:
+    //             serial_mapping: <uint8_t>
+    //             type: <string>
+    //             direction: [SerialToROS2|ROS2ToSerial]
     std::map<std::string, ros2_to_serial_bridge::pubsub::TopicMapping> topic_names_and_serialization;
 
     rcl_interfaces::msg::ListParametersResult list_params_result = node->list_parameters({}, 0);
     for (const auto & name : list_params_result.names)
     {
-        if (std::count(name.begin(), name.end(), '.') != 1)
+        if (std::count(name.begin(), name.end(), '.') != 2)
         {
             // This is not a parameter in a subsection, so it can't possibly be
             // what we are looking for.  Just silently ignore and continue to
             // allow other parameters.
             continue;
         }
-        std::size_t last_dot_pos = name.find_last_of('.');
-        if (last_dot_pos == std::string::npos)
+
+        std::size_t first_dot_pos = name.find_first_of('.');
+        if (first_dot_pos == std::string::npos)
         {
             params_usage();
             return nullptr;
         }
 
-        std::string topic_name = name.substr(0, last_dot_pos);
-        std::string param_name = name.substr(last_dot_pos + 1);
+        std::string topics = name.substr(0, first_dot_pos);
+        if (topics != "topics")
+        {
+            // This is not a parameter in the subsection topics, so it can't
+            // possibly be what we are looking for.  Just silently ignore and
+            // continue to look for other parameters.
+            continue;
+        }
+
+        if (first_dot_pos == name.length())
+        {
+            // Strangely, the dot is the last character of the parameter.  ROS 2
+            // should really never allow this, but just ignore it and continue.
+            continue;
+        }
+
+        std::size_t second_dot_pos = name.find_first_of('.', first_dot_pos + 1);
+        if (second_dot_pos == std::string::npos)
+        {
+            params_usage();
+            return nullptr;
+        }
+
+        std::string topic_name = name.substr(first_dot_pos + 1, second_dot_pos - first_dot_pos - 1);
+
+        if (second_dot_pos == name.length())
+        {
+            // Strangely, the dot is the last character of the parameter.  ROS 2
+            // should really never allow this, but just ignore it and continue.
+            continue;
+        }
+
+        std::string param_name = name.substr(second_dot_pos + 1, name.length() - topic_name.length() - topics.length());
 
         if (topic_names_and_serialization.count(topic_name) == 0)
         {
