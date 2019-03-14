@@ -540,7 +540,15 @@ ssize_t Transporter::write(topic_id_size_t topic_ID, uint8_t const *buffer, size
         throw std::runtime_error("Unknown protocol");
     }
 
-    return node_write(write_buf.get(), write_length);
+    // To hide the details of the serialization protocol from the higher layers,
+    // we return the payload length if we were successful here.
+    ssize_t written = node_write(write_buf.get(), write_length);
+    if (written < 0)
+    {
+        return written;
+    }
+
+    return data_length;
 }
 
 }  // namespace transport
