@@ -220,7 +220,11 @@ int main(int argc, char *argv[])
 
     std::thread read_thread(read_thread_func, transporter.get(), ros2_topics.get());
 
-    rclcpp::WallRate loop_rate(1000);
+    // This loop rate translates linearly into the latency to take data from
+    // the ROS 2 network and output it to the serial port.  250Hz is a decent
+    // balance between CPU time and latency (4ms), but if you are willing to
+    // sacrifice CPU time to get better latency, increase this to 1000 or more.
+    rclcpp::WallRate loop_rate(250);
     while (rclcpp::ok() && running != 0)
     {
         // Process ROS 2 -> serial data (via callbacks)
