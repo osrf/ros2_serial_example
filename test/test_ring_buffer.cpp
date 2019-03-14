@@ -572,3 +572,44 @@ TEST_F(RingBufferFixture, peek_not_enough_bytes)
     uint8_t out[5]{};
     ASSERT_EQ(peek(out, sizeof(out)), -1);
 }
+
+TEST_F(RingBufferFixture, peek)
+{
+    // Start by filling a small portion of the buffer
+    uint8_t initialbuf[]{0x0, 0x1, 0x2, 0x3};
+    ASSERT_EQ(add_to_memfd(initialbuf, sizeof(initialbuf)), static_cast<int>(sizeof(initialbuf)));
+    ASSERT_EQ(read(memfd_), static_cast<ssize_t>(sizeof(initialbuf)));
+
+    uint8_t buf2[4]{};
+    ASSERT_EQ(peek(buf2, sizeof(buf2)), static_cast<ssize_t>(sizeof(initialbuf)));
+    ASSERT_EQ(buf2[0], 0x0);
+    ASSERT_EQ(buf2[1], 0x1);
+    ASSERT_EQ(buf2[2], 0x2);
+    ASSERT_EQ(buf2[3], 0x3);
+}
+
+TEST_F(RingBufferFixture, peek_wrap)
+{
+    // Start by filling most of the buffer.
+    uint8_t initialbuf[239]{};
+    ASSERT_EQ(add_to_memfd(initialbuf, sizeof(initialbuf)), static_cast<int>(sizeof(initialbuf)));
+    ASSERT_EQ(read(memfd_), static_cast<ssize_t>(sizeof(initialbuf)));
+
+    // Now copy out all of those bytes
+    uint8_t cpybuf[239]{};
+    ASSERT_EQ(memcpy_from(cpybuf, sizeof(cpybuf)), static_cast<ssize_t>(sizeof(cpybuf)));
+
+    // Now we add in a small amount at the end of the ring, wrapping around
+    uint8_t smallbuf[4]{0x1, 0x2, 0x3, 0x4};
+    ASSERT_EQ(add_to_memfd(smallbuf, sizeof(smallbuf)), static_cast<int>(sizeof(smallbuf)));
+    ASSERT_EQ(read(memfd_), 1);
+    ASSERT_EQ(read(memfd_), 3);
+
+    // Now peek at those values
+    uint8_t buf2[4]{};
+    ASSERT_EQ(peek(buf2, sizeof(buf2)), static_cast<ssize_t>(sizeof(buf2)));
+    ASSERT_EQ(buf2[0], 0x1);
+    ASSERT_EQ(buf2[1], 0x2);
+    ASSERT_EQ(buf2[2], 0x3);
+    ASSERT_EQ(buf2[3], 0x4);
+}
