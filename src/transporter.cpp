@@ -327,6 +327,7 @@ ssize_t Transporter::find_and_copy_message(topic_id_size_t *topic_ID, uint8_t *o
         {
             // The data we copied out and unstuffed was smaller than what the
             // payload was, so this definitely isn't a valid message.
+            return 0;
         }
 
         if ((unstuffed_size - header_len) > buffer_len)
