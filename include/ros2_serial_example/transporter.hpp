@@ -54,6 +54,32 @@ namespace ros2_to_serial_bridge
 namespace transport
 {
 
+/**
+ * The Transporter class provides an abstract class for transporting data over
+ * the serial wire.  The Transporter is responsible for marshalling and
+ * unmarshalling data in the proper serial wrapper, then calls the base class
+ * implementation of node_write() or node_read() to get data to and from the
+ * serial wire, respectively.
+ *
+ * The currently supported serial wire protocols are:
+ *
+ * PX4 - This is a wire protocol that is 100% compatible with the version from
+ * https://github.com/PX4/px4_ros_com.  The benefits to this protocol is that it
+ * has a fixed amount of overhead, is easy to understand/implement, and in some
+ * cases can be added to a payload without additional copies.  The downsides
+ * are that it isn't entirely robust to dropped/corrupt data, and that
+ * completely arbitrary data cannot really be sent as a payload (if the payload
+ * contains what looks like a header, this could be mistaken for the start of a
+ * new packet).
+ *
+ * COBS - This is an implementation of Consistent Overhead Byte Stuffing,
+ * described at https://en.wikipedia.org/wiki/Consistent_Overhead_Byte_Stuffing.
+ * The benefits to this protocol are that it has a small amount of overhead
+ * (though it is not fixed), is simple to implement, can send arbitrary data
+ * over the wire, and can recover from bit-flip failures fairly easily.  The
+ * downsides are that it is a bit harder to understand, and isn't fixed sized
+ * overhead.
+ */
 class Transporter
 {
 public:
@@ -65,24 +91,64 @@ public:
     Transporter(Transporter &&) = delete;
     Transporter& operator=(Transporter &&) = delete;
 
+    /**
+     * Do some transport-specific initialization.
+     *
+     * This method is provided so that derived classes can do transport-specific
+     * initialization.  If the derived class doesn't need to do any of this, it
+     * does not need to be overridden.
+     *
+     * @returns 0 on success, -1 on error.
+     */
     virtual int init() {return 0;}
+
+    /**
+     * Do some transport-specific close tasks.
+     *
+     * This method is provided so that derived classes can do transport-specific
+     * shutdown.  If the derived class doesn't need to do any of this, it does
+     * not need to be overridden.
+     *
+     * @returns 0 on success, -1 on error.
+     */
     virtual int close() {return 0;}
+
+    /**
+     * Read some data from the underlying transport and return the payload in
+     * out_buffer.
+     *
+     * This method will call down into the underlying transport and attempt to
+     * get some payload bytes.  If there are no valid payloads available, the
+     * method will typically return immediately with a return code of 0, though
+     * this depends on how the underlying transport is configured.
+     *
+     * @param[out] topic_ID The topic ID corresponding to the payload (only
+     *                      valid if the return value > 0).
+     * @param[out] out_buffer The buffer to receive the payload into.
+     * @param[in] buffer_len The maximum buffer length to receive the payload into.
+     * @returns The payload on success, 0 if there are no messages available,
+     *          and < 0 if the payload couldn't fit into the given buffer.
+     * @throws std::runtime_error If an internal contract was not fulfilled;
+     *         this is typically fatal.
+     */
     ssize_t read(topic_id_size_t *topic_ID, uint8_t *out_buffer, size_t buffer_len);
 
     /**
-     * write a buffer
-     * @param topic_ID
-     * @param buffer buffer to write: it must leave get_header_length() bytes free at the beginning. This will be
-     *               filled with the header. length does not include get_header_length(). So buffer looks like this:
-     *                -------------------------------------------------
-     *               | header (leave free)          | payload data     |
-     *               | get_header_length() bytes    | length bytes     |
-     *                -------------------------------------------------
-     * @param length buffer length excluding header length
-     * @return length on success, <0 on error
+     * Write data from a buffer out to the underlying transport.
+     *
+     * This method takes payload data passed to it, adds on the serial protocol
+     * configured during construction, then calls down to the underlying
+     * node_write() method to actually send the data out to the serial port.
+     *
+     * @param[in] topic_ID The topic ID to add to the message.
+     * @param[in] buffer The buffer containing the payload to send.
+     * @param[in] length The length of the payload buffer.
+     * @returns The length written on success, or -1 on error.
      */
-    ssize_t write(topic_id_size_t topic_ID, uint8_t *buffer, size_t data_length);
+    ssize_t write(topic_id_size_t topic_ID, uint8_t const *buffer, size_t data_length);
 
+    // These methods and members are protected because derived classes need
+    // access to them.
 protected:
     virtual ssize_t node_read() = 0;
     virtual ssize_t node_write(void *buffer, size_t len) = 0;
@@ -92,6 +158,8 @@ protected:
 
     impl::RingBuffer ringbuf_;
 
+    // These methods and members are protected because the tests need access
+    // to them.
 protected:
     enum class SerialProtocol
     {
@@ -99,9 +167,30 @@ protected:
         COBS,
     };
 
-    /** Get the Length of struct Header */
+    /** Get the length of the header.
+     *
+     * @returns The length of the header.
+     */
     size_t get_header_length();
 
+    /**
+     * Internal method to find a valid serial message in the ring buffer.
+     *
+     * This method goes looking through the ring buffer for a valid serial
+     * message (what constitues a valid serial message depends on the serial
+     * protocol currently in use).  If it finds a valid message, it unpacks it,
+     * stuffs the corresponding topic_ID, and fills in the output buffer with
+     * the payload.
+     *
+     * @param[out] topic_ID The topic ID corresponding to the payload (only
+     *                      valid if the return value > 0).
+     * @param[out] out_buffer The buffer to receive the payload into.
+     * @param[in] buffer_len The maximum buffer length to receive the payload into.
+     * @returns The payload on success, 0 if there are no messages available,
+     *          and < 0 if the payload couldn't fit into the given buffer.
+     * @throws std::runtime_error If an internal contract was not fulfilled;
+     *         this is typically fatal.
+     */
     ssize_t find_and_copy_message(topic_id_size_t *topic_ID, uint8_t *out_buffer, size_t buffer_len);
 
     SerialProtocol serial_protocol_;

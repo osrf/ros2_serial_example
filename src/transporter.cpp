@@ -458,7 +458,7 @@ size_t cobs_stuff_data(const uint8_t *input, size_t length, uint8_t *output)
     return write_index;
 }
 
-ssize_t Transporter::write(topic_id_size_t topic_ID, uint8_t *buffer, size_t data_length)
+ssize_t Transporter::write(topic_id_size_t topic_ID, uint8_t const *buffer, size_t data_length)
 {
     if (!fds_OK())
     {
