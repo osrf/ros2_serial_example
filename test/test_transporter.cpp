@@ -159,6 +159,57 @@ public:
     }
 };
 
+std::vector<uint8_t> setup_px4_test_data()
+{
+    // The amount of data we need is 3 bytes for the marker, plus the size of
+    // the topic id, plus 5 bytes for the sequence, payload, and CRC, plus 4
+    // bytes for the payload.
+    std::vector<uint8_t> test_data(3 + sizeof(topic_id_size_t) + 5 + 4);
+
+    topic_id_size_t topic_ID = 0xa;
+    size_t i = 0;
+    test_data[i++] = '>';  // marker 1
+    test_data[i++] = '>';  // marker 2
+    test_data[i++] = '>';  // marker 3
+    ::memcpy(&test_data[i], &topic_ID, sizeof(topic_id_size_t));  // topic id
+    i += sizeof(topic_id_size_t);
+    test_data[i++] = 0x00;  // sequence number
+    test_data[i++] = 0x00;  // payload length high
+    test_data[i++] = 0x04;  // payload length low
+    test_data[i++] = 0x6d;  // crc high
+    test_data[i++] = 0x10;  // crc low
+    test_data[i++] = 0x05;  // payload 1
+    test_data[i++] = 0x01;  // payload 2
+    test_data[i++] = 0x02;  // payload 3
+    test_data[i++] = 0x03;  // payload 4
+
+    return test_data;
+}
+
+std::vector<uint8_t> setup_cobs_test_data()
+{
+    // // The amount of data we need is 4 bytes for the header, plus the size of
+    // // the topic id, plus one byte for the final 0, plus 4 bytes for the payload.
+    // std::vector<uint8_t> test_data(4 + sizeof(topic_id_size_t) + 1 + 4);
+    // topic_id_size_t topic_ID = 0xa;
+    // size_t i = 0;
+
+    if (sizeof(topic_id_size_t) == 1)
+    {
+        return std::vector<uint8_t>{
+            0x2, 0xa, 0x8, 0x4, 0x6d, 0x10, 0x5, 0x1, 0x2, 0x3, 0x0,
+        };
+    }
+    else if (sizeof(topic_id_size_t) == 2)
+    {
+        return std::vector<uint8_t>{
+            0x2, 0xa, 0x1, 0x8, 0x4, 0x6d, 0x10, 0x5, 0x1, 0x2, 0x3, 0x0,
+        };
+    }
+
+    throw std::runtime_error("Invalid topic ID size");
+}
+
 TEST(TransporterPassThrough, px4_protocol)
 {
     TransporterPassThrough trans("px4", 1024);
@@ -201,7 +252,7 @@ TEST(TransporterPassThrough, invalid_protocol)
 
 TEST_F(PX4TransporterFixture, get_header_length)
 {
-    ASSERT_EQ(get_header_length(), 9U);
+    ASSERT_EQ(get_header_length(), sizeof(topic_id_size_t) + 8U);
 }
 
 TEST_F(PX4TransporterFixture, crc16_byte)
@@ -246,14 +297,8 @@ TEST_F(PX4TransporterFixture, write)
 
     ASSERT_EQ(write(0xa, buf.get(), 4), 4 + static_cast<ssize_t>(get_header_length()));
 
-    std::vector<uint8_t> expected{
-        '>', '>', '>',  // marker
-        0xa,  // topic id
-        0x0,  // sequence number
-        0x0, 0x4,  // payload length (high and low)
-        0x6d, 0x10,  // crc (high and low)
-        0x5, 0x1, 0x2, 0x3,  // payload
-    };
+    std::vector<uint8_t> expected = setup_px4_test_data();
+
     for (size_t i = 0; i < expected.size(); ++i)
     {
         ASSERT_EQ(written_data_.get()[i], expected[i]);
@@ -285,18 +330,9 @@ TEST_F(PX4TransporterFixture, read_message)
 {
     std::unique_ptr<uint8_t[]> buf = std::unique_ptr<uint8_t[]>(new uint8_t[4]{});
 
-    uint8_t read_data[]{
-        '>', '>', '>',  // marker
-        0x0a,  // topic id
-        0x00,  // sequence number
-        0x00,  // payload length high
-        0x04,  // payload length low
-        0x6d,  // crc high
-        0x10,  // crc low
-        0x05, 0x01, 0x02, 0x03,  // payload
-    };
+    std::vector<uint8_t> read_data = setup_px4_test_data();
 
-    add_to_memfd(read_data, sizeof(read_data));
+    add_to_memfd(&read_data[0], read_data.size());
 
     topic_id_size_t topic_id;
     ASSERT_EQ(read(&topic_id, buf.get(), 4), 4);
@@ -311,19 +347,10 @@ TEST_F(PX4TransporterFixture, read_message_already_available)
 {
     std::unique_ptr<uint8_t[]> buf = std::unique_ptr<uint8_t[]>(new uint8_t[4]{});
 
-    uint8_t read_data[]{
-        '>', '>', '>',  // marker
-        0x0a,  // topic id
-        0x00,  // sequence number
-        0x00,  // payload length high
-        0x04,  // payload length low
-        0x6d,  // crc high
-        0x10,  // crc low
-        0x05, 0x01, 0x02, 0x03,  // payload
-    };
+    std::vector<uint8_t> read_data = setup_px4_test_data();
 
-    add_to_memfd(read_data, sizeof(read_data));
-    ASSERT_EQ(node_read(), static_cast<ssize_t>(sizeof(read_data)));
+    add_to_memfd(&read_data[0], read_data.size());
+    ASSERT_EQ(node_read(), static_cast<ssize_t>(read_data.size()));
 
     topic_id_size_t topic_id;
     ASSERT_EQ(read(&topic_id, buf.get(), 4), 4);
@@ -336,7 +363,7 @@ TEST_F(PX4TransporterFixture, read_message_already_available)
 
 TEST_F(COBSTransporterFixture, get_header_length)
 {
-    ASSERT_EQ(get_header_length(), 5U);
+    ASSERT_EQ(get_header_length(), sizeof(topic_id_size_t) + 4U);
 }
 
 TEST_F(COBSTransporterFixture, write)
@@ -349,13 +376,59 @@ TEST_F(COBSTransporterFixture, write)
 
     ASSERT_EQ(write(0xa, buf.get(), 4), 4 + static_cast<ssize_t>(get_header_length()) + 1 + 1);
 
-    std::vector<uint8_t> expected{
-        0x2, 0xa, 0x8, 0x4, 0x6d, 0x10, 0x5, 0x1, 0x2, 0x3, 0x0,
-    };
+    std::vector<uint8_t> expected = setup_cobs_test_data();
+
     for (size_t i = 0; i < expected.size(); ++i)
     {
         ASSERT_EQ(written_data_.get()[i], expected[i]);
     }
+}
+
+std::vector<uint8_t> setup_cobs_long_data()
+{
+    if (sizeof(topic_id_size_t) == 1)
+    {
+        std::vector<uint8_t> test_data{
+            0xff, 0xa, 0x1, 0x2c, 0xb6, 0x4a
+        };
+
+        size_t header_size = test_data.size();
+
+        test_data.resize(header_size + 300 + 1 + 1);
+        fprintf(stderr, "Setting %lu to 0\n", test_data.size() - 1);
+        test_data[test_data.size() - 1] = 0x0;
+
+        for (size_t i = header_size; i < test_data.size() - 1; ++i)
+        {
+            test_data[i] = 0x1;
+        }
+
+        test_data[255] = 0x34;
+
+        return test_data;
+    }
+    else if (sizeof(topic_id_size_t) == 2)
+    {
+        std::vector<uint8_t> test_data{
+            0x2, 0xa, 0xff, 0x1, 0x2c, 0xb6, 0x4a
+        };
+
+        size_t header_size = test_data.size();
+
+        test_data.resize(header_size + 300 + 1 + 1);
+        test_data[test_data.size() - 1] = 0x0;
+
+        for (size_t i = header_size; i < test_data.size() - 1; ++i)
+        {
+            test_data[i] = 0x1;
+        }
+
+        test_data[257] = 0x33;
+
+        return test_data;
+    }
+
+    throw std::runtime_error("Unsupported topic_id_size_t size");
 }
 
 TEST_F(COBSTransporterFixture, write_long_sequence)
@@ -368,39 +441,20 @@ TEST_F(COBSTransporterFixture, write_long_sequence)
 
     ASSERT_EQ(write(0xa, buf.get(), 300), 300 + static_cast<ssize_t>(get_header_length()) + 1 + 1 + 1);
 
-    std::vector<uint8_t> expected_header{
-        0xff, 0xa, 0x1, 0x2c, 0xb6, 0x4a
-    };
+    std::vector<uint8_t> expected = setup_cobs_long_data();
 
-    for (size_t i = 0; i < expected_header.size(); ++i)
+    for (size_t i = 0; i < expected.size(); ++i)
     {
-        ASSERT_EQ(written_data_.get()[i], expected_header[i]);
+        ASSERT_EQ(written_data_.get()[i], expected[i]);
     }
-
-    for (size_t i = 6; i < 255; ++i)
-    {
-        ASSERT_EQ(written_data_.get()[i], 0x1);
-    }
-
-    ASSERT_EQ(written_data_.get()[255], 0x34);
-
-    for (size_t i = 256; i < 307; ++i)
-    {
-        ASSERT_EQ(written_data_.get()[i], 0x1);
-    }
-
-    ASSERT_EQ(written_data_.get()[307], 0x0);
 }
 
 TEST_F(COBSTransporterFixture, read_message)
 {
     std::unique_ptr<uint8_t[]> buf = std::unique_ptr<uint8_t[]>(new uint8_t[4]{});
 
-    uint8_t read_data[]{
-        0x2, 0xa, 0x8, 0x4, 0x6d, 0x10, 0x5, 0x1, 0x2, 0x3, 0x0,
-    };
-
-    add_to_memfd(read_data, sizeof(read_data));
+    std::vector<uint8_t> read_data = setup_cobs_test_data();
+    add_to_memfd(&read_data[0], read_data.size());
 
     topic_id_size_t topic_id;
     ASSERT_EQ(read(&topic_id, buf.get(), 4), 4);
@@ -415,12 +469,10 @@ TEST_F(COBSTransporterFixture, read_message_already_available)
 {
     std::unique_ptr<uint8_t[]> buf = std::unique_ptr<uint8_t[]>(new uint8_t[4]{});
 
-    uint8_t read_data[]{
-        0x2, 0xa, 0x8, 0x4, 0x6d, 0x10, 0x5, 0x1, 0x2, 0x3, 0x0,
-    };
+    std::vector<uint8_t> read_data = setup_cobs_test_data();
+    add_to_memfd(&read_data[0], read_data.size());
 
-    add_to_memfd(read_data, sizeof(read_data));
-    ASSERT_EQ(node_read(), static_cast<ssize_t>(sizeof(read_data)));
+    ASSERT_EQ(node_read(), static_cast<ssize_t>(read_data.size()));
 
     topic_id_size_t topic_id;
     ASSERT_EQ(read(&topic_id, buf.get(), 4), 4);
