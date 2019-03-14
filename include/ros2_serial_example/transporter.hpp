@@ -83,6 +83,13 @@ namespace transport
 class Transporter
 {
 public:
+    /**
+     * Do Transporter-specific initialization.
+     *
+     * Since this is an abstract class, it can't be directly constructed, but
+     * this constructor is expected to be called during the derived class
+     * constructor to setup the Transporter.
+     */
     explicit Transporter(const std::string & protocol, size_t ring_buffer_size);
     virtual ~Transporter();
 
@@ -126,8 +133,9 @@ public:
      *                      valid if the return value > 0).
      * @param[out] out_buffer The buffer to receive the payload into.
      * @param[in] buffer_len The maximum buffer length to receive the payload into.
-     * @returns The payload on success, 0 if there are no messages available,
-     *          and < 0 if the payload couldn't fit into the given buffer.
+     * @returns The payload size on success, 0 if there are no messages
+     *          available, and < 0 if the payload couldn't fit into the given
+     *          buffer.
      * @throws std::runtime_error If an internal contract was not fulfilled;
      *         this is typically fatal.
      */
@@ -143,17 +151,68 @@ public:
      * @param[in] topic_ID The topic ID to add to the message.
      * @param[in] buffer The buffer containing the payload to send.
      * @param[in] length The length of the payload buffer.
-     * @returns The length written on success, or -1 on error.
+     * @returns The payload length written on success, or -1 on error.
      */
     ssize_t write(topic_id_size_t topic_ID, uint8_t const *buffer, size_t data_length);
 
     // These methods and members are protected because derived classes need
     // access to them.
 protected:
+    /**
+     * Pure virtual method to read data from the underlying transport.
+     *
+     * Derived classes should override this method to read some data from the
+     * underlying transport and store it into the ring buffer.  How much data
+     * to read and how long to wait for the data is implementation specific.
+     *
+     * @returns The number of bytes read, or -1 on error.
+     */
     virtual ssize_t node_read() = 0;
+
+    /**
+     * Pure virtual method to write data to the underlying transport.
+     *
+     * Derived classes should override this method to write some data to the
+     * underlying transport.  This method should not return until either all
+     * of the data has been written or an error occurs.
+     *
+     * @params[in] buffer The buffer containing the data to write.
+     * @params[in] len The number of bytes in the buffer to write.
+     * @returns The number of bytes written on success (which must be equal to
+     *          len), or -1 on error.
+     */
     virtual ssize_t node_write(void *buffer, size_t len) = 0;
+
+    /**
+     * Pure virtual method to detect whether the file descriptors are ready.
+     *
+     * Derived classes should override this method to determine whether the
+     * underlying transport is ready to send and receive data.
+     *
+     * @returns true if the underlying transport is ready to send and receive
+     *          data, false otherwise.
+     */
     virtual bool fds_OK() = 0;
+
+    /**
+     * Method to add the CRC16 of one additional byte.
+     *
+     * Given an existing CRC16 and a new byte, update the CRC16 to include the
+     * data from the new byte.
+     *
+     * @param[in] crc The existing CRC16.
+     * @param[in] data The new byte to add to the CRC16.
+     * @returns The new CRC16.
+     */
     uint16_t crc16_byte(uint16_t crc, uint8_t data);
+
+    /**
+     * Method to calculate the CRC16 of an entire buffer.
+     *
+     * @param[in] buffer The buffer to calculate the CRC16 over.
+     * @param[in] len The length of the buffer to calculate.
+     * @returns The CRC16 of the entire buffer.
+     */
     uint16_t crc16(uint8_t const *buffer, size_t len);
 
     impl::RingBuffer ringbuf_;

@@ -23,9 +23,20 @@ namespace ros2_to_serial_bridge
 namespace pubsub
 {
 
+/**
+ * The Subscription class provides an base class for taking data from the ROS 2
+ * network and serializing it to CDR to be sent to the serial transport.
+ */
 class Subscription
 {
 public:
+    /**
+     * Do subscription-specific initialization.
+     *
+     * Since this is an abstract class, it can't be directly constructed, but
+     * this constructor is expected to be called during the derived class
+     * constructor to setup the Publisher.
+     */
     Subscription() {}
     virtual ~Subscription() {}
 
@@ -34,6 +45,11 @@ public:
     Subscription(Subscription &&) = delete;
     Subscription& operator=(Subscription &&) = delete;
 
+    /**
+     * Get the serial mapping number for this subscription.
+     *
+     * @returns The serial mapping number for this subscription.
+     */
     topic_id_size_t get_serial_mapping() const
     {
         return serial_mapping_;

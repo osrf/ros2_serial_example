@@ -33,10 +33,25 @@ namespace ros2_to_serial_bridge
 namespace pubsub
 {
 
+/**
+ * The PublisherImpl class is an implementation of the abstract Publisher class.
+ * As such, it implements the pure virtual function dispatch() to take
+ * CDR-serialized data and transmit it on the ROS 2 network.  One of these
+ * objects will be created for each SerialToROS2 topic mapping the user sets up
+ * in the bridge configuration file.
+ */
 template<typename T>
 class PublisherImpl final : public Publisher
 {
 public:
+    /**
+     * Construct a PublisherImpl object with the given serialization parameters.
+     *
+     * @param[in] node The rclcpp::Node to use to create a publisher.
+     * @param[in] name The name of the topic to publish to.
+     * @param[in] des A function pointer to the deserialization function for
+     *                this CDR type.
+     */
     explicit PublisherImpl(const std::shared_ptr<rclcpp::Node> & node, const std::string & name,
                            std::function<bool(eprosima::fastcdr::Cdr &, T &)> des)
         : deserialize_(des), name_(name), node_(node)
@@ -44,6 +59,12 @@ public:
         pub_ = node->create_publisher<T>(name);
     }
 
+    /**
+     * Implementation of method to take CDR-serialized data and send it to the ROS 2 network.
+     *
+     * @param[in] data_buffer The buffer containing the CDR-serialized data to send
+     * @param[in] length The length of the data_buffer
+     */
     void dispatch(uint8_t *data_buffer, ssize_t length) override
     {
         eprosima::fastcdr::FastBuffer cdrbuffer(reinterpret_cast<char *>(data_buffer), length);
