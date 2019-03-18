@@ -335,14 +335,10 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    rclcpp::Parameter baudparm;
-    if (node->get_parameter("baudrate", baudparm))
+    if (!node->get_parameter("baudrate", baudrate))
     {
-        baudrate = baudparm.get_value<uint32_t>();
-    }
-    else
-    {
-        baudrate = 0;
+        ::fprintf(stderr, "No baudrate specified, cannot continue\n");
+        return 1;
     }
 
     // TODO(clalancette): Make the read_poll_ms configurable
