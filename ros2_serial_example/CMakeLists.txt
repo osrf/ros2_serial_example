@@ -82,7 +82,7 @@ target_link_libraries(transporter
 )
 
 add_executable(ros2_to_serial_bridge
-  src/ros2_to_serial_bridge.cpp
+  src/ros2_to_serial_bridge_main.cpp
   src/uart_transporter.cpp
   ${_generated_sources}
 )
