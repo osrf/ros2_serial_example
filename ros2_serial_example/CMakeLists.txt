@@ -13,6 +13,7 @@ endif()
 find_package(ament_cmake_ros REQUIRED)
 find_package(fastcdr REQUIRED CONFIG)
 find_package(rclcpp REQUIRED)
+find_package(ros2_serial_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(Threads REQUIRED)
 
@@ -88,6 +89,7 @@ add_executable(ros2_to_serial_bridge
 ament_target_dependencies(ros2_to_serial_bridge
   fastcdr
   rclcpp
+  ros2_serial_msgs
   ${_deps}
 )
 target_link_libraries(ros2_to_serial_bridge
@@ -102,6 +104,7 @@ add_executable(dummy_serial
 )
 ament_target_dependencies(dummy_serial
   fastcdr
+  ros2_serial_msgs
 )
 target_link_libraries(dummy_serial
   fastcdr

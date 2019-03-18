@@ -39,6 +39,7 @@
 #define ROS2_SERIAL_EXAMPLE__TRANSPORTER_HPP_
 
 #include <cstdint>
+#include <mutex>
 #include <string>
 
 #include "ros2_serial_example/ring_buffer.hpp"
@@ -252,6 +253,7 @@ protected:
      */
     ssize_t find_and_copy_message(topic_id_size_t *topic_ID, uint8_t *out_buffer, size_t buffer_len);
 
+private:
     SerialProtocol serial_protocol_;
     uint8_t seq_{0};
     struct __attribute__((packed)) PX4Header
@@ -273,6 +275,7 @@ protected:
         uint8_t crc_h;
         uint8_t crc_l;
     };
+    std::mutex write_mutex_;
 };
 
 }  // namespace transport

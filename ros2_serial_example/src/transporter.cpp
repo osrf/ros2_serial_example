@@ -471,6 +471,8 @@ ssize_t Transporter::write(topic_id_size_t topic_ID, uint8_t const *buffer, size
         return -1;
     }
 
+    std::lock_guard<std::mutex> lock(write_mutex_);
+
     size_t header_len = get_header_length();
 
     std::unique_ptr<uint8_t[]> write_buf;

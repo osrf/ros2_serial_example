@@ -19,6 +19,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <functional>
+#include <limits>
 #include <map>
 #include <memory>
 #include <stdexcept>
@@ -43,7 +44,7 @@ namespace pubsub
 struct TopicMapping final
 {
     std::string type{""};
-    topic_id_size_t serial_mapping{0};
+    int64_t serial_mapping{-1};
     enum class Direction
     {
         UNKNOWN,
@@ -75,9 +76,21 @@ public:
         // (not UNKNOWN).
         for (const auto & t : topic_names_and_serialization)
         {
-            if (t.second.type.empty() || t.second.serial_mapping == 0 || t.second.direction == TopicMapping::Direction::UNKNOWN)
+            if (t.second.type.empty() || t.second.serial_mapping < 0 || t.second.direction == TopicMapping::Direction::UNKNOWN)
             {
                 fprintf(stderr, "Topic '%s' missing type, serial_mapping, or direction; skipping\n", t.first.c_str());
+                continue;
+            }
+
+            if (t.second.serial_mapping == 0 || t.second.serial_mapping == 1)
+            {
+                fprintf(stderr, "Topic '%s' uses reserved serial mapping number %ld; skipping\n", t.first.c_str(), t.second.serial_mapping);
+                continue;
+            }
+
+            if (t.second.serial_mapping > std::numeric_limits<topic_id_size_t>::max())
+            {
+                fprintf(stderr, "Topic '%s' uses serial mapping number > %lu; skipping\n", t.first.c_str(), sizeof(topic_id_size_t));
                 continue;
             }
 
