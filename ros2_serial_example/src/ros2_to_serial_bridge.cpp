@@ -303,6 +303,8 @@ int main(int argc, char *argv[])
     uint32_t baudrate;
     int64_t dynamic_serial_mapping_ms{-1};
     uint32_t read_poll_ms;
+    size_t ring_buffer_size;
+    uint64_t write_sleep_ms;
 
     rclcpp::init(argc, argv);
 
@@ -348,7 +350,19 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    std::unique_ptr<ros2_to_serial_bridge::transport::Transporter> transporter = std::make_unique<ros2_to_serial_bridge::transport::UARTTransporter>(device, serial_protocol, baudrate, read_poll_ms, 8192);
+    if (!node->get_parameter("ring_buffer_size", ring_buffer_size))
+    {
+        ::fprintf(stderr, "No ring_buffer_size specified, cannot continue\n");
+        return 1;
+    }
+
+    if (!node->get_parameter("write_sleep_ms", write_sleep_ms))
+    {
+        ::fprintf(stderr, "No write_sleep_ms specified, cannot continue\n");
+        return 1;
+    }
+
+    std::unique_ptr<ros2_to_serial_bridge::transport::Transporter> transporter = std::make_unique<ros2_to_serial_bridge::transport::UARTTransporter>(device, serial_protocol, baudrate, read_poll_ms, ring_buffer_size);
 
     if (transporter->init() < 0)
     {
@@ -388,14 +402,7 @@ int main(int argc, char *argv[])
 
     std::thread read_thread(read_thread_func, transporter.get(), ros2_topics.get());
 
-    // This loop rate translates linearly into the latency to take data from
-    // the ROS 2 network and output it to the serial port.  250Hz is a decent
-    // balance between CPU time and latency (4ms), but if you are willing to
-    // sacrifice CPU time to get better latency, increase this to 1000 or more.
-    // It is not recommended to set this lower than 10 (100ms); that will cause
-    // the application to feel "sluggish" to the user.
-    // TODO(clalancette): Make this configurable via the config file
-    rclcpp::WallRate loop_rate(250);
+    rclcpp::WallRate loop_rate(1000.0 / static_cast<double>(write_sleep_ms));
     while (rclcpp::ok() && running != 0)
     {
         // Process ROS 2 -> serial data (via callbacks)
