@@ -26,6 +26,9 @@
 #include <fastcdr/Cdr.h>
 #include <fastcdr/FastCdr.h>
 
+#include "ros2_serial_msgs/msg/serial_mapping.hpp"
+#include "ros2_serial_msgs/msg/serial_mapping__rosidl_typesupport_fastrtps_cpp.hpp"
+
 #include "ros2_serial_example/transporter.hpp"
 #include "ros2_serial_example/uart_transporter.hpp"
 
@@ -60,12 +63,45 @@ void read_thread_func(ros2_to_serial_bridge::transport::Transporter * transporte
         // Process data coming over serial
         if ((length = transporter->read(&topic_ID, data_buffer.get(), BUFFER_SIZE)) > 0)
         {
-            ::fprintf(stderr, "Topic ID: %d, data: ", topic_ID);
-            for (ssize_t i = 0; i < length; ++i)
+            if (topic_ID == 0)
             {
-              ::fprintf(stderr, "0x%x ", *(data_buffer.get() + i));
+                // The other side is requesting a manifest
+                ros2_serial_msgs::msg::SerialMapping serial_mapping;
+
+                serial_mapping.topic_names.push_back("chatter");
+                serial_mapping.serial_mappings.push_back(9);
+                serial_mapping.types.push_back("std_msgs/String");
+                serial_mapping.direction.push_back(ros2_serial_msgs::msg::SerialMapping::SERIALTOROS2);
+
+                serial_mapping.topic_names.push_back("uint16topic");
+                serial_mapping.serial_mappings.push_back(12);
+                serial_mapping.types.push_back("std_msgs/UInt16");
+                serial_mapping.direction.push_back(ros2_serial_msgs::msg::SerialMapping::SERIALTOROS2);
+
+                serial_mapping.topic_names.push_back("another");
+                serial_mapping.serial_mappings.push_back(13);
+                serial_mapping.types.push_back("std_msgs/String");
+                serial_mapping.direction.push_back(ros2_serial_msgs::msg::SerialMapping::ROS2TOSERIAL);
+
+                size_t serialized_size = ros2_serial_msgs::msg::typesupport_fastrtps_cpp::get_serialized_size(serial_mapping, 0);
+                std::unique_ptr<uint8_t[]> data_buffer = std::unique_ptr<uint8_t[]>(new uint8_t[serialized_size]{});
+                eprosima::fastcdr::FastBuffer cdrbuffer(reinterpret_cast<char *>(data_buffer.get()), serialized_size);
+                eprosima::fastcdr::Cdr scdr(cdrbuffer);
+                ros2_serial_msgs::msg::typesupport_fastrtps_cpp::cdr_serialize(serial_mapping, scdr);
+                if (transporter->write(1, data_buffer.get(), scdr.getSerializedDataLength()) < 0)
+                {
+                    ::fprintf(stderr, "Failed to write dynamic response: %s\n", ::strerror(errno));
+                }
             }
-            ::fprintf(stderr, "\n");
+            else
+            {
+                ::fprintf(stderr, "Topic ID: %d, data: ", topic_ID);
+                for (ssize_t i = 0; i < length; ++i)
+                {
+                    ::fprintf(stderr, "0x%x ", *(data_buffer.get() + i));
+                }
+                ::fprintf(stderr, "\n");
+            }
         }
     }
 }
