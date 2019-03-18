@@ -57,7 +57,7 @@ struct TopicMapping final
 class ROS2Topics final
 {
 public:
-    explicit ROS2Topics(const std::shared_ptr<rclcpp::Node> & node,
+    explicit ROS2Topics(rclcpp::Node * node,
                         const std::map<std::string, TopicMapping> & topic_names_and_serialization,
                         ros2_to_serial_bridge::transport::Transporter * transporter)
     {
@@ -148,8 +148,8 @@ public:
 private:
     std::map<topic_id_size_t, std::unique_ptr<Publisher>> serial_to_pub_;
     std::vector<std::unique_ptr<Subscription>> serial_subs_;
-    std::map<std::string, std::function<std::unique_ptr<Publisher>(const std::shared_ptr<rclcpp::Node>, const std::string &)>> pub_type_to_factory_;
-    std::map<std::string, std::function<std::unique_ptr<Subscription>(const std::shared_ptr<rclcpp::Node>, topic_id_size_t, const std::string &, ros2_to_serial_bridge::transport::Transporter *)>> sub_type_to_factory_;
+    std::map<std::string, std::function<std::unique_ptr<Publisher>(rclcpp::Node *, const std::string &)>> pub_type_to_factory_;
+    std::map<std::string, std::function<std::unique_ptr<Subscription>(rclcpp::Node *, topic_id_size_t, const std::string &, ros2_to_serial_bridge::transport::Transporter *)>> sub_type_to_factory_;
 };
 
 }  // namespace pubsub

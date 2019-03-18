@@ -52,11 +52,11 @@ public:
      * @param[in] des A function pointer to the deserialization function for
      *                this CDR type.
      */
-    explicit PublisherImpl(const std::shared_ptr<rclcpp::Node> & node, const std::string & name,
+    explicit PublisherImpl(rclcpp::Node * node, const std::string & name,
                            std::function<bool(eprosima::fastcdr::Cdr &, T &)> des)
         : deserialize_(des), name_(name), node_(node)
     {
-        pub_ = node->create_publisher<T>(name);
+        pub_ = node_->create_publisher<T>(name);
     }
 
     /**
@@ -93,7 +93,7 @@ public:
 private:
     std::function<bool(eprosima::fastcdr::Cdr &, T &)> deserialize_;
     std::string name_;
-    std::shared_ptr<rclcpp::Node> node_;
+    rclcpp::Node * node_;
     std::shared_ptr<rclcpp::Publisher<T>> pub_;
 };
 

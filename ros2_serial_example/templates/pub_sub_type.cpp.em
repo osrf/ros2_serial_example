@@ -36,14 +36,14 @@ namespace ros2_to_serial_bridge
 namespace pubsub
 {
 
-std::unique_ptr<Publisher> @(ros2_type.ns)_@(ros2_type.lower_type)_pub_factory(const std::shared_ptr<rclcpp::Node> node, const std::string & topic)
+std::unique_ptr<Publisher> @(ros2_type.ns)_@(ros2_type.lower_type)_pub_factory(rclcpp::Node * node, const std::string & topic)
 {
     typedef bool (*des_t)(eprosima::fastcdr::Cdr &, @(ros2_type.ns)::msg::@(ros2_type.ros_type) &);
     des_t des = @(ros2_type.ns)::msg::typesupport_fastrtps_cpp::cdr_deserialize;
     return std::make_unique<PublisherImpl<@(ros2_type.ns)::msg::@(ros2_type.ros_type)>>(node, topic, des);
 }
 
-std::unique_ptr<Subscription> @(ros2_type.ns)_@(ros2_type.lower_type)_sub_factory(const std::shared_ptr<rclcpp::Node> node, topic_id_size_t serial_mapping, const std::string & topic, ros2_to_serial_bridge::transport::Transporter * transporter)
+std::unique_ptr<Subscription> @(ros2_type.ns)_@(ros2_type.lower_type)_sub_factory(rclcpp::Node * node, topic_id_size_t serial_mapping, const std::string & topic, ros2_to_serial_bridge::transport::Transporter * transporter)
 {
     typedef size_t (*getsize_t)(const @(ros2_type.ns)::msg::@(ros2_type.ros_type) &, size_t);
     getsize_t getsize = @(ros2_type.ns)::msg::typesupport_fastrtps_cpp::get_serialized_size;

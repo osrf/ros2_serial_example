@@ -48,7 +48,7 @@ public:
     /**
      * Construct a SubscriptionImpl object with the given serialization parameters.
      *
-     * @param[in] node The rclcpp::Node to use to create a publisher.
+     * @param[in] node The rclcpp::Node to use to create the subscription.
      * @param[in] mapping The number mapping this ROS 2 topic to the serial
      *                    topic ID.
      * @param[in] name The name of the topic to subscribe to.
@@ -60,7 +60,7 @@ public:
      * @param[in] serialize A function pointer to the function to serialize the
      *                      data into CDR.
      */
-    explicit SubscriptionImpl(const std::shared_ptr<rclcpp::Node> & node,
+    explicit SubscriptionImpl(rclcpp::Node * node,
                               topic_id_size_t mapping,
                               const std::string & name,
                               transport::Transporter * transporter,
