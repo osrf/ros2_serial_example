@@ -140,8 +140,7 @@ static std::unique_ptr<ros2_to_serial_bridge::pubsub::ROS2Topics> parse_node_par
         }
         else if (param_name == "type")
         {
-            std::string type = node->get_parameter(name).get_value<std::string>();
-            topic_names_and_serialization[topic_name].type = type;
+            topic_names_and_serialization[topic_name].type = node->get_parameter(name).get_value<std::string>();
         }
         else if (param_name == "direction")
         {
@@ -210,9 +209,11 @@ int main(int argc, char *argv[])
     std::string device{};
     std::string serial_protocol{};
     uint32_t baudrate;
+    bool dynamic_serial_mapping{false};
 
     rclcpp::init(argc, argv);
 
+    // TODO(clalancette): Make this node composable
     auto node = rclcpp::Node::make_shared("ros2_to_serial_bridge");
 
     if (!node->get_parameter("device", device))
@@ -224,6 +225,12 @@ int main(int argc, char *argv[])
     if (!node->get_parameter("serial_protocol", serial_protocol))
     {
         ::fprintf(stderr, "No serial_protocol specified, cannot continue\n");
+        return 1;
+    }
+
+    if (!node->get_parameter("dynamic_serial_mapping", dynamic_serial_mapping))
+    {
+        ::fprintf(stderr, "No dynamic_serial_mapping specified, cannot continue\n");
         return 1;
     }
 
@@ -244,10 +251,19 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    std::shared_ptr<ros2_to_serial_bridge::pubsub::ROS2Topics> ros2_topics = parse_node_parameters_for_topics(node, transporter.get());
-    if (ros2_topics == nullptr)
+    std::unique_ptr<ros2_to_serial_bridge::pubsub::ROS2Topics> ros2_topics;
+    if (dynamic_serial_mapping)
     {
+        fprintf(stderr, "Dynamic serial mapping not yet implemented\n");
         return 2;
+    }
+    else
+    {
+        ros2_topics = parse_node_parameters_for_topics(node, transporter.get());
+        if (ros2_topics == nullptr)
+        {
+            return 2;
+        }
     }
 
     ::signal(SIGINT, signal_handler);
@@ -258,6 +274,9 @@ int main(int argc, char *argv[])
     // the ROS 2 network and output it to the serial port.  250Hz is a decent
     // balance between CPU time and latency (4ms), but if you are willing to
     // sacrifice CPU time to get better latency, increase this to 1000 or more.
+    // It is not recommended to set this lower than 10 (100ms); that will cause
+    // the application to feel "sluggish" to the user.
+    // TODO(clalancette): Make this configurable via the config file
     rclcpp::WallRate loop_rate(250);
     while (rclcpp::ok() && running != 0)
     {

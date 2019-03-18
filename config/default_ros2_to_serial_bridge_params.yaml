@@ -1,6 +1,8 @@
 ros2_to_serial_bridge:
     ros__parameters:
-        device: /dev/pts/25
+        device: /dev/pts/6
+        baudrate: 0
+        dynamic_serial_mapping: false
         serial_protocol: px4
         topics:
             chatter:
