@@ -81,19 +81,28 @@ target_link_libraries(transporter
   ring_buffer
 )
 
+add_library(bridge_gen
+  ${_generated_sources}
+)
+ament_target_dependencies(bridge_gen
+  rclcpp
+  ${_deps}
+)
+target_link_libraries(bridge_gen
+  fastcdr
+)
+
 add_executable(ros2_to_serial_bridge
   src/ros2_to_serial_bridge.cpp
   src/ros2_to_serial_bridge_main.cpp
   src/uart_transporter.cpp
-  ${_generated_sources}
 )
 ament_target_dependencies(ros2_to_serial_bridge
-  fastcdr
   rclcpp
   ros2_serial_msgs
-  ${_deps}
 )
 target_link_libraries(ros2_to_serial_bridge
+  bridge_gen
   fastcdr
   ring_buffer
   transporter
@@ -104,7 +113,6 @@ add_executable(dummy_serial
   src/uart_transporter.cpp
 )
 ament_target_dependencies(dummy_serial
-  fastcdr
   ros2_serial_msgs
 )
 target_link_libraries(dummy_serial
@@ -114,7 +122,7 @@ target_link_libraries(dummy_serial
   ${CMAKE_THREAD_LIBS_INIT}
 )
 
-install(TARGETS ring_buffer transporter
+install(TARGETS ring_buffer transporter bridge_gen
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin
@@ -134,6 +142,9 @@ if(BUILD_TESTING)
 
   ament_add_gtest(test_transporter test/test_transporter.cpp)
   target_link_libraries(test_transporter transporter)
+
+  ament_add_gtest(test_ros2_topics test/test_ros2_topics.cpp)
+  target_link_libraries(test_ros2_topics transporter bridge_gen)
 endif()
 
 ament_package()

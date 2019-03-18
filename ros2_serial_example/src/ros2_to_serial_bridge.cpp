@@ -18,6 +18,8 @@
 #include <stdexcept>
 #include <string>
 
+#include <fastcdr/Cdr.h>
+
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/empty__rosidl_typesupport_fastrtps_cpp.hpp>
 

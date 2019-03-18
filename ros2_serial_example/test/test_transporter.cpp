@@ -238,7 +238,7 @@ TEST(TransporterPassThrough, invalid_protocol)
     {
         if (std::string(e.what()).find("Invalid protocol") == std::string::npos)
         {
-          FAIL() << "Expected error msg containing: " << std::endl
+          FAIL() << "Expected error msg containing: Invalid protocol" << std::endl
                  << "Saw error msg: " << std::endl
                  << e.what() << std::endl;
         }
