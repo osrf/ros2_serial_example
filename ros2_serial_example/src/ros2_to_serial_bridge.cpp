@@ -302,6 +302,7 @@ int main(int argc, char *argv[])
     std::string serial_protocol{};
     uint32_t baudrate;
     int64_t dynamic_serial_mapping_ms{-1};
+    uint32_t read_poll_ms;
 
     rclcpp::init(argc, argv);
 
@@ -341,8 +342,13 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    // TODO(clalancette): Make the read_poll_ms configurable
-    std::unique_ptr<ros2_to_serial_bridge::transport::Transporter> transporter = std::make_unique<ros2_to_serial_bridge::transport::UARTTransporter>(device, serial_protocol, baudrate, 100, 8192);
+    if (!node->get_parameter("read_poll_ms", read_poll_ms))
+    {
+        ::fprintf(stderr, "No read_poll_ms specified, cannot continue\n");
+        return 1;
+    }
+
+    std::unique_ptr<ros2_to_serial_bridge::transport::Transporter> transporter = std::make_unique<ros2_to_serial_bridge::transport::UARTTransporter>(device, serial_protocol, baudrate, read_poll_ms, 8192);
 
     if (transporter->init() < 0)
     {

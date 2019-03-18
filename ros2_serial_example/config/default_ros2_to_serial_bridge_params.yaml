@@ -3,11 +3,18 @@ ros2_to_serial_bridge:
         device: /dev/pts/6             # Which device to use for communications.
         baudrate: 0                    # The baudrate to set on the device; if
                                        # set to 0, setting baudrate is skipped.
-        dynamic_serial_mapping_ms: 500 # How much time to wait to get dynamic
-                                       # ROS2-to-serial mapping from the serial
-                                       # side.  If less than 0, dynamic mapping
-                                       # is disabled and only the topics below
-                                       # will be setup.  If exactly 0, wait
+        read_poll_ms: 100              # How many milliseconds to wait for new
+                                       # data to come in from the serial port.
+                                       # Larger numbers can use less CPU time,
+                                       # but affect the responsiveness of the
+                                       # program.  The default value of 100 is
+                                       # a good compromise between
+                                       # responsiveness and CPU time.
+        dynamic_serial_mapping_ms: 500 # How many milliseconds to wait to get
+                                       # dynamic ROS2-to-serial mapping from the
+                                       # serial side.  If less than 0, dynamic
+                                       # mapping is disabled and the topics
+                                       # below will be used.  If exactly 0, wait
                                        # forever for the other side to respond.
                                        # If greater than 0, wait that many
                                        # milliseconds for a response before
