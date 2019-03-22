@@ -37,8 +37,11 @@ constexpr int BUFFER_SIZE = 1024;
 static void usage(const char *name)
 {
     ::printf("Usage: %s [options]\n\n"
-             "  -d <device> UART device. Default /dev/ttyACM0\n"
-             "  -h          Print this help message\n",
+             "  -b <baudrate> Baudrate to use for the device\n"
+             "  -d <device>   UART device; Must be specified\n"
+             "  -h            Print this help message\n"
+             "  -s <protocol> Serial protocol to use; currently supported are\n"
+             "                'cobs' (default) and 'px4'\n",
              name);
 }
 
@@ -110,7 +113,7 @@ int main(int argc, char *argv[])
 {
     std::string device{};
     uint32_t baudrate = 0;
-    std::string serial_protocol{"px4"};
+    std::string serial_protocol{"cobs"};
 
     int ch;
     while ((ch = ::getopt(argc, argv, "b:d:hs:")) != EOF)
@@ -158,6 +161,13 @@ int main(int argc, char *argv[])
 
     if (optind < argc)
     {
+        usage(argv[0]);
+        return 1;
+    }
+
+    if (device.empty())
+    {
+        fprintf(stderr, "No device specified\n");
         usage(argv[0]);
         return 1;
     }
