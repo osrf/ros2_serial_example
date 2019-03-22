@@ -116,7 +116,7 @@ Transporter::~Transporter()
 
 uint16_t Transporter::crc16_byte(uint16_t crc, uint8_t data)
 {
-    return (crc >> 8) ^ crc16_table[(crc ^ data) & 0xff];
+    return static_cast<uint8_t>(crc >> 8U) ^ crc16_table[static_cast<uint8_t>(crc ^ data)];
 }
 
 uint16_t Transporter::crc16(uint8_t const *buffer, size_t len)
@@ -218,7 +218,7 @@ ssize_t Transporter::find_and_copy_message(topic_id_size_t *topic_ID, uint8_t *o
 
         PX4Header *header = reinterpret_cast<PX4Header *>(headerbuf.get());
 
-        uint32_t payload_len = (static_cast<uint32_t>(header->payload_len_h) << 8) | header->payload_len_l;
+        uint16_t payload_len = static_cast<uint16_t>(static_cast<uint16_t>(header->payload_len_h) << 8U) | header->payload_len_l;
 
         if (buffer_len < payload_len)
         {
@@ -249,7 +249,7 @@ ssize_t Transporter::find_and_copy_message(topic_id_size_t *topic_ID, uint8_t *o
             throw std::runtime_error("Unexpected ring buffer failure");
         }
 
-        uint16_t read_crc = (static_cast<uint16_t>(header->crc_h) << 8) | header->crc_l;
+        uint16_t read_crc = static_cast<uint16_t>(static_cast<uint16_t>(header->crc_h) << 8U) | header->crc_l;
         uint16_t calc_crc = crc16(out_buffer, payload_len);
 
         ssize_t len;
@@ -321,7 +321,7 @@ ssize_t Transporter::find_and_copy_message(topic_id_size_t *topic_ID, uint8_t *o
         }
 
         COBSHeader *header = reinterpret_cast<COBSHeader *>(unstuffed_buffer.get());
-        uint32_t payload_len = (static_cast<uint32_t>(header->payload_len_h) << 8) | header->payload_len_l;
+        uint16_t payload_len = static_cast<uint16_t>(static_cast<uint16_t>(header->payload_len_h) << 8U) | header->payload_len_l;
 
         if ((unstuffed_size - header_len) < payload_len)
         {
@@ -336,7 +336,7 @@ ssize_t Transporter::find_and_copy_message(topic_id_size_t *topic_ID, uint8_t *o
             return -EMSGSIZE;
         }
 
-        uint16_t read_crc = (static_cast<uint16_t>(header->crc_h) << 8) | header->crc_l;
+        uint16_t read_crc = static_cast<uint16_t>(static_cast<uint16_t>(header->crc_h) << 8U) | header->crc_l;
         uint16_t calc_crc = crc16(unstuffed_buffer.get() + header_len, payload_len);
 
         ssize_t len;
@@ -492,10 +492,10 @@ ssize_t Transporter::write(topic_id_size_t topic_ID, uint8_t const *buffer, size
 
         header.topic_ID = topic_ID;
         header.seq = seq_++;
-        header.payload_len_h = (data_length >> 8) & 0xff;
-        header.payload_len_l = data_length & 0xff;
-        header.crc_h = (crc >> 8) & 0xff;
-        header.crc_l = crc & 0xff;
+        header.payload_len_h = (data_length >> 8U) & 0xffU;
+        header.payload_len_l = data_length & 0xffU;
+        header.crc_h = static_cast<uint8_t>(crc >> 8U);
+        header.crc_l = crc & 0xffU;
 
         write_length = header_len + data_length;
         write_buf = std::unique_ptr<uint8_t[]>(new uint8_t[write_length]);
@@ -520,10 +520,10 @@ ssize_t Transporter::write(topic_id_size_t topic_ID, uint8_t const *buffer, size
 
         header.topic_ID = topic_ID;
         // This is the payload length without the header and before stuffing
-        header.payload_len_h = (data_length >> 8) & 0xff;
-        header.payload_len_l = data_length & 0xff;
-        header.crc_h = (crc >> 8) & 0xff;
-        header.crc_l = crc & 0xff;
+        header.payload_len_h = (data_length >> 8U) & 0xffU;
+        header.payload_len_l = data_length & 0xffU;
+        header.crc_h = static_cast<uint8_t>(crc >> 8U);
+        header.crc_l = crc & 0xffU;
 
         std::unique_ptr<uint8_t[]> intermediate_buf = std::unique_ptr<uint8_t[]>(new uint8_t[data_plus_header]);
         ::memcpy(intermediate_buf.get(), &header, header_len);
