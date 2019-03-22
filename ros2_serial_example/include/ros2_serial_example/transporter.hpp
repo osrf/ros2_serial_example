@@ -246,8 +246,8 @@ protected:
      *                      valid if the return value > 0).
      * @param[out] out_buffer The buffer to receive the payload into.
      * @param[in] buffer_len The maximum buffer length to receive the payload into.
-     * @returns The payload on success, 0 if there are no messages available,
-     *          and < 0 if the payload couldn't fit into the given buffer.
+     * @returns The payload length on success (which may be 0, and < 0 if a
+     *          valid message could not be returned.
      * @throws std::runtime_error If an internal contract was not fulfilled;
      *         this is typically fatal.
      */
