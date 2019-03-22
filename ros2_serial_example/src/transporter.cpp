@@ -182,7 +182,7 @@ ssize_t Transporter::find_and_copy_message(topic_id_size_t *topic_ID, uint8_t *o
         if (offset < 0)
         {
             // We didn't find the sequence, so just return
-            return 0;
+            return -ENODATA;
         }
 
         if (offset > 0)
@@ -196,7 +196,7 @@ ssize_t Transporter::find_and_copy_message(topic_id_size_t *topic_ID, uint8_t *o
             if (ringbuf_.bytes_used() < header_len)
             {
                 // Not enough bytes now.
-                return 0;
+                return -ENODATA;
             }
         }
 
@@ -213,7 +213,7 @@ ssize_t Transporter::find_and_copy_message(topic_id_size_t *topic_ID, uint8_t *o
         {
             // ringbuf_.peek returns nullptr if there isn't enough data in the
             // ring buffer for the requested length
-            return 0;
+            return -EMSGSIZE;
         }
 
         PX4Header *header = reinterpret_cast<PX4Header *>(headerbuf.get());
@@ -229,7 +229,7 @@ ssize_t Transporter::find_and_copy_message(topic_id_size_t *topic_ID, uint8_t *o
         if (ringbuf_.bytes_used() < (header_len + payload_len))
         {
             // We do not have a complete message yet
-            return 0;
+            return -ENODATA;
         }
 
         // At this point, we know that we have a complete header and the payload.
@@ -243,10 +243,13 @@ ssize_t Transporter::find_and_copy_message(topic_id_size_t *topic_ID, uint8_t *o
             throw std::runtime_error("Unexpected ring buffer failure");
         }
 
-        if (ringbuf_.memcpy_from(out_buffer, payload_len) < 0)
+        if (payload_len > 0)
         {
-            // We already checked above, so this should never happen.
-            throw std::runtime_error("Unexpected ring buffer failure");
+          if (ringbuf_.memcpy_from(out_buffer, payload_len) < 0)
+          {
+              // We already checked above, so this should never happen.
+              throw std::runtime_error("Unexpected ring buffer failure");
+          }
         }
 
         uint16_t read_crc = static_cast<uint16_t>(static_cast<uint16_t>(header->crc_h) << 8U) | header->crc_l;
@@ -256,7 +259,7 @@ ssize_t Transporter::find_and_copy_message(topic_id_size_t *topic_ID, uint8_t *o
         if (read_crc != calc_crc)
         {
             ::printf("BAD CRC %u != %u\n", read_crc, calc_crc);
-            len = -1;
+            len = -EBADMSG;
         }
         else
         {
@@ -279,7 +282,7 @@ ssize_t Transporter::find_and_copy_message(topic_id_size_t *topic_ID, uint8_t *o
         if (offset < 0)
         {
             // We didn't find the sequence, so just return
-            return 0;
+            return -ENODATA;
         }
 
         // Since findseq returns the number of bytes *up to* the sequence, we
@@ -317,7 +320,7 @@ ssize_t Transporter::find_and_copy_message(topic_id_size_t *topic_ID, uint8_t *o
         {
             // We found a 0x0 in the data, but there wasn't enough for a full
             // header.  Drop all of the data.
-            return 0;
+            return -ENODATA;
         }
 
         COBSHeader *header = reinterpret_cast<COBSHeader *>(unstuffed_buffer.get());
@@ -327,7 +330,7 @@ ssize_t Transporter::find_and_copy_message(topic_id_size_t *topic_ID, uint8_t *o
         {
             // The data we copied out and unstuffed was smaller than what the
             // payload was, so this definitely isn't a valid message.
-            return 0;
+            return -ENODATA;
         }
 
         if ((unstuffed_size - header_len) > buffer_len)
@@ -343,7 +346,7 @@ ssize_t Transporter::find_and_copy_message(topic_id_size_t *topic_ID, uint8_t *o
         if (read_crc != calc_crc)
         {
             ::printf("BAD CRC %u != %u\n", read_crc, calc_crc);
-            return -1;
+            return -EBADMSG;
         }
 
         *topic_ID = header->topic_ID;
@@ -373,35 +376,38 @@ ssize_t Transporter::read(topic_id_size_t *topic_ID, uint8_t *out_buffer, size_t
     if (ringbuf_.bytes_used() >= header_len)
     {
         ssize_t len = find_and_copy_message(topic_ID, out_buffer, buffer_len);
-        if (len > 0)
+        if (len >= 0)
         {
             return len;
         }
     }
 
     ssize_t len = node_read();
-    if (len <= 0)
+    if (len < 0)
     {
-        int errsv = errno;
-
-        if (errsv != 0 && EAGAIN != errsv && ETIMEDOUT != errsv)
+        if (errno != 0 && errno != EAGAIN && errno != ETIMEDOUT)
         {
-            ::printf("Read fail %d\n", errsv);
+            ::printf("Read fail %d\n", errno);
         }
 
         return len;
+    }
+    if (len == 0)
+    {
+        // No data returned, just return -ENODATA
+        return -ENODATA;
     }
 
     if (ringbuf_.bytes_used() >= header_len)
     {
         ssize_t len = find_and_copy_message(topic_ID, out_buffer, buffer_len);
-        if (len > 0)
+        if (len >= 0)
         {
             return len;
         }
     }
 
-    return 0;
+    return -ENODATA;
 }
 
 size_t Transporter::get_header_length()
@@ -466,7 +472,10 @@ ssize_t Transporter::write(topic_id_size_t topic_ID, uint8_t const *buffer, size
         return -1;
     }
 
-    if (buffer == nullptr || data_length == 0)
+    // We allow nullptr buffer and 0 length, or non-nullptr buffer and > 0 length,
+    // but not nullptr buffer and > 0 length or non-nullptr buffer and 0 length.
+    if ((buffer == nullptr && data_length > 0) ||
+        (buffer != nullptr && data_length == 0))
     {
         return -1;
     }
@@ -502,7 +511,10 @@ ssize_t Transporter::write(topic_id_size_t topic_ID, uint8_t const *buffer, size
 
         // Assemble the packet
         ::memcpy(write_buf.get(), &header, header_len);
-        ::memcpy(write_buf.get() + header_len, buffer, data_length);
+        if (buffer != nullptr)
+        {
+            ::memcpy(write_buf.get() + header_len, buffer, data_length);
+        }
     }
     else if (serial_protocol_ == SerialProtocol::COBS)
     {
@@ -527,7 +539,10 @@ ssize_t Transporter::write(topic_id_size_t topic_ID, uint8_t const *buffer, size
 
         std::unique_ptr<uint8_t[]> intermediate_buf = std::unique_ptr<uint8_t[]>(new uint8_t[data_plus_header]);
         ::memcpy(intermediate_buf.get(), &header, header_len);
-        ::memcpy(intermediate_buf.get() + header_len, buffer, data_length);
+        if (buffer != nullptr)
+        {
+            ::memcpy(intermediate_buf.get() + header_len, buffer, data_length);
+        }
 
         write_buf = std::unique_ptr<uint8_t[]>(new uint8_t[needed_length]);
         // OK, now stuff it

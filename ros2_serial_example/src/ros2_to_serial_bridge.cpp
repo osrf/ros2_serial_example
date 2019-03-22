@@ -127,7 +127,7 @@ void ROS2ToSerialBridge::read_thread_func(const std::shared_future<void> & local
     do
     {
         // Process serial -> ROS 2 data
-        if ((length = transporter_->read(&topic_ID, data_buffer.get(), BUFFER_SIZE)) > 0)
+        if ((length = transporter_->read(&topic_ID, data_buffer.get(), BUFFER_SIZE)) >= 0)
         {
             ros2_topics_->dispatch(topic_ID, data_buffer.get(), length);
         }
@@ -244,13 +244,25 @@ std::map<std::string, ros2_to_serial_bridge::pubsub::TopicMapping> ROS2ToSerialB
     std::map<std::string, ros2_to_serial_bridge::pubsub::TopicMapping> topic_names_and_serialization;
 
     {
+        // In Crystal and earlier, the std_msgs/Empty message has a zero size.
+        // However, that is not true in Dashing and later, so we always attempt
+        // to serialize
         std_msgs::msg::Empty dynamic_request;
         size_t serialized_size = std_msgs::msg::typesupport_fastrtps_cpp::get_serialized_size(dynamic_request, 0);
-        std::unique_ptr<uint8_t[]> data_buffer = std::unique_ptr<uint8_t[]>(new uint8_t[serialized_size]{});
-        eprosima::fastcdr::FastBuffer cdrbuffer(reinterpret_cast<char *>(data_buffer.get()), serialized_size);
-        eprosima::fastcdr::Cdr scdr(cdrbuffer);
-        std_msgs::msg::typesupport_fastrtps_cpp::cdr_serialize(dynamic_request, scdr);
-        if (transporter_->write(0, data_buffer.get(), scdr.getSerializedDataLength()) < 0)
+        std::unique_ptr<uint8_t[]> data_buffer;
+        uint8_t *bufferp = nullptr;
+        size_t serialized_data_length = 0;
+        if (serialized_size != 0)
+        {
+            data_buffer = std::unique_ptr<uint8_t[]>(new uint8_t[serialized_size]{});
+            eprosima::fastcdr::FastBuffer cdrbuffer(reinterpret_cast<char *>(data_buffer.get()), serialized_size);
+            eprosima::fastcdr::Cdr scdr(cdrbuffer);
+            std_msgs::msg::typesupport_fastrtps_cpp::cdr_serialize(dynamic_request, scdr);
+            bufferp = data_buffer.get();
+            serialized_data_length = scdr.getSerializedDataLength();
+        }
+
+        if (transporter_->write(0, bufferp, serialized_data_length) < 0)
         {
             throw std::runtime_error("Failed to write dynamic message");
         }

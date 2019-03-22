@@ -278,13 +278,18 @@ TEST_F(PX4TransporterFixture, write_fds_not_ok)
 
 TEST_F(PX4TransporterFixture, write_nullptr)
 {
-    ASSERT_EQ(write(0, nullptr, 0), -1);
+    ASSERT_EQ(write(0, nullptr, 0), 0);
 }
 
 TEST_F(PX4TransporterFixture, write_zero_data)
 {
     std::unique_ptr<uint8_t[]> buf = std::unique_ptr<uint8_t[]>(new uint8_t[4]{});
     ASSERT_EQ(write(0, buf.get(), 0), -1);
+}
+
+TEST_F(PX4TransporterFixture, write_nullptr_with_length)
+{
+    ASSERT_EQ(write(0, nullptr, 4), -1);
 }
 
 TEST_F(PX4TransporterFixture, write)
@@ -395,7 +400,6 @@ std::vector<uint8_t> setup_cobs_long_data()
         size_t header_size = test_data.size();
 
         test_data.resize(header_size + 300 + 1 + 1);
-        fprintf(stderr, "Setting %lu to 0\n", test_data.size() - 1);
         test_data[test_data.size() - 1] = 0x0;
 
         for (size_t i = header_size; i < test_data.size() - 1; ++i)
