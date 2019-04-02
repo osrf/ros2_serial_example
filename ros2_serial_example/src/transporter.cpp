@@ -98,11 +98,11 @@ Transporter::Transporter(const std::string & protocol, size_t ring_buffer_size) 
 {
     if (protocol == "px4")
     {
-        serial_protocol_ = SerialProtocol::PX4;
+        backend_protocol_ = SerialProtocol::PX4;
     }
     else if (protocol == "cobs")
     {
-        serial_protocol_ = SerialProtocol::COBS;
+        backend_protocol_ = SerialProtocol::COBS;
     }
     else
     {
@@ -174,7 +174,7 @@ ssize_t Transporter::find_and_copy_message(topic_id_size_t *topic_ID, uint8_t *o
         throw std::runtime_error("Bad size");
     }
 
-    if (serial_protocol_ == SerialProtocol::PX4)
+    if (backend_protocol_ == SerialProtocol::PX4)
     {
         std::array<uint8_t, 3> headerseq{'>', '>', '>'};
         ssize_t offset = ringbuf_.findseq(&headerseq[0], headerseq.size());
@@ -270,7 +270,7 @@ ssize_t Transporter::find_and_copy_message(topic_id_size_t *topic_ID, uint8_t *o
         return len;
     }
 
-    if (serial_protocol_ == SerialProtocol::COBS)
+    if (backend_protocol_ == SerialProtocol::COBS)
     {
         // For COBS, we search for a tail sequence consisting just of 0x0.  If
         // we find it, we find out how many bytes there are from the start of
@@ -412,11 +412,11 @@ ssize_t Transporter::read(topic_id_size_t *topic_ID, uint8_t *out_buffer, size_t
 
 size_t Transporter::get_header_length()
 {
-    if (serial_protocol_ == SerialProtocol::PX4)
+    if (backend_protocol_ == SerialProtocol::PX4)
     {
         return sizeof(PX4Header);
     }
-    if (serial_protocol_ == SerialProtocol::COBS)
+    if (backend_protocol_ == SerialProtocol::COBS)
     {
         return sizeof(COBSHeader);
     }
@@ -490,7 +490,7 @@ ssize_t Transporter::write(topic_id_size_t topic_ID, uint8_t const *buffer, size
 
     size_t write_length;
 
-    if (serial_protocol_ == SerialProtocol::PX4)
+    if (backend_protocol_ == SerialProtocol::PX4)
     {
         PX4Header header{};
         header.marker[0] = '>';
@@ -516,7 +516,7 @@ ssize_t Transporter::write(topic_id_size_t topic_ID, uint8_t const *buffer, size
             ::memcpy(write_buf.get() + header_len, buffer, data_length);
         }
     }
-    else if (serial_protocol_ == SerialProtocol::COBS)
+    else if (backend_protocol_ == SerialProtocol::COBS)
     {
         COBSHeader header{};
 

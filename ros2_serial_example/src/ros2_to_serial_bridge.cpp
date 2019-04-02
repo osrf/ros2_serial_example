@@ -29,6 +29,7 @@
 #include "ros2_serial_example/ros2_to_serial_bridge.hpp"
 #include "ros2_serial_example/transporter.hpp"
 #include "ros2_serial_example/uart_transporter.hpp"
+#include "ros2_serial_example/udp_transporter.hpp"
 
 // Generated file
 #include "ros2_topics.hpp"
@@ -39,31 +40,29 @@ namespace ros2_to_serial_bridge
 {
 ROS2ToSerialBridge::ROS2ToSerialBridge() : rclcpp::Node("ros2_to_serial_bridge")
 {
+    std::string backend_comms{};
     std::string device{};
-    std::string serial_protocol{};
+    std::string backend_protocol{};
     uint32_t baudrate;
     int64_t dynamic_serial_mapping_ms{-1};
     uint32_t read_poll_ms;
     size_t ring_buffer_size;
+    uint16_t udp_send_port{0};
+    uint16_t udp_recv_port{0};
 
-    if (!get_parameter("device", device))
+    if (!get_parameter("backend_comms", backend_comms))
     {
-        throw std::runtime_error("No device parameter specified, cannot continue");
+      throw std::runtime_error("No backend comms type specified, cannot continue");
     }
 
-    if (!get_parameter("serial_protocol", serial_protocol))
+    if (!get_parameter("backend_protocol", backend_protocol))
     {
-        throw std::runtime_error("No serial_protocol specified, cannot continue");
+        throw std::runtime_error("No backend_protocol specified, cannot continue");
     }
 
     if (!get_parameter("dynamic_serial_mapping_ms", dynamic_serial_mapping_ms))
     {
         throw std::runtime_error("No dynamic_serial_mapping specified, cannot continue");
-    }
-
-    if (!get_parameter("baudrate", baudrate))
-    {
-        throw std::runtime_error("No baudrate specified, cannot continue");
     }
 
     if (!get_parameter("read_poll_ms", read_poll_ms))
@@ -76,15 +75,50 @@ ROS2ToSerialBridge::ROS2ToSerialBridge() : rclcpp::Node("ros2_to_serial_bridge")
         throw std::runtime_error("No ring_buffer_size specified, cannot continue");
     }
 
-    transporter_ = std::make_unique<ros2_to_serial_bridge::transport::UARTTransporter>(device,
-                                                                                       serial_protocol,
-                                                                                       baudrate,
-                                                                                       read_poll_ms,
-                                                                                       ring_buffer_size);
+    if (backend_comms == "uart")
+    {
+        if (!get_parameter("device", device))
+        {
+          throw std::runtime_error("No device parameter specified, cannot continue");
+        }
+
+        if (!get_parameter("baudrate", baudrate))
+        {
+          throw std::runtime_error("No baudrate specified, cannot continue");
+        }
+
+        transporter_ = std::make_unique<ros2_to_serial_bridge::transport::UARTTransporter>(device,
+                                                                                           backend_protocol,
+                                                                                           baudrate,
+                                                                                           read_poll_ms,
+                                                                                           ring_buffer_size);
+    }
+    else if (backend_comms == "udp")
+    {
+        if (!get_parameter("udp_recv_port", udp_recv_port))
+        {
+          throw std::runtime_error("No udp_recv_port parameter specified, cannot continue");
+        }
+
+        if (!get_parameter("udp_send_port", udp_send_port))
+        {
+          throw std::runtime_error("No udp_send_port parameter specified, cannot continue");
+        }
+
+        transporter_ = std::make_unique<ros2_to_serial_bridge::transport::UDPTransporter>(backend_protocol,
+                                                                                          udp_recv_port,
+                                                                                          udp_send_port,
+                                                                                          read_poll_ms,
+                                                                                          ring_buffer_size);
+    }
+    else
+    {
+        throw std::runtime_error("Invalid backend_comms type specified; only 'uart' and 'udp' are supported");
+    }
 
     if (transporter_->init() < 0)
     {
-        throw std::runtime_error("Failed to initialize transporter");
+        throw std::runtime_error("Failed to initialize transport");
     }
 
     std::map<std::string, ros2_to_serial_bridge::pubsub::TopicMapping> topic_names_and_serialization;

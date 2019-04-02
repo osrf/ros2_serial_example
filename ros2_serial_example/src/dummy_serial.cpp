@@ -38,7 +38,7 @@ static void usage(const char *name)
 {
     ::printf("Usage: %s [options]\n\n"
              "  -b <baudrate> Baudrate to use for the device\n"
-             "  -d <device>   UART device; Must be specified\n"
+             "  -d <device>   UART device; must be specified\n"
              "  -h            Print this help message\n"
              "  -s <protocol> Serial protocol to use; currently supported are\n"
              "                'cobs' (default) and 'px4'\n",

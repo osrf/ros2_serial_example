@@ -1,8 +1,18 @@
 ros2_to_serial_bridge:
     ros__parameters:
-        device: /dev/pts/6             # Which device to use for communications.
+        backend_comms: uart            # Which backend to use for communications;
+                                       # 'uart' and 'udp' are currently supported.
+        device: /dev/pts/6             # Which device to use for communications;
+                                       # only used when backend is 'uart'.
         baudrate: 0                    # The baudrate to set on the device; if
                                        # set to 0, setting baudrate is skipped.
+                                       # Only used when backend is 'uart'.
+        udp_recv_port: 4356            # Which UDP port to use for receiving
+                                       # data; must be 1-65535.  Only used when
+                                       # backend is 'udp'.
+        udp_send_port: 4356            # Which UDP port to use for sending
+                                       # data; must be 1-65535.  Only used when
+                                       # backend is 'udp'.
         read_poll_ms: 100              # How many milliseconds to wait for new
                                        # data to come in from the serial port.
                                        # Larger numbers can use less CPU time,
@@ -36,7 +46,7 @@ ros2_to_serial_bridge:
                                        # failing.  If this config is >= 0, the
                                        # any topics configured below will be
                                        # ignored.
-        serial_protocol: cobs          # The serial protocol to use.  Currently
+        backend_protocol: cobs         # The backend protocol to use.  Currently
                                        # available protocols are 'px4'
                                        # and 'cobs'.
         topics:                        # The list of topics to map; only used
