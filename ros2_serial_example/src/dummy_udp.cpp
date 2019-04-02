@@ -111,8 +111,8 @@ void read_thread_func(ros2_to_serial_bridge::transport::Transporter * transporte
 
 int main(int argc, char *argv[])
 {
-    uint16_t send_port;
-    uint16_t recv_port;
+    uint16_t send_port{0};
+    uint16_t recv_port{0};
     std::string serial_protocol{"cobs"};
 
     int ch;
