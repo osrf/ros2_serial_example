@@ -123,6 +123,20 @@ target_link_libraries(dummy_serial
   ${CMAKE_THREAD_LIBS_INIT}
 )
 
+add_executable(dummy_udp
+  src/dummy_udp.cpp
+  src/udp_transporter.cpp
+)
+ament_target_dependencies(dummy_udp
+  ros2_serial_msgs
+)
+target_link_libraries(dummy_udp
+  fastcdr
+  ring_buffer
+  transporter
+  ${CMAKE_THREAD_LIBS_INIT}
+)
+
 install(TARGETS ring_buffer transporter bridge_gen
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
@@ -131,6 +145,7 @@ install(TARGETS ring_buffer transporter bridge_gen
 
 install(TARGETS
   dummy_serial
+  dummy_udp
   ros2_to_serial_bridge
   DESTINATION lib/${PROJECT_NAME}
 )
