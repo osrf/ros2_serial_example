@@ -186,7 +186,7 @@ int UARTTransporter::init()
     poll_fd_[0].fd = uart_fd_;
     poll_fd_[0].events = POLLIN;
 
-    return uart_fd_;
+    return 0;
 }
 
 bool UARTTransporter::fds_OK()
