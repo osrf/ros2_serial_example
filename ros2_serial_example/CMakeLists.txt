@@ -96,6 +96,7 @@ add_executable(ros2_to_serial_bridge
   src/ros2_to_serial_bridge.cpp
   src/ros2_to_serial_bridge_main.cpp
   src/uart_transporter.cpp
+  src/udp_transporter.cpp
 )
 ament_target_dependencies(ros2_to_serial_bridge
   rclcpp
