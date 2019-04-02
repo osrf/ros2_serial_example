@@ -90,6 +90,15 @@ public:
      * Since this is an abstract class, it can't be directly constructed, but
      * this constructor is expected to be called during the derived class
      * constructor to setup the Transporter.
+     *
+     * @param[in] protocol The backend protocol to use; either 'px4' or 'cobs'.
+     * @param[in] ring_buffer_size The number of bytes to allocate to the
+     *                             underlying ring buffer that is used to
+     *                             accept data from the UDP socket.  Larger
+     *                             numbers will allow the transport to accept
+     *                             larger packets (or more of them), at the
+     *                             expense of memory.  It is recommended to
+     *                             start with 8192.
      */
     explicit Transporter(const std::string & protocol, size_t ring_buffer_size);
     virtual ~Transporter();
@@ -254,7 +263,7 @@ protected:
     ssize_t find_and_copy_message(topic_id_size_t *topic_ID, uint8_t *out_buffer, size_t buffer_len);
 
 private:
-    SerialProtocol serial_protocol_;
+    SerialProtocol backend_protocol_;
     uint8_t seq_{0};
     struct __attribute__((packed)) PX4Header
     {

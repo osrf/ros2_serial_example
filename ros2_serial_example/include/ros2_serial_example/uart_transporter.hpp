@@ -63,7 +63,7 @@ public:
      * Construct a UARTTransporter object with the given UART parameters.
      *
      * @param[in] uart_name The full path to the device to connect to.
-     * @param[in] protocol The serial protocol to use; see Transporter docs for
+     * @param[in] protocol The backend protocol to use; see Transporter docs for
      *                     more information about supported protocols.
      * @param[in] baudrate The baudrate to set the UART to.  This must be a
      *                     number in bits-per-second.

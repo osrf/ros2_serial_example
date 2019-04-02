@@ -110,9 +110,15 @@ The COBS "stuffing" maps the 0-255 range of the octets into 1-255, leaving 0 ava
 
 The YAML configuration file for the `ros2_to_serial_bridge` has a number of parameters that control how the bridge works:
 
-* device - The /dev serial device to use to connect to the serial port.  This will be something like `/dev/ttyACM0` for USB-to-serial ports, or `/dev/pts/6` for "emulated" serial ports.
+* backend_comms - The type of comms layer to use for the "backend" communication (that is, the communication that is not ROS 2, which is considered frontend).  This is either 'uart' to use serial, or 'udp' to use a UDP socket.
 
-* baudrate - The baudrate to configure on the above device.  To skip baudrate configuration, set this to 0.
+* device - The /dev serial device to use to connect to the serial port.  This will be something like `/dev/ttyACM0` for USB-to-serial ports, or `/dev/pts/6` for "emulated" serial ports.  This is only used when backend_comms is 'uart'.
+
+* baudrate - The baudrate to configure on the above device.  To skip baudrate configuration, set this to 0.  This is only used when backend_comms is 'uart'.
+
+* udp_recv_port - The UDP port to use for receiving data.  This number must be between 1 and 65535 (inclusive).  This is only used when backend_comms is 'udp'.
+
+* udp_send_port - The UDP prot to use for sending data.  This number must be between 1 and 65535 (inclusive).  This is only used when backend_comms is 'udp'.
 
 * read_poll_ms - How many milliseconds to wait for new data to come in from the serial port.  Larger numbers can use slightly less CPU time, but affect the responsiveness of the program.  A value of 100 milliseconds is a good compromise between CPU time and responsiveness.
 
@@ -122,7 +128,7 @@ The YAML configuration file for the `ros2_to_serial_bridge` has a number of para
 
 * dynamic_serial_mapping_ms - How many milliseconds to wait on startup to get the dynamic ROS2-to-serial mapping from the serial port (see [Dynamic topic mapping](#Dynamic-topic-mapping) for more information).  If less than 0, dynamic mapping is disabled and the topics specified in the YAML configuration file are used.  If exactly 0, the bridge will wait forever for the serial side to respond, but note that no data transfer of topic data will start happening until this succeeds.  If greater than 0, wait that many milliseconds for a response from the serial port before failing to start.  If this number is greater than or equal to 0, the topics configured in the YAML file are completely ignored.
 
-* serial_protocol - One of 'px4' or 'cobs'.  See [Serial Framing Protocol](#Serial-Framing-Protocol) for more information.
+* backend_protocol - One of 'px4' or 'cobs'.  See [Serial Framing Protocol](#Serial-Framing-Protocol) for more information.
 
 * topics - The list of topics to use if dynamic_serial_mapping_ms is less than 0.  See [Static YAML configuration](#Static-YAML-configuration) for more information.
 

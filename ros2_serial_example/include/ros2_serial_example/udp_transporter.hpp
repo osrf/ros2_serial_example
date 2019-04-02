@@ -62,6 +62,8 @@ public:
     /**
      * Construct a UDPTransporter object with the given UDP parameters.
      *
+     * @param[in] protocol The backend protocol to use; see Transporter docs for
+     *                     more information about supported protocols.
      * @param[in] recv_port The UDP port to receive on.
      * @param[in] send_port The UDP port to send from.
      * @param[in] read_poll_ms The amount of time to wait for the read file
