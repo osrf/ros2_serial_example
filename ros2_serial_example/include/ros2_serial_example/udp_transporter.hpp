@@ -41,6 +41,7 @@
 #include <cstdint>
 #include <string>
 
+#include <netinet/in.h>
 #include <poll.h>
 
 // Local includes
@@ -152,6 +153,7 @@ private:
     int recv_fd_{-1};
     int send_fd_{-1};
     uint32_t write_timeout_us_{20};
+    struct sockaddr_in send_outaddr{};
     struct pollfd poll_fd_[1] = {};
 };
 

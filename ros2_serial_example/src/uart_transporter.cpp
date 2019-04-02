@@ -120,6 +120,12 @@ UARTTransporter::~UARTTransporter()
 
 int UARTTransporter::init()
 {
+    if (fds_OK())
+    {
+        ::fprintf(stderr, "Cannot re-init; call close first\n");
+        return -1;
+    }
+
     // Open a serial port
     uart_fd_ = ::open(uart_name_.c_str(), O_RDWR | O_NOCTTY | O_NONBLOCK | O_CLOEXEC);
 

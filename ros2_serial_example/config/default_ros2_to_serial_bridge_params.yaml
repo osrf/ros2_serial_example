@@ -10,7 +10,7 @@ ros2_to_serial_bridge:
         udp_recv_port: 4356            # Which UDP port to use for receiving
                                        # data; must be 1-65535.  Only used when
                                        # backend is 'udp'.
-        udp_send_port: 4356            # Which UDP port to use for sending
+        udp_send_port: 4357            # Which UDP port to use for sending
                                        # data; must be 1-65535.  Only used when
                                        # backend is 'udp'.
         read_poll_ms: 100              # How many milliseconds to wait for new

@@ -39,6 +39,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <stdexcept>
 #include <string>
 
 #include <arpa/inet.h>
@@ -66,6 +67,10 @@ UDPTransporter::UDPTransporter(const std::string & protocol,
     send_port_(send_port),
     read_poll_ms_(read_poll_ms)
 {
+    if (recv_port_ == 0 || send_port_ == 0)
+    {
+        throw std::runtime_error("Invalid send or receive port, must be between 1 and 65535 inclusive");
+    }
 }
 
 UDPTransporter::~UDPTransporter()
@@ -75,6 +80,12 @@ UDPTransporter::~UDPTransporter()
 
 int UDPTransporter::init()
 {
+    if (fds_OK())
+    {
+        ::fprintf(stderr, "Cannot re-init; call close first\n");
+        return -1;
+    }
+
     // Setup the receiver
     struct sockaddr_in receiver_inaddr{};
 
@@ -88,8 +99,6 @@ int UDPTransporter::init()
         ::fprintf(stderr, "create socket failed: %s\n", ::strerror(errno));
         return -errno;
     }
-
-    ::printf("Trying to connect...\n");
 
     if (::bind(recv_fd_, reinterpret_cast<struct sockaddr *>(&receiver_inaddr),
                sizeof(receiver_inaddr)) < 0)
@@ -124,11 +133,10 @@ int UDPTransporter::init()
         return -1;
     }
 
-    struct sockaddr_in sender_outaddr{};
-    sender_outaddr.sin_family = AF_INET;
-    sender_outaddr.sin_port = ::htons(send_port_);
+    send_outaddr.sin_family = AF_INET;
+    send_outaddr.sin_port = ::htons(send_port_);
 
-    if (::inet_aton("127.0.0.1", &sender_outaddr.sin_addr) == 0)
+    if (::inet_aton("127.0.0.1", &send_outaddr.sin_addr) == 0)
     {
         ::fprintf(stderr, "inet_aton() failed: %s\n", ::strerror(errno));
         return -1;
@@ -196,7 +204,7 @@ ssize_t UDPTransporter::node_write(void *buffer, size_t len)
     size_t n = len;
     while (n > 0)
     {
-        ssize_t ret = ::write(send_fd_, b, n);
+        ssize_t ret = ::sendto(send_fd_, b, n, 0, reinterpret_cast<struct sockaddr *>(&send_outaddr), sizeof(send_outaddr));
         if (ret == -1)
         {
             if (errno == EINTR || errno == EAGAIN)
