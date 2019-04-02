@@ -1,0 +1,6 @@
+There are a number of different licenses in this code, broken down by directory:
+
+top-level (main.c) - Apache v2
+freertos - MIT License, see freertos/LICENSE
+libopencm3 - LGPL3, see libopencm3/COPYING.GPL3 and libopencm3/COPYING.LGPL3
+microCDR - Apache v2, see microCDR/LICENSE
