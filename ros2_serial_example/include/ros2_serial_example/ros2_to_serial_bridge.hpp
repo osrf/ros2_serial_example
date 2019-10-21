@@ -34,7 +34,7 @@ namespace ros2_to_serial_bridge
 class ROS2ToSerialBridge final : public rclcpp::Node
 {
 public:
-    ROS2ToSerialBridge();
+    ROS2ToSerialBridge(const rclcpp::NodeOptions& node_options);
     ROS2ToSerialBridge(ROS2ToSerialBridge const &) = delete;
     ROS2ToSerialBridge& operator=(ROS2ToSerialBridge const &) = delete;
     ROS2ToSerialBridge(ROS2ToSerialBridge &&) = delete;
