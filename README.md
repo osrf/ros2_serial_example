@@ -49,6 +49,8 @@ If dynamic topic mapping is configured, then the topic ID -> (topic_name,topic_t
 
 The message types that the bridge supports must be known at compile time.  Near the top of the [CMakeLists.txt](ros2_serial_example/CMakeLists.txt) file there are two variables that can be used to add more messages: `_packages` and `_msgs`.  The `_packages` variable is used to add entire packages to the list of supported messages; all messages in the particular package will be built into the bridge.  For example, to add in all messages in `std_msgs`, `std_msgs` would be added to the `_packages` variable.  The `_msgs` variable is used to add specific messages to the bridge.  For example, to just add support for `std_msgs/String` to the bridge, add `std_msgs/String` to the `_msgs` variable.  See [Code generation for the bridge](#Code-generation-for-the-bridge) for more details on how the code is generated for each message type.  Each message type added to the bridge consumes more compile time and more on-disk space.  The memory usage depends on which message types are setup during the topic mapping phase above.  Note that if the topic mapping specifies a type that has not been compiled into `ros2_to_serial_bridge`, that topic will just be ignored.
 
+**NOTE**: There is a *CMake* option called `ROS2_SERIAL_PKGS` which allows to add new message type from the command line instead of changing the `CMakeLists.txt` file. In the *Build* section there is an example of how to use it 
+
 ## Using the code in this repository
 
 ### Build
@@ -62,7 +64,7 @@ The message types that the bridge supports must be known at compile time.  Near 
     1.  `git clone https://github.com/osrf/ros2_serial_example.git`
     1.  `cd ..`
 1.  Build the local workspace:
-    1.  `colcon build`
+    1.  `colcon build --cmake-args -DROS2_SERIAL_PKGS="sensor_msgs;px4_msgs"`
 1.  Source the local workspace:
     1.  `source install/local_setup.bash`
 
