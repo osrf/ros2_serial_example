@@ -19,6 +19,12 @@ find_package(Threads REQUIRED)
 
 include_directories(include "${CMAKE_CURRENT_BINARY_DIR}")
 
+if (ROS2_SERIAL_PKGS)
+  foreach(pkgs ${ROS2_SERIAL_PKGS})
+    find_package(${pkgs} REQUIRED)
+  endforeach(pkgs)
+endif()
+
 # This is the set of packages to build the ROS2<->serial bridge for.  All
 # messages in packages referenced by _packages will have support compiled in,
 # and the individual messages mentioned in _msgs will also be compiled in.
@@ -26,6 +32,7 @@ include_directories(include "${CMAKE_CURRENT_BINARY_DIR}")
 # If a new package or message is added here, the corresponding package must
 # be "find_package"d above and added to package.xml.
 set(_packages
+  ${ROS2_SERIAL_PKGS}
   std_msgs
 )
 set(_msgs
