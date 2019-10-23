@@ -39,7 +39,7 @@ int main(int argc, char *argv[])
     try
     {
         rclcpp::NodeOptions node_options;
-        node_options.allow_undeclared_parameters(true).automatically_declare_parameters_from_overrides(true);
+        node_options.automatically_declare_parameters_from_overrides(true);
         node = std::make_shared<ros2_to_serial_bridge::ROS2ToSerialBridge>(node_options);
     }
     catch (const std::runtime_error & err)
