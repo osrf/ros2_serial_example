@@ -80,7 +80,7 @@ public:
                 RCLCPP_WARN(node->get_logger(), "Failed to write data: %s", ::strerror(errno));  // NOLINT(cppcoreguidelines-pro-bounds-array-to-pointer-decay,hicpp-no-array-decay)
             }
         };
-        sub_ = node->create_subscription<T>(name, callback, rmw_qos_profile_default);
+        sub_ = node->create_subscription<T>(name, 10, callback);
     }
 
 private:
