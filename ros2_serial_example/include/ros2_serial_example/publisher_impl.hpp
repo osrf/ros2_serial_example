@@ -56,7 +56,8 @@ public:
                            std::function<bool(eprosima::fastcdr::Cdr &, T &)> des)
         : deserialize_(des), name_(name), node_(node)
     {
-        pub_ = node_->create_publisher<T>(name);
+        rclcpp::QoS qos(rclcpp::KeepLast(10));
+        pub_ = node_->create_publisher<T>(name, qos);
     }
 
     /**
@@ -69,7 +70,7 @@ public:
     {
         eprosima::fastcdr::FastBuffer cdrbuffer(reinterpret_cast<char *>(data_buffer), length);
         eprosima::fastcdr::Cdr cdrdes(cdrbuffer);
-        auto msg = std::make_shared<T>();
+        auto msg = std::make_unique<T>();
         // Deserialization can fail if, for instance, the user told us the
         // wrong type to deserialize (they configured it as a std_msgs/String
         // when it is actually a std_msgs/UInt16, for instance).  In that case
@@ -87,7 +88,7 @@ public:
                         name_.c_str());
             return;
         }
-        pub_->publish(msg);
+        pub_->publish(std::move(msg));
     }
 
 private:
