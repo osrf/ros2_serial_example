@@ -35,7 +35,7 @@ ros2_to_serial_bridge:
                                        # recommended to set this above 100,
                                        # since this will cause the application
                                        # to feel sluggish.
-        dynamic_serial_mapping_ms: 0 # How many milliseconds to wait to get
+        dynamic_serial_mapping_ms: 0  # How many milliseconds to wait to get
                                        # dynamic ROS2-to-serial mapping from the
                                        # serial side.  If less than 0, dynamic
                                        # mapping is disabled and the topics
