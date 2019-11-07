@@ -38,7 +38,7 @@ constexpr int BUFFER_SIZE = 1024;
 
 namespace ros2_to_serial_bridge
 {
-ROS2ToSerialBridge::ROS2ToSerialBridge() : rclcpp::Node("ros2_to_serial_bridge")
+ROS2ToSerialBridge::ROS2ToSerialBridge(const rclcpp::NodeOptions& node_options) : rclcpp::Node("ros2_to_serial_bridge", node_options)
 {
     std::string backend_comms{};
     std::string device{};
