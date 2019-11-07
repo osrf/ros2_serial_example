@@ -43,7 +43,7 @@ ros2_to_serial_bridge:
                                        # forever for the other side to respond.
                                        # If greater than 0, wait that many
                                        # milliseconds for a response before
-                                       # failing.  If this config is >= 0, the
+                                       # failing.  If this config is >= 0, then
                                        # any topics configured below will be
                                        # ignored.
         backend_protocol: px4          # The backend protocol to use.  Currently
