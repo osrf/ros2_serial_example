@@ -16,6 +16,7 @@ find_package(rclcpp REQUIRED)
 find_package(ros2_serial_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(Threads REQUIRED)
+find_package(rclcpp_components REQUIRED)
 
 include_directories(include "${CMAKE_CURRENT_BINARY_DIR}")
 
@@ -99,22 +100,43 @@ target_link_libraries(bridge_gen
   fastcdr
 )
 
-add_executable(ros2_to_serial_bridge
+add_executable(ros2_to_serial_bridge_node
   src/ros2_to_serial_bridge.cpp
   src/ros2_to_serial_bridge_main.cpp
   src/uart_transporter.cpp
   src/udp_transporter.cpp
 )
-ament_target_dependencies(ros2_to_serial_bridge
+ament_target_dependencies(ros2_to_serial_bridge_node
   rclcpp
   ros2_serial_msgs
+  rclcpp_components
 )
+target_link_libraries(ros2_to_serial_bridge_node
+  bridge_gen
+  fastcdr
+  ring_buffer
+  transporter
+)
+
+add_library(ros2_to_serial_bridge SHARED
+  src/ros2_to_serial_bridge.cpp
+  src/uart_transporter.cpp
+  src/udp_transporter.cpp
+)
+target_compile_definitions(ros2_to_serial_bridge
+  PRIVATE "COMPOSITION_BUILDING_DLL")
+ament_target_dependencies(ros2_to_serial_bridge
+  "rclcpp"
+  "rclcpp_components"
+  "ros2_serial_msgs")
 target_link_libraries(ros2_to_serial_bridge
   bridge_gen
   fastcdr
   ring_buffer
   transporter
 )
+rclcpp_components_register_nodes(ros2_to_serial_bridge "ros2_to_serial_bridge::ROS2ToSerialBridge")
+# set(node_plugins "${node_plugins}ros2_to_serial_bridge::ROS2ToSerialBridge;$<TARGET_FILE:ros2_to_serial_bridge_component>\n")
 
 add_executable(dummy_serial
   src/dummy_serial.cpp
@@ -153,8 +175,15 @@ install(TARGETS ring_buffer transporter bridge_gen
 install(TARGETS
   dummy_serial
   dummy_udp
-  ros2_to_serial_bridge
+  ros2_to_serial_bridge_node
   DESTINATION lib/${PROJECT_NAME}
+)
+
+install(TARGETS
+  ros2_to_serial_bridge
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
 )
 
 if(BUILD_TESTING)

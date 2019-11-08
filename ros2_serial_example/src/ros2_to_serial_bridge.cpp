@@ -380,3 +380,7 @@ std::map<std::string, ros2_to_serial_bridge::pubsub::TopicMapping> ROS2ToSerialB
 }
 
 }  // namespace ros2_to_serial_bridge
+
+#include "rclcpp_components/register_node_macro.hpp"
+
+RCLCPP_COMPONENTS_REGISTER_NODE(ros2_to_serial_bridge::ROS2ToSerialBridge)
