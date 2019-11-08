@@ -21,19 +21,9 @@
 
 #include "ros2_serial_example/ros2_to_serial_bridge.hpp"
 
-volatile sig_atomic_t running = 1;
-
-static void signal_handler(int signum)
-{
-    (void)signum;
-    running = 0;
-}
-
 int main(int argc, char *argv[])
 {
     rclcpp::init(argc, argv);
-
-    ::signal(SIGINT, signal_handler);
 
     std::shared_ptr<ros2_to_serial_bridge::ROS2ToSerialBridge> node;
     try
@@ -55,16 +45,12 @@ int main(int argc, char *argv[])
     }
 
     rclcpp::WallRate loop_rate(1000.0 / static_cast<double>(write_sleep_ms));
-    while (rclcpp::ok() && running != 0)
+    while (rclcpp::ok())
     {
         // Process ROS 2 -> serial data (via callbacks)
         rclcpp::spin_some(node);
         loop_rate.sleep();
     }
-
-    // This is to handle the case where rclcpp::ok() returned false for some
-    // reason; setting running to 0 causes the read_thread to quit as well.
-    running = 0;
 
     rclcpp::shutdown();
 
