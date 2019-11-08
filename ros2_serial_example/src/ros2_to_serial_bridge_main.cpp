@@ -44,13 +44,7 @@ int main(int argc, char *argv[])
         throw std::runtime_error("No write_sleep_ms specified, cannot continue");
     }
 
-    rclcpp::WallRate loop_rate(1000.0 / static_cast<double>(write_sleep_ms));
-    while (rclcpp::ok())
-    {
-        // Process ROS 2 -> serial data (via callbacks)
-        rclcpp::spin_some(node);
-        loop_rate.sleep();
-    }
+    rclcpp::spin(node);
 
     rclcpp::shutdown();
 
