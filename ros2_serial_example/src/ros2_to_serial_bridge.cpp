@@ -122,7 +122,7 @@ ROS2ToSerialBridge::ROS2ToSerialBridge(const rclcpp::NodeOptions& node_options) 
     }
 
     std::map<std::string, ros2_to_serial_bridge::pubsub::TopicMapping> topic_names_and_serialization;
-    if (dynamic_serial_mapping_ms > 0)
+    if (dynamic_serial_mapping_ms >= 0)
     {
         topic_names_and_serialization = dynamically_get_serial_mapping(dynamic_serial_mapping_ms);
     }
