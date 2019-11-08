@@ -24,17 +24,6 @@ ros2_to_serial_bridge:
                                        # internal read buffer.  Larger values
                                        # allow larger messages to be transmitted
                                        # at the cost of more memory.
-        write_sleep_ms: 4              # How many milliseconds to sleep in
-                                       # between servicing ROS 2 callbacks.
-                                       # Larger numbers will result in less CPU
-                                       # usage but also some latency in
-                                       # delivering data from ROS 2 to the
-                                       # serial port.  The default of 4 ms
-                                       # (250Hz) is a good compromise between
-                                       # CPU time and latency.  It is not
-                                       # recommended to set this above 100,
-                                       # since this will cause the application
-                                       # to feel sluggish.
         dynamic_serial_mapping_ms: 500 # How many milliseconds to wait to get
                                        # dynamic ROS2-to-serial mapping from the
                                        # serial side.  If less than 0, dynamic
