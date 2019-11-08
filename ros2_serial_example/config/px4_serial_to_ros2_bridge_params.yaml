@@ -1,0 +1,166 @@
+ros2_to_serial_bridge:
+    ros__parameters:
+        backend_comms: udp             # Which backend to use for communications;
+                                       # 'uart' and 'udp' are currently supported.
+        device: /dev/pts/6             # Which device to use for communications;
+                                       # only used when backend is 'uart'.
+        baudrate: 0                    # The baudrate to set on the device; if
+                                       # set to 0, setting baudrate is skipped.
+                                       # Only used when backend is 'uart'.
+        udp_recv_port: 2020            # Which UDP port to use for receiving
+                                       # data; must be 1-65535.  Only used when
+                                       # backend is 'udp'.
+        udp_send_port: 2019            # Which UDP port to use for sending
+                                       # data; must be 1-65535.  Only used when
+                                       # backend is 'udp'.
+        read_poll_ms: 250              # How many milliseconds to wait for new
+                                       # data to come in from the serial port.
+                                       # Larger numbers can use less CPU time,
+                                       # but affect the responsiveness of the
+                                       # program.  The default value of 100 is
+                                       # a good compromise between
+                                       # responsiveness and CPU time.
+        ring_buffer_size: 8192         # The number of bytes to use for the
+                                       # internal read buffer.  Larger values
+                                       # allow larger messages to be transmitted
+                                       # at the cost of more memory.
+        write_sleep_ms: 4              # How many milliseconds to sleep in
+                                       # between servicing ROS 2 callbacks.
+                                       # Larger numbers will result in less CPU
+                                       # usage but also some latency in
+                                       # delivering data from ROS 2 to the
+                                       # serial port.  The default of 4 ms
+                                       # (250Hz) is a good compromise between
+                                       # CPU time and latency.  It is not
+                                       # recommended to set this above 100,
+                                       # since this will cause the application
+                                       # to feel sluggish.
+        dynamic_serial_mapping_ms: -1  # How many milliseconds to wait to get
+                                       # dynamic ROS2-to-serial mapping from the
+                                       # serial side.  If less than 0, dynamic
+                                       # mapping is disabled and the topics
+                                       # below will be used.  If exactly 0, wait
+                                       # forever for the other side to respond.
+                                       # If greater than 0, wait that many
+                                       # milliseconds for a response before
+                                       # failing.  If this config is >= 0, then
+                                       # any topics configured below will be
+                                       # ignored.
+        backend_protocol: px4          # The backend protocol to use.  Currently
+                                       # available protocols are 'px4'
+                                       # and 'cobs'.
+        topics:                        # The list of topics to map; only used
+                                       # if dynamic_serial_mapping_ms is < 0.
+
+            battery_status:
+                serial_mapping: 6
+                type: px4_msgs/BatteryStatus
+                direction: SerialToROS2
+            adc_report:
+                serial_mapping: 4
+                type: px4_msgs/AdcReport
+                direction: SerialToROS2
+            air_speed:
+                serial_mapping: 5
+                type: px4_msgs/Airspeed
+                direction: SerialToROS2
+            cpu_load:
+                serial_mapping: 11
+                type: px4_msgs/Cpuload
+                direction: SerialToROS2
+            distance_sensor:
+                serial_mapping: 17
+                type: px4_msgs/DistanceSensor
+                direction: SerialToROS2
+            estimator_status:
+                serial_mapping: 24
+                type: px4_msgs/EstimatorStatus
+                direction: SerialToROS2
+            home_position:
+                serial_mapping: 29
+                type: px4_msgs/HomePosition
+                direction: SerialToROS2
+            iridiumsbd_status:
+                serial_mapping: 31
+                type: px4_msgs/IridiumsbdStatus
+                direction: SerialToROS2
+            radio_status:
+                serial_mapping: 56
+                type: px4_msgs/RadioStatus
+                direction: SerialToROS2
+            satellite_info:
+                serial_mapping: 61
+                type: px4_msgs/SatelliteInfo
+                direction: SerialToROS2
+            sensor_baro:
+                serial_mapping: 63
+                type: px4_msgs/SensorBaro
+                direction: SerialToROS2
+            sensor_combined:
+                serial_mapping: 65
+                type: px4_msgs/SensorCombined
+                direction: SerialToROS2
+            sensor_selection:
+                serial_mapping: 70
+                type: px4_msgs/SensorSelection
+                direction: SerialToROS2
+            vehicle_attitude:
+                serial_mapping: 87
+                type: px4_msgs/VehicleAttitude
+                direction: SerialToROS2
+            vehicle_odometry:
+                serial_mapping: 99
+                type: px4_msgs/VehicleOdometry
+                direction: SerialToROS2
+            vtol_vehicle_status:
+                serial_mapping: 105
+                type: px4_msgs/VtolVehicleStatus
+                direction: SerialToROS2
+            wind_estimate:
+                serial_mapping: 106
+                type: px4_msgs/WindEstimate
+                direction: SerialToROS2
+            collision_constraints:
+                serial_mapping: 107
+                type: px4_msgs/CollisionConstraints
+                direction: SerialToROS2
+            vehicle_local_position_setpoint:
+                serial_mapping: 97
+                type: px4_msgs/VehicleLocalPositionSetpoint
+                direction: ROS2ToSerial
+            position_setpoint:
+                serial_mapping: 50
+                type: px4_msgs/PositionSetpoint
+                direction: ROS2ToSerial
+            position_setpoint_triplet:
+                serial_mapping: 51
+                type: px4_msgs/PositionSetpointTriplet
+                direction: ROS2ToSerial
+            vehicle_control_mode:
+                serial_mapping: 92
+                type: px4_msgs/VehicleControlMode
+                direction: ROS2ToSerial
+            debug_vect:
+                serial_mapping: 15
+                type: px4_msgs/DebugVect
+                direction: ROS2ToSerial
+            commander_state:
+                serial_mapping: 10
+                type: px4_msgs/CommanderState
+                direction: ROS2ToSerial
+            vehicle_command:
+                serial_mapping: 89
+                type: px4_msgs/VehicleCommand
+                direction: ROS2ToSerial
+            vehicle_status:
+                serial_mapping: 102
+                type: px4_msgs/VehicleStatus
+                direction: SerialToROS2
+            vehicle_gps_position:
+                serial_mapping: 94
+                type: px4_msgs/VehicleGpsPosition
+                direction: SerialToROS2
+            vehicle_land_detected:
+                serial_mapping: 95
+                type: px4_msgs/VehicleLandDetected
+                direction: SerialToROS2
