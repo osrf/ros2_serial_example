@@ -105,8 +105,6 @@ add_library(ros2_to_serial_bridge SHARED
   src/uart_transporter.cpp
   src/udp_transporter.cpp
 )
-# target_compile_definitions(ros2_to_serial_bridge
-# PRIVATE "ROS2_SERIAL_EXAMPLE_BUILDING_DLL")
 ament_target_dependencies(ros2_to_serial_bridge
   "rclcpp"
   "rclcpp_components"
@@ -122,9 +120,6 @@ rclcpp_components_register_node(
   PLUGIN "ros2_to_serial_bridge::ROS2ToSerialBridge"
   EXECUTABLE ros2_to_serial_bridge_node
 )
-
-# rclcpp_components_register_nodes(ros2_to_serial_bridge "ros2_to_serial_bridge::ROS2ToSerialBridge")
-# set(node_plugins "${node_plugins}ros2_to_serial_bridge::ROS2ToSerialBridge;$<TARGET_FILE:ros2_to_serial_bridge_component>\n")
 
 add_executable(dummy_serial
   src/dummy_serial.cpp
