@@ -18,10 +18,22 @@ import launch
 from launch_ros.actions import ComposableNodeContainer
 from launch_ros.descriptions import ComposableNode
 from ament_index_python.packages import get_package_share_directory
-
+import os
+import yaml
 
 def generate_launch_description():
     """Generate launch description with multiple components."""
+    ros2_serial_example_directory = os.path.join(
+        get_package_share_directory('ros2_serial_example'), 'config')
+
+    param_config = os.path.join(ros2_serial_example_directory,
+                                'default_ros2_to_serial_bridge_params.yaml')
+
+    with open(param_config, 'r') as f:
+        params = yaml.safe_load(f)['iris_0/ros2_to_serial_bridge']['ros__parameters']
+
+    print(params)
+
     container = ComposableNodeContainer(
             node_name='componsable_drone_node',
             node_namespace='/iris_0',
@@ -33,8 +45,7 @@ def generate_launch_description():
                     node_namespace='/iris_0',
                     package='ros2_serial_example',
                     node_plugin='ros2_to_serial_bridge::ROS2ToSerialBridge',
-                    parameters=[get_package_share_directory('ros2_serial_example')
-                                + "/config/launch_px4_serial_to_ros2_bridge_params.yaml" ]),
+                    parameters=[params]),
             ],
             output='screen',
     )
