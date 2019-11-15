@@ -38,7 +38,8 @@ constexpr int BUFFER_SIZE = 1024;
 
 namespace ros2_to_serial_bridge
 {
-ROS2ToSerialBridge::ROS2ToSerialBridge(const rclcpp::NodeOptions& node_options) : rclcpp::Node("ros2_to_serial_bridge", node_options)
+ROS2ToSerialBridge::ROS2ToSerialBridge(const rclcpp::NodeOptions& node_options)
+: rclcpp::Node("ros2_to_serial_bridge", rclcpp::NodeOptions(node_options).automatically_declare_parameters_from_overrides(true))
 {
     std::string backend_comms{};
     std::string device{};
@@ -380,3 +381,7 @@ std::map<std::string, ros2_to_serial_bridge::pubsub::TopicMapping> ROS2ToSerialB
 }
 
 }  // namespace ros2_to_serial_bridge
+
+#include "rclcpp_components/register_node_macro.hpp"
+
+RCLCPP_COMPONENTS_REGISTER_NODE(ros2_to_serial_bridge::ROS2ToSerialBridge)

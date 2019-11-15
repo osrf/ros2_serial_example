@@ -16,6 +16,7 @@ find_package(rclcpp REQUIRED)
 find_package(ros2_serial_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(Threads REQUIRED)
+find_package(rclcpp_components REQUIRED)
 
 include_directories(include "${CMAKE_CURRENT_BINARY_DIR}")
 
@@ -99,21 +100,25 @@ target_link_libraries(bridge_gen
   fastcdr
 )
 
-add_executable(ros2_to_serial_bridge
+add_library(ros2_to_serial_bridge SHARED
   src/ros2_to_serial_bridge.cpp
-  src/ros2_to_serial_bridge_main.cpp
   src/uart_transporter.cpp
   src/udp_transporter.cpp
 )
 ament_target_dependencies(ros2_to_serial_bridge
-  rclcpp
-  ros2_serial_msgs
-)
+  "rclcpp"
+  "rclcpp_components"
+  "ros2_serial_msgs")
 target_link_libraries(ros2_to_serial_bridge
   bridge_gen
   fastcdr
   ring_buffer
   transporter
+)
+rclcpp_components_register_node(
+  ros2_to_serial_bridge
+  PLUGIN "ros2_to_serial_bridge::ROS2ToSerialBridge"
+  EXECUTABLE ros2_to_serial_bridge_node
 )
 
 add_executable(dummy_serial
@@ -153,8 +158,19 @@ install(TARGETS ring_buffer transporter bridge_gen
 install(TARGETS
   dummy_serial
   dummy_udp
-  ros2_to_serial_bridge
+  ros2_to_serial_bridge_node
   DESTINATION lib/${PROJECT_NAME}
+)
+
+install(TARGETS
+  ros2_to_serial_bridge
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+)
+
+install(DIRECTORY launch config
+ DESTINATION share/${PROJECT_NAME}
 )
 
 if(BUILD_TESTING)
