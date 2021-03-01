@@ -78,6 +78,13 @@ foreach(msg ${_msgs})
 endforeach()
 list(REMOVE_DUPLICATES _deps)
 
+# Now setup the libraries for below.
+set(_libs)
+foreach(pkg ${_packages})
+  list(APPEND _libs ${${pkg}_LIBRARIES__rosidl_typesupport_fastrtps_cpp})
+endforeach()
+list(REMOVE_DUPLICATES _libs)
+
 add_library(ring_buffer
   src/ring_buffer.cpp
 )
@@ -98,6 +105,7 @@ ament_target_dependencies(bridge_gen
 )
 target_link_libraries(bridge_gen
   fastcdr
+  ${_libs}
 )
 
 add_library(ros2_to_serial_bridge SHARED
@@ -132,6 +140,7 @@ target_link_libraries(dummy_serial
   fastcdr
   ring_buffer
   transporter
+  ${ros2_serial_msgs_LIBRARIES__rosidl_typesupport_fastrtps_cpp}
   ${CMAKE_THREAD_LIBS_INIT}
 )
 
@@ -146,6 +155,7 @@ target_link_libraries(dummy_udp
   fastcdr
   ring_buffer
   transporter
+  ${ros2_serial_msgs_LIBRARIES__rosidl_typesupport_fastrtps_cpp}
   ${CMAKE_THREAD_LIBS_INIT}
 )
 
@@ -170,7 +180,7 @@ install(TARGETS
 )
 
 install(DIRECTORY launch config
- DESTINATION share/${PROJECT_NAME}
+  DESTINATION share/${PROJECT_NAME}
 )
 
 if(BUILD_TESTING)
