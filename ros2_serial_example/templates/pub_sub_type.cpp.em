@@ -21,7 +21,7 @@
 #include <fastcdr/FastCdr.h>
 
 #include <@(ros2_type.ns)/msg/@(ros2_type.lower_type).hpp>
-#include <@(ros2_type.ns)/msg/@(ros2_type.lower_type)__rosidl_typesupport_fastrtps_cpp.hpp>
+#include <@(ros2_type.ns)/msg/detail/@(ros2_type.lower_type)__rosidl_typesupport_fastrtps_cpp.hpp>
 
 #include "@(ros2_type.ns)_@(ros2_type.lower_type)_pub_sub_type.hpp"
 

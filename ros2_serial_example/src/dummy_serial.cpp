@@ -27,7 +27,7 @@
 #include <fastcdr/FastCdr.h>
 
 #include "ros2_serial_msgs/msg/serial_mapping.hpp"
-#include "ros2_serial_msgs/msg/serial_mapping__rosidl_typesupport_fastrtps_cpp.hpp"
+#include "ros2_serial_msgs/msg/detail/serial_mapping__rosidl_typesupport_fastrtps_cpp.hpp"
 
 #include "ros2_serial_example/transporter.hpp"
 #include "ros2_serial_example/uart_transporter.hpp"

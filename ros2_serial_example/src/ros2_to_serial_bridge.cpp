@@ -21,10 +21,10 @@
 #include <fastcdr/Cdr.h>
 
 #include <rclcpp/rclcpp.hpp>
-#include <std_msgs/msg/empty__rosidl_typesupport_fastrtps_cpp.hpp>
+#include <std_msgs/msg/detail/empty__rosidl_typesupport_fastrtps_cpp.hpp>
 
 #include "ros2_serial_msgs/msg/serial_mapping.hpp"
-#include "ros2_serial_msgs/msg/serial_mapping__rosidl_typesupport_fastrtps_cpp.hpp"
+#include "ros2_serial_msgs/msg/detail/serial_mapping__rosidl_typesupport_fastrtps_cpp.hpp"
 
 #include "ros2_serial_example/ros2_to_serial_bridge.hpp"
 #include "ros2_serial_example/transporter.hpp"
