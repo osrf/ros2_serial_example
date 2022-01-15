@@ -18,6 +18,8 @@ find_package(std_msgs REQUIRED)
 find_package(Threads REQUIRED)
 find_package(rclcpp_components REQUIRED)
 
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+
 include_directories(include "${CMAKE_CURRENT_BINARY_DIR}")
 
 if (ROS2_SERIAL_PKGS)
@@ -53,14 +55,14 @@ set(_tmpl_dir "${CMAKE_CURRENT_SOURCE_DIR}/templates")
 set(_output_dir "${CMAKE_CURRENT_BINARY_DIR}")
 # TODO(clalancette): CMake will *not* reexecute this if the generator file changes.
 execute_process(
-  COMMAND ${PYTHON_EXECUTABLE} ${_generator} ${_tmpl_dir} ${_output_dir} --print-outputs ${_flags}
+  COMMAND ${Python3_EXECUTABLE} ${_generator} ${_tmpl_dir} ${_output_dir} --print-outputs ${_flags}
   OUTPUT_VARIABLE _generated_sources
   OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 
 add_custom_command(
   OUTPUT ${_generated_sources}
-  COMMAND ${PYTHON_EXECUTABLE} ${_generator} ${_tmpl_dir} ${_output_dir} ${_flags}
+  COMMAND ${Python3_EXECUTABLE} ${_generator} ${_tmpl_dir} ${_output_dir} ${_flags}
   DEPENDS ${_generator} ${_tmpl_dir}/ros2_topics.hpp.em ${_tmpl_dir}/pub_sub_type.hpp.em ${_tmpl_dir}/pub_sub_type.cpp.em
   COMMENT "Generating topics"
 )
